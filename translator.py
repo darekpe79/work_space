@@ -69,16 +69,18 @@ def  translate_my_friend3 (k):
         results[k].append(translated_en)
 
         return results
-with ThreadPoolExecutor(3) as executor:
-    
-    results=list(tqdm(executor.map(translate_my_friend3,part5),total=len(part5)))
+list_without_nan = [x for x in part8 if type(x) is not float]   
+with ThreadPoolExecutor(1) as executor:
+ 
+    results=list(tqdm(executor.map(translate_my_friend3,list_without_nan),total=len(list_without_nan)))
+
 output={}
 for li in results:
     for k,v in li.items():
         output[k]=v
 
 excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('BNpart5.xlsx')  
+excel.to_excel('BNpart8.xlsx')  
 
 #%%split text by space and unique
 genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)
