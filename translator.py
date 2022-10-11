@@ -4,6 +4,8 @@ Created on Mon Aug  8 11:43:17 2022
 
 @author: darek
 """
+
+
 import unicodedata as ud
 import json
 import pandas as pd
@@ -12,6 +14,8 @@ import regex as re
 import translators as ts
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from definicje import *
+
 pat=r'(?<=\$a).*?(?=\$|$)'
 
 genre = pd.read_excel ('C:/Users/dariu/BN2_cale_650.xlsx', sheet_name=0)

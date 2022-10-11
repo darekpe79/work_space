@@ -2,6 +2,7 @@ import re
 from difflib import *
 from tqdm import tqdm
 
+
 '''
 Supported data types:
     - str
