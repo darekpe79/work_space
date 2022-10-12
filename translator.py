@@ -18,10 +18,10 @@ from definicje import *
 
 pat=r'(?<=\$a).*?(?=\$|$)'
 
-genre = pd.read_excel ('C:/Users/dariu/BN2_cale_650.xlsx', sheet_name=0)
-desk_600=genre['desk_600'].to_list()
+genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=1)
+desk_600=genre['brak eng'].to_list()
 pl1=genre['pl1'].to_list()
-setpl1 = list(dict.fromkeys(pl1))
+setpl1 = list(dict.fromkeys(desk_600))
 part1=setpl1[:2400]
 part2=setpl1[2400:4800]
 part3=setpl1[4800:7200]
@@ -69,11 +69,11 @@ def  translate_my_friend3 (k):
     
         results={}
         results[k]=[]
-        translated_en=ts.google(k, from_language='pl', to_language='en')
+        translated_en=ts.google(k, from_language='cs', to_language='en')
         results[k].append(translated_en)
 
         return results
-list_without_nan = [x for x in part8 if type(x) is not float]   
+list_without_nan = [x for x in setpl1 if type(x) is not float]   
 with ThreadPoolExecutor(1) as executor:
  
     results=list(tqdm(executor.map(translate_my_friend3,list_without_nan),total=len(list_without_nan)))
@@ -84,7 +84,7 @@ for li in results:
         output[k]=v
 
 excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('BNpart8.xlsx')  
+excel.to_excel('Czech_google_translate.xlsx')  
 
 #%%split text by space and unique
 genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)

@@ -100,4 +100,5 @@ def biblioteka_nauki_to_list(path):
         records.append(record)       
     return records
     #print(recordraw)
-x=mark_to_list23('C:/Users/dariu/biblioteka_nauki.txt')
+
+x=biblioteka_nauki_to_list('C:/Users/dariu/biblioteka_nauki/biblioteka_nauki.txt')
