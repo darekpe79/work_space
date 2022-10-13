@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Spyder Editor
 
@@ -7,7 +8,7 @@ from tqdm import tqdm
 import ijson
 import json
 import jellyfish
-with open ('C:/Users/User/Desktop/results.json', 'r', encoding='utf-8') as f:
+with open ('C:/Users/dariu/Downloads/results_final.json', 'r', encoding='utf-8') as f:
     nikodem=json.load(f)['records']
 files=["C:/Users/User/Desktop/BN_ARTICLES_JSON_HASHED-20221011T104350Z-001/BN_ARTICLES_JSON_HASHED/msplit00000001.json_results",
 "C:/Users/User/Desktop/BN_ARTICLES_JSON_HASHED-20221011T104350Z-001/BN_ARTICLES_JSON_HASHED/msplit00000002.json_results",
@@ -67,28 +68,36 @@ for file in files:
     darek={'brak':[]} 
        
     for elem in patryk:
-        
+        switch=False
         if elem.get('773'):
+            
             for e in elem.get('773'):
                 if e.get('x'):
+                    switch=True
                     issn=e.get('x').strip(' \'.,:;')
                     if issn not in darek:
                         darek[issn]=[(elem.get('001'), elem.get('245_hashed'),elem.get('650a')) ]
                     else:
                         darek[issn].append((elem.get('001'), elem.get('245_hashed'),elem.get('650a')))
-                else:
-                    
-                    darek['brak'].append((elem.get('001'), elem.get('245_hashed'),elem.get('650a')))
-                        
-           
+        if not switch:
             
+            darek['brak'].append((elem.get('001'), elem.get('245_hashed'),elem.get('650a')))
+                    
        
+            
+    lista=[]   
     for item in tqdm(nikodem):
-        titlebibNauk=item['article-title_hashed']
-        titlebibNauk_full=item['article-title']
+        #print(item)
+        
+        #titlebibNauk=item['hashed']
+        if 'hashed' not in item:
+            lista.append(item)
+            
+            
+        
         identifier=item['identifier']
         
-        issnbibNauk=item.get('issn')
+        issnbibNauk=[item.get('issn')[0] if item.get('issn') else None][0]
         if issnbibNauk in darek:
 
             
@@ -99,9 +108,9 @@ for file in files:
                 if titlebibNauk==titleBibNar:
                     if identifier not in output:
                     
-                        output[identifier]=[(idBibNar,identifier,titleBibNar,titlebibNauk_full)]
+                        output[identifier]=[idBibNar]
                     else:
-                        output[identifier].append((idBibNar,identifier,titleBibNar,titlebibNauk_full))
+                        output[identifier].append(idBibNar)
                         
                     
 
@@ -113,10 +122,143 @@ for file in files:
                 
                     if identifier not in output:
                     
-                        output[identifier]=[(idBibNar,identifier,titleBibNar,titlebibNauk_full)]
+                        output[identifier]=[idBibNar]
                     else:
-                        output[identifier].append((idBibNar,identifier,titleBibNar,titlebibNauk_full))
+                        output[identifier].append(idBibNar)
         
 with open ('json_all.json', 'w', encoding='utf-8') as file:
     json.dump(output,file,ensure_ascii=False)           
 #jellyfish.levenshtein_distance(titlebibNauk, titleBibNar) <=1
+            
+#%% Opracowanie resultatow
+from tqdm import tqdm
+import ijson
+import json
+import jellyfish
+with open ('C:/Users/dariu/Desktop/BNvsBibNauki/json_dopasowane_from150tys.json', 'r', encoding='utf-8') as f:
+    dopasowane=json.load(f)
+listaBN=["C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000051.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000000marc8.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000001.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000002.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000003.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000004.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000005.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000006.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000007.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000008.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000009.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000010.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000011.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000012.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000013.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000014.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000015.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000016.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000017.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000018.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000019.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000020.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000021.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000022.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000023.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000024.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000025.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000026.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000027.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000028.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000029.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000030.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000031.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000032.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000033.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000034.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000035.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000036.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000037.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000038.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000039.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000040.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000041.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000042.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000043.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000044.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000045.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000046.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000047.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000048.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000049.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000050.json"]            
+
+for idNauki, idBn in tqdm(dopasowane.items()):
+    
+    for ident in idBn:
+        switch=False
+        
+        
+            
+        for article in Bnarticle[0:50000]:
+            fields=article['fields']
+            for field in fields:
+                for key, value in field.items():
+                    if key=='001':
+                        if ident==value:
+                            switch=True
+                    if switch:
+                        if key=='650':
+                            #print(value)
+                            for k, v in value.items():
+                                if k=='subfields':
+                                    for words in v:
+                                        for klucz,wartosc in words.items():
+                                            if klucz=='a':
+                                                print(wartosc)
+dictionary={}
+
+for adres in listaBN:
+    with open (adres, 'r', encoding='utf-8') as f:
+        Bnarticle=json.load(f,strict=False)
+    
+              
+    for article in tqdm(Bnarticle):
+        fields=article['fields']
+        for field in fields:
+            for key, value in field.items():
+                if key=='001':
+                    ident=value
+                #     if ident==value:
+                #         switch=True
+                #if switch:
+                if key=='650':
+                    
+                    #print(value)
+                    for k, v in value.items():
+                        if k=='subfields':
+                            for words in v:
+                                
+                                for klucz,wartosc in words.items():
+                                    if klucz=='a':
+                                        #print(wartosc)
+                                        if ident in dictionary:
+                                            dictionary[ident].append(wartosc)
+                                        else:
+                                            dictionary[ident]=[wartosc]
+output={}                                        
+for idNauki, idBn in tqdm(dopasowane.items()):
+    if len(idBn)<4:
+        for ident in idBn: 
+            if ident in dictionary:
+                if idNauki not in output:
+                    output[idNauki]=[(ident,dictionary[ident])]
+                else:
+                    output[idNauki].append((ident,dictionary[ident]))
+with open ('BibNauk_hasla.json', 'w', encoding='utf-8') as file:
+    json.dump(output,file,ensure_ascii=False) 
+                
+                
+            
+        
+ 
+
+        
+    
