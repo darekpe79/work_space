@@ -18,8 +18,8 @@ from definicje import *
 
 pat=r'(?<=\$a).*?(?=\$|$)'
 
-genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=1)
-desk_600=genre['brak eng'].to_list()
+genre = pd.read_excel ('C:/Users/dariu/650_finlandia.xlsx', sheet_name=1)
+desk_600=genre['brak_eng'].to_list()
 pl1=genre['pl1'].to_list()
 setpl1 = list(dict.fromkeys(desk_600))
 part1=setpl1[:2400]
@@ -69,7 +69,7 @@ def  translate_my_friend3 (k):
     
         results={}
         results[k]=[]
-        translated_en=ts.google(k, from_language='cs', to_language='en')
+        translated_en=ts.google(k, from_language='fi', to_language='en')
         results[k].append(translated_en)
 
         return results
@@ -84,7 +84,7 @@ for li in results:
         output[k]=v
 
 excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('Czech_google_translate.xlsx')  
+excel.to_excel('fin_google_translate.xlsx')  
 
 #%%split text by space and unique
 genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)

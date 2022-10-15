@@ -137,82 +137,60 @@ import json
 import jellyfish
 with open ('C:/Users/dariu/Desktop/BNvsBibNauki/json_dopasowane_from150tys.json', 'r', encoding='utf-8') as f:
     dopasowane=json.load(f)
-listaBN=["C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000051.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000000marc8.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000001.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000002.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000003.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000004.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000005.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000006.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000007.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000008.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000009.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000010.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000011.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000012.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000013.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000014.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000015.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000016.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000017.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000018.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000019.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000020.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000021.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000022.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000023.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000024.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000025.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000026.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000027.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000028.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000029.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000030.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000031.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000032.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000033.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000034.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000035.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000036.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000037.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000038.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000039.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000040.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000041.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000042.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000043.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000044.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000045.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000046.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000047.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000048.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000049.json",
-"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json/msplit00000050.json"]            
+listaBN=["C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000051.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000000marc8.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000001.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000002.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000003.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000004.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000005.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000006.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000007.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000008.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000009.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000010.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000011.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000012.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000013.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000014.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000015.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000016.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000017.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000018.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000019.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000020.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000021.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000022.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000023.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000024.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000025.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000026.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000027.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000028.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000029.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000030.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000031.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000032.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000033.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000034.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000035.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000036.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000037.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000038.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000039.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000040.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000041.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000042.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000043.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000044.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000045.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000046.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000047.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000048.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000049.json",
+"C:/Users/dariu/Desktop/BNvsBibNauki/BN_article_json_wszystko/msplit00000050.json"]            
 
-for idNauki, idBn in tqdm(dopasowane.items()):
-    
-    for ident in idBn:
-        switch=False
-        
-        
-            
-        for article in Bnarticle[0:50000]:
-            fields=article['fields']
-            for field in fields:
-                for key, value in field.items():
-                    if key=='001':
-                        if ident==value:
-                            switch=True
-                    if switch:
-                        if key=='650':
-                            #print(value)
-                            for k, v in value.items():
-                                if k=='subfields':
-                                    for words in v:
-                                        for klucz,wartosc in words.items():
-                                            if klucz=='a':
-                                                print(wartosc)
+
 dictionary={}
 
 for adres in listaBN:
@@ -243,6 +221,8 @@ for adres in listaBN:
                                             dictionary[ident].append(wartosc)
                                         else:
                                             dictionary[ident]=[wartosc]
+with open ('BibNar_id_hasla.json', 'w', encoding='utf-8') as file:
+    json.dump(dictionary,file,ensure_ascii=False) 
 output={}                                        
 for idNauki, idBn in tqdm(dopasowane.items()):
     if len(idBn)<4:

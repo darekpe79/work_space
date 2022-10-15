@@ -92,13 +92,38 @@ def biblioteka_nauki_to_list(path):
             if line == '\n':
                 pass
             elif line.startswith('<record xmlns="http://www.openarchives.org/OAI/2.0/') and record: 
-                records.append(record)
+                records.append(' '.join(record))
                 record = []
                 record.append(line)
             else:
                 record.append(line)
-        records.append(record)       
+        records.append(' '.join(record))      
     return records
     #print(recordraw)
 
 x=biblioteka_nauki_to_list('C:/Users/dariu/biblioteka_nauki/biblioteka_nauki.txt')
+with open ('BibNauk_dump.json', 'w', encoding='utf-8') as file:
+    json.dump(x,file,ensure_ascii=False) 
+results={}
+counter=0
+for records in tqdm(x):
+    
+  
+        
+    
+        #recordraw=record.raw
+        soup=BeautifulSoup(records, 'xml')
+        ident=soup.find('identifier').text
+        #print(ident)
+        
+            
+        title=soup.find_all('article-title')
+        
+        title=[e.text for e in title]
+        if title:
+            results[ident]=title
+with open ('BibNauk_Id_title.json', 'w', encoding='utf-8') as file:
+    json.dump(results,file,ensure_ascii=False) 
+for k,v in results.items():
+    if len(v)>1:
+        print(v)
