@@ -56,6 +56,7 @@ def pole_650(lista):
        # print(v)
     pattern_a_marc=r'(?<=\$a).*?(?=\$|$)'
     patternYSO=r'(?<=\/yso\/).*?(?=\$|$)'
+    link=r'(?<=\$0).*?(?=\$|$)'
     field_a=re.findall(pattern_a_marc, lista)
     YSO=re.findall(patternYSO, lista)
     if YSO and field_a:
@@ -155,7 +156,7 @@ for plik in files:
 do_roboty2=list(do_roboty)
 
 results={}
-for genre_field in tqdm(do_roboty2[12015:]):
+for genre_field in tqdm(do_roboty2):
     sleep(1)
     pattern_a_marc=r'(?<=\$a).*?(?=\$|$)'
     pat=r'(?<=\$7[a-zA-Z]{2}).*?(?=\$|$)'

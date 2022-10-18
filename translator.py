@@ -4,8 +4,6 @@ Created on Mon Aug  8 11:43:17 2022
 
 @author: darek
 """
-
-
 import unicodedata as ud
 import json
 import pandas as pd
@@ -14,14 +12,26 @@ import regex as re
 import translators as ts
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-from definicje import *
-
 pat=r'(?<=\$a).*?(?=\$|$)'
-
-genre = pd.read_excel ('C:/Users/dariu/650_finlandia.xlsx', sheet_name=1)
-desk_600=genre['brak_eng'].to_list()
+link_pat=r'(?<=\$0).*?(?=\$|$)'
+genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)
+desk_600=genre['desk_650'].to_list()
+dicto={}
+for link in desk_600:
+    pat=r'(?<=\$7[a-zA-Z]{2}).*?(?=\$|$)'
+    ident=re.findall(pat, link)
+    
+    if ident:
+        goodnum=''.join(filter(str.isdigit, ident[0]))
+        print(goodnum)
+        pad_string =goodnum.zfill(9)
+        print(pad_string)
+        URL=r'https://aleph.nkp.cz/F/?func=direct&doc_number={}&local_base=AUT'.format(pad_string)
+        dicto[link]=URL
+excel=pd.DataFrame.from_dict(dicto, orient='index')
+excel.to_excel('czech_links.xlsx', sheet_name='650')     
 pl1=genre['pl1'].to_list()
-setpl1 = list(dict.fromkeys(desk_600))
+setpl1 = list(dict.fromkeys(pl1))
 part1=setpl1[:2400]
 part2=setpl1[2400:4800]
 part3=setpl1[4800:7200]
@@ -69,11 +79,11 @@ def  translate_my_friend3 (k):
     
         results={}
         results[k]=[]
-        translated_en=ts.google(k, from_language='fi', to_language='en')
+        translated_en=ts.google(k, from_language='pl', to_language='en')
         results[k].append(translated_en)
 
         return results
-list_without_nan = [x for x in setpl1 if type(x) is not float]   
+list_without_nan = [x for x in part8 if type(x) is not float]   
 with ThreadPoolExecutor(1) as executor:
  
     results=list(tqdm(executor.map(translate_my_friend3,list_without_nan),total=len(list_without_nan)))
@@ -84,7 +94,7 @@ for li in results:
         output[k]=v
 
 excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('fin_google_translate.xlsx')  
+excel.to_excel('BNpart8.xlsx')  
 
 #%%split text by space and unique
 genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)
