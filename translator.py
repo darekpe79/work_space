@@ -14,8 +14,9 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 pat=r'(?<=\$a).*?(?=\$|$)'
 link_pat=r'(?<=\$0).*?(?=\$|$)'
-genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)
-desk_600=genre['desk_650'].to_list()
+genre = pd.read_excel ('C:/Users/dariu/650_czechy_do_pracy.xlsx', sheet_name=2)
+google_translate=genre['google_translate'].to_list()
+dictionary_translate=genre['dictionary_translate'].to_list()
 dicto={}
 for link in desk_600:
     pat=r'(?<=\$7[a-zA-Z]{2}).*?(?=\$|$)'
@@ -103,9 +104,10 @@ wynik=[]
 for d in desk_600:
     for c in d.split(' '):
         wynik.append(c)
-listaaa=set([c for d in desk_600 for c in d.split(' ')])
+list_without_nan = [x for x in dictionary_translate+google_translate if type(x) is not float] 
+listaaa=set([c for d in list_without_nan for c in d.split(' ')])
 excel=pd.DataFrame(listaaa)
-excel.to_excel('czechunique650.xlsx', sheet_name='650')  
+excel.to_excel('finunique650.xlsx', sheet_name='650')  
 #%%
 genre.to_html()
 genre_list=genre.desk655.to_list()
