@@ -12,15 +12,32 @@ import regex as re
 import translators as ts
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+import math
 pat=r'(?<=\$a).*?(?=\$|$)'
 link_pat=r'(?<=\$0).*?(?=\$|$)'
-genre = pd.read_excel ('C:/Users/dariu/650__do_pracy_wszystko.xlsx', sheet_name='PBL_650')
-list650=genre['subfield_a'].to_list()
+dzialy = pd.read_excel ('C:/Users/dariu/Downloads/Mapowanie PBL-BN.xlsx', sheet_name='pbl_dzialy_all')
+list650=dzialy['dzial'].to_list()
+mojeposplitowane=pd.read_excel ('C:/Users/dariu/PBL_650_rozbite2.xlsx', sheet_name='650')
+dicto=mojeposplitowane.to_dict('records')
+output={}
+for one in list650:
+
+    for el in dicto:
+        part1=el['człon1']
+        part2=el['człon2']
+        
+        if one.startswith(part1) or one.startswith(str(part2)):
+            output[el['calosc']]=[one,part1,part2 ]
+            print(el['calosc'])
+excel=pd.DataFrame.from_dict(output, orient='index')
+excel.to_excel('PBL_650_rozbite_mapowanie_klucz_650.xlsx', sheet_name='650')     
+x = float('nan')
+math.isnan(x)
 #%%uppercase split
 dicto={}
 proba={}
 for elem in list650:
-    for el in elem.split(', '):
+    for el in elem.split(','):
         el=el.strip()
         #print(el)
         if el[0].isupper():
@@ -43,7 +60,7 @@ for elem in list650:
             else:
                 dicto[elem]=[elem]
 excel=pd.DataFrame.from_dict(dicto, orient='index')
-excel.to_excel('PBL_650_rozbite2.xlsx', sheet_name='650')               
+excel.to_excel('PBL_650_rozbite.xlsx', sheet_name='650')               
 
 #%%
 dictionary_translate=genre['dictionary_translate'].to_list()
