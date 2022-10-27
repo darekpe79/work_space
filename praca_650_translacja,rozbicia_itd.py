@@ -15,28 +15,47 @@ from concurrent.futures import ThreadPoolExecutor
 import math
 pat=r'(?<=\$a).*?(?=\$|$)'
 link_pat=r'(?<=\$0).*?(?=\$|$)'
-dzialy = pd.read_excel ('C:/Users/dariu/Downloads/Mapowanie PBL-BN.xlsx', sheet_name='pbl_dzialy_all')
+dzialy = pd.read_excel ('C:/Users/dariu/Mapowanie PBL-BN.xlsx', sheet_name='pbl_dzialy_all')
 list650=dzialy['dzial'].to_list()
-mojeposplitowane=pd.read_excel ('C:/Users/dariu/PBL_650_rozbite2.xlsx', sheet_name='650')
+mojeposplitowane=pd.read_excel ('C:/Users/dariu/PBL_650_Mapowanie_PBL_BN.xlsx', sheet_name='niespasowane')
+list6501=mojeposplitowane['calosc'].to_list()
 dicto=mojeposplitowane.to_dict('records')
 output={}
-for one in list650:
+output1={}
+for one1 in list650:
+    one=one1.split('->')
 
     for el in dicto:
-        part1=el['człon1']
-        part2=el['człon2']
+        part1=el['part1']
+        part2=el['part2']
+        if one[0].strip()==str(el['calosc']).strip():
+            output1[el['calosc']]=[one1,part1,part2 ]
         
-        if one.startswith(part1) or one.startswith(str(part2)):
-            output[el['calosc']]=[one,part1,part2 ]
+        if part1.strip()=='Tematy, motywy':
+            
+            if one[0].strip().startswith(str(part2).strip()):
+                print (part2)
+                output[el['calosc']]=[one1,part1,part2]
+        
+        if one[0].strip()==str(part2).strip():
+            
+            output[el['calosc']]=[one1,part1,part2] 
             print(el['calosc'])
-excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('PBL_650_rozbite_mapowanie_klucz_650.xlsx', sheet_name='650')     
+        if one[0].strip()==str(part1).strip():
+            output[el['calosc']]=[one1,part1,part2 ]
+            
+excel=pd.DataFrame.from_dict(output1, orient='index')
+excel.to_excel('PBL_650_11.xlsx', sheet_name='650') 
+
+string='Teoria literatury. Ogólne -> Teoria literatury-zdczsd>wefsfew'
+lista=string.split('->')
+    
 x = float('nan')
 math.isnan(x)
 #%%uppercase split
 dicto={}
 proba={}
-for elem in list650:
+for elem in list6501:
     for el in elem.split(','):
         el=el.strip()
         #print(el)
@@ -55,7 +74,7 @@ for elem in list650:
             print(el)
             if elem in dicto: 
                 pos=len(dicto[elem])
-                dicto[elem][pos-1]+=','+el
+                dicto[elem][pos-1]+=', '+el
                 
             else:
                 dicto[elem]=[elem]
