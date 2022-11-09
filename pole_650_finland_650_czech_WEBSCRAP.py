@@ -118,13 +118,168 @@ excel.to_excel('650_finlandia.xlsx', sheet_name='format1')
                         
                        
                         
+#%% broader concept
+
+
+mojeposplitowane=pd.read_excel ('C:/Users/dariu/Downloads/650__do_pracy_wszystko (1).xlsx', sheet_name='Fin_650')
+list6501=mojeposplitowane['links'].to_list()
+list_without_nan = [x for x in list6501 if type(x) is not float] 
+response = requests.get(url=f'https://finto.fi/yso/en/page/{number}')
+#https://finto.fi/yso/en/page/p3537
+response = requests.get(url='https://finto.fi/yso/en/page/p3537')
+bs=BeautifulSoup(response.content)
+engVal=bs.title.string
+#print(engVal)
+enval2=bs.find("span", {'id':"pref-label"}).text
+enval3=bs.find_all("div", {"class":"row property prop-skos_broader"})
+
+slownik={}
+for li in list_without_nan[:1]:
+    
+    number=li.split('/')[-1]
+    print(number)
+    response = requests.get(url=f'https://finto.fi/yso/en/page/{number}')
+    bs=BeautifulSoup(response.content)
+    enval2=bs.find("span", {'id':"pref-label"}).text
+    enval3=bs.find_all("div", {"class":"row property prop-skos_broader"})
+    slownik[li]=[enval2]
+    proba=[]
+    
+    for h in enval3:
+        
+        proba2=[]
+        for s in h.find_all('a'):
+            href=s['href']
+            broader=s.text
+            if href:
+                proba.append(href)
+        #if proba:
+    while len(proba)>0:
+        proba1=proba[0]
+        print(proba1)
+        response = requests.get(url=f'https://finto.fi/{proba1}')
+        bs=BeautifulSoup(response.content)
+        enval2=bs.find("span", {'id':"pref-label"}).text
+        print(enval2)
+        enval3=bs.find_all("div", {"class":"row property prop-skos_broader"})
+        proba=[]
+        if enval3:
+            
+            for h in enval3:
+        
+                for s in h.find_all('a'):
+                    href=s['href']
+                    #print(href)
+                    broader=s.text
+                    proba.append(href)
+                    slownik[li].append(href)
+                    slownik[li].append(enval2)
+            
+            
+def rekurencja(href):
+    response = requests.get(href)
+    bs=BeautifulSoup(response.content)
+    enval2=bs.find("span", {'id':"pref-label"}).text
+    enval3=bs.find_all("div", {"class":"row property prop-skos_broader"})
+    for h in enval3:
+        for s in h.find_all('a'):
+            href=s['href']
+            broader=s.text
+            if href:
+                response = requests.get(url=f'https://finto.fi/{href}')
+                enval2=bs.find("span", {'id':"pref-label"}).text
+                enval3=bs.find_all("div", {"class":"row property prop-skos_broader"})
+            
+
+def suma_rekurencja(liczba):
+    if liczba == 0: return 0
+    return liczba + suma_rekurencja(liczba - 1)
+suma_rekurencja(20)     
+    
+    
+        
                        
+response = requests.get(url='https://finto.fi/rest/v1/yso/data?uri=http%3A%2F%2Fwww.yso.fi%2Fonto%2Fyso%2Fp6612&format=application/ld%2Bjson')                       
+data = response.json() ['graph']
+output={} 
+outputT={}                 
+for adress in tqdm(list_without_nan[9884:]):
+    output[adress]=[]
+    outputT[adress]=[]
+    number=adress.split('/')[-1].strip()
+    
+    response = requests.get(url='https://finto.fi/rest/v1/yso/data?uri=http%3A%2F%2Fwww.yso.fi%2Fonto%2Fyso%2F{}&format=application/ld%2Bjson'.format(number) )                     
+    try:
+        data = response.json() ['graph']
+        next_adress=[]
+        for d in data:
+            
+            if 'narrower' in d:
+                if isinstance(d['narrower'], dict) and d['narrower']['uri']==adress :
+                    
+                    uri=d['uri']
+                    next_adress.append(uri)
+                    prefLabel=d['prefLabel']
+                    if not any(d['lang'] == 'en' for d in prefLabel):
+                        en_value=[v['value'] for v in prefLabel if v['lang']=='fi']
+    
+                    else:
+                        en_value=[v['value'] for v in prefLabel if v['lang']=='en']
+                    
+                    output[adress]=[(uri,en_value[0])]
+                    outputT[adress]=[en_value[0]]
+        while len(next_adress)>0:
+            next_adress1=next_adress[0]
+            #print(proba1)  
+            number=next_adress1.split('/')[-1].strip()
+            
+            response = requests.get(url='https://finto.fi/rest/v1/yso/data?uri=http%3A%2F%2Fwww.yso.fi%2Fonto%2Fyso%2F{}&format=application/ld%2Bjson'.format(number) )                     
+            data = response.json() ['graph']  
+            next_adress=[]
+            for d in data:
+                
+                if 'narrower' in d:
+                    if isinstance(d['narrower'], dict) and d['narrower']['uri']==next_adress1:
                         
-                       
+                        uri=d['uri']
                         
-                       
-                        
-                       
+                        next_adress.append(uri)
+                        prefLabel=d['prefLabel']
+                        if not any(d['lang'] == 'en' for d in prefLabel):
+                            en_value=[v['value'] for v in prefLabel if v['lang']=='fi']
+    
+                        else:
+                            en_value=[v['value'] for v in prefLabel if v['lang']=='en']
+                
+                        output[adress].append((uri,en_value[0]))
+                        outputT[adress].append(en_value[0])
+    except:
+        outputT[adress]=['brak_wartosci']
+excel=pd.DataFrame.from_dict(outputT, orient='index')
+excel.to_excel('Broader_fin4.xlsx', sheet_name='format1')  
+#with open ('json_broader_fin.json', 'w', encoding='utf-8') as file:
+#    json.dump(output,file,ensure_ascii=False)   
+keys_file = open("json_broader_fin.json")
+keys = keys_file.read().encode('utf-8')
+keys_json = json.loads(keys)     
+
+mojeposplitowane=pd.read_excel ('C:/Users/dariu/Broader_fin4.xlsx', sheet_name='format1')
+lista=[]
+for x in range(15):
+    print(x)
+    li=mojeposplitowane[x].to_list()
+    lista.extend(li)
+list_without_nan = [x for x in lista if type(x) is not float] 
+output={}
+for l in list_without_nan:
+    if l not in output:
+        output[l]=1
+    else:
+        output[l]+=1
+        
+excel=pd.DataFrame.from_dict(output, orient='index')
+excel.to_excel('Broader_counter.xlsx', sheet_name='broader_count')     
+         
 #%%                        
 files=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles0_2022-08-26.mrk",
 "D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles1_2022-08-26.mrk",
@@ -210,6 +365,23 @@ for key in results.keys():
             
 excel=pd.DataFrame.from_dict(results, orient='index')
 excel.to_excel('650_czechy.xlsx', sheet_name='format1')                
+#%% 87 Literary concpets all Finland
+response = requests.get(url='https://finto.fi/rest/v1/yso/data?uri=http%3A%2F%2Fwww.yso.fi%2Fonto%2Fyso%2Fp26564&format=application/ld%2Bjson')                       
+data = response.json() ['graph']
+output=[]
+for d in data:
+    prefLabel=d['prefLabel']
+    if not any(d['lang'] == 'en' for d in prefLabel):
+        en_value=[v['value'] for v in prefLabel if v['lang']=='fi']
+
+    else:
+        en_value=[v['value'] for v in prefLabel if v['lang']=='en']
+    output.append(en_value[0])
+
+excel=pd.DataFrame(output,columns=['87_literature'])
+excel.to_excel('87_literatura_fin.xlsx', sheet_name='format1')  
+
+
 #%%     
 pole650 = pd.read_excel ("C:/Users/dariu/650_czechy.xlsx", sheet_name=1)
 dict_650 = dict(zip(pole650['field'].to_list(),pole650['czech'].to_list()))
@@ -311,4 +483,8 @@ l_2 = [5, 6, 7, 8]
 
 keys = ['mkt_o', 'mkt_c'] 
 new_dict = {k: dict(zip(keys, v)) for k, v in zip(idx, zip(l_1, l_2))}
-   
+
+def suma_rekurencja(liczba):
+    if liczba == 0: return 0
+    return liczba + suma_rekurencja(liczba - 1)
+suma_rekurencja(20)   
