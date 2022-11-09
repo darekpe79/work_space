@@ -83,9 +83,9 @@ for adress in tqdm(list_without_nan):
 with open ('json_broader_fin.json', 'w', encoding='utf-8') as file:
     json.dump(output,file,ensure_ascii=False)  
     
+# CIEKAWOSTKA!!!!!!!!!  
     
-    
-keys_file = open("C:/Users/User/json_broader_fin.json")
+keys_file = open("D:/Nowa_praca/broader concepts_FIN/json_broader_fin.json")
 keys = keys_file.read().encode('utf-8')
 keys_json = json.loads(keys)   
 first2pairs = {k: keys_json[k] for k in list(keys_json)[:1]}
@@ -151,9 +151,11 @@ for key,val in tqdm(keys_json.items()):
             
             
             output3[v[0]]=v[1]  
+mojeposplitowane=pd.read_excel ('D:/Nowa_praca/broader concepts_FIN/koncepty650doSPRbelongstogroups.xlsx',sheet_name='Arkusz1')
+dictionary = dict(zip(mojeposplitowane['links'].to_list(), mojeposplitowane['dictionary_translate'].to_list()))
 
 dobry={}
-for key,val in tqdm(output3.items()):
+for key,val in tqdm(dictionary.items()):
         dobry[key]={}
         number=key.split('/')[-1].strip()
         #print(number)
@@ -194,3 +196,24 @@ for key,val in tqdm(output3.items()):
                         dobry[key][val]=en_value
                     else:
                         dobry[key][val].append(en_value[0])
+with open ('json_main_groups_belongs.json', 'w', encoding='utf-8') as file:
+    json.dump(dobry,file,ensure_ascii=False)  
+                        
+keys_file = open("D:/Nowa_praca/broader concepts_FIN/json_broader_fin_groups.json")
+keys = keys_file.read().encode('utf-8')
+keys_json = json.loads(keys)  
+out={}
+
+for key, val in keys_json.items():
+    out[key]=[]
+    if val:
+        for k,v in val.items():
+            out[key]=[k]+v
+            #out[key]=[k,v]
+            
+            
+            
+    
+excel=pd.DataFrame.from_dict(out, orient='index')
+
+excel.to_excel('main_groupsall.xlsx', sheet_name='broader')
