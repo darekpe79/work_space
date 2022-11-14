@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 mojeposplitowane=pd.read_excel ('C:/Users/User/Desktop/650__do_pracy_wszystko (1).xlsx',sheet_name='Fin_650')
+
 list6501=mojeposplitowane['links'].to_list()
 list_without_nan = [x for x in list6501 if type(x) is not float] 
 
@@ -136,10 +137,7 @@ for key,val in tqdm(first2pairs.items()):
                             
 excel=pd.DataFrame.from_dict(output, orient='index')
 excel.to_excel('broader_groups.xlsx', sheet_name='broader') 
-f={}    
-f['lala']={}
-f['lala']['kara']=['lolo']
-f['lala']['kara']=['lolo2']
+
 
 
 output3={}
@@ -151,6 +149,9 @@ for key,val in tqdm(keys_json.items()):
             
             
             output3[v[0]]=v[1]  
+            
+            
+            
 mojeposplitowane=pd.read_excel ('D:/Nowa_praca/broader concepts_FIN/koncepty650doSPRbelongstogroups.xlsx',sheet_name='Arkusz1')
 dictionary = dict(zip(mojeposplitowane['links'].to_list(), mojeposplitowane['dictionary_translate'].to_list()))
 
@@ -199,7 +200,7 @@ for key,val in tqdm(dictionary.items()):
 with open ('json_main_groups_belongs.json', 'w', encoding='utf-8') as file:
     json.dump(dobry,file,ensure_ascii=False)  
                         
-keys_file = open("D:/Nowa_praca/broader concepts_FIN/json_broader_fin_groups.json")
+keys_file = open('D:/Nowa_praca/broader concepts_FIN/json_main_groups_belongs.json')
 keys = keys_file.read().encode('utf-8')
 keys_json = json.loads(keys)  
 out={}
@@ -208,12 +209,64 @@ for key, val in keys_json.items():
     out[key]=[]
     if val:
         for k,v in val.items():
-            out[key]=[k]+v
-            #out[key]=[k,v]
+            #out[key]=[k]+v
+            out[key]=[k,v]
+
             
-            
-            
+
+out2={}
+listofall=[]
+for key, val in out.items():
+    out2[key]={}
+    if val:
+        
+            #out[key]=[k]+v
+        out2[key][val[0]]=val[1]
+        listofall.extend(val[1])
+# ILE GRUP STATSY:
+stat={}
+for li in listofall:
+    if li in stat:
+        stat[li]+=1
+    else:
+        stat[li]=1
+        
+excel=pd.DataFrame.from_dict(stat, orient='index')
+
+excel.to_excel('group_stats.xlsx', sheet_name='groups')     
+with open ('listoffallgrouops.json', 'w', encoding='utf-8') as file:
+    json.dump(listofall,file,ensure_ascii=False)             
+# ILE GRUP STATSY:
+with open ('json_all_groups_belongs2.json', 'w', encoding='utf-8') as file:
+    json.dump(out,file,ensure_ascii=False)  
+with open('D:/Nowa_praca/broader concepts_FIN/json_all_groups_belongs.json', encoding='utf-8') as f:
+    statdata = json.load(f)                        
+
+                
     
 excel=pd.DataFrame.from_dict(out, orient='index')
 
-excel.to_excel('main_groupsall.xlsx', sheet_name='broader')
+excel.to_excel('mall_groups_belongs.xlsx', sheet_name='broader')
+mojeposplitowane=pd.read_excel ('D:/Nowa_praca/broader concepts_FIN/do_liczenia_grup_all.xlsx',sheet_name='broaders+nasze')
+diciton=mojeposplitowane.to_dict('records')
+probny={}
+for l in diciton:
+    print(l)
+    for x in range(1,6):
+        if l[x] not in probny:
+            probny[l[x]]=l['count']
+        else:
+            probny[l[x]]+=l['count']
+excel=pd.DataFrame.from_dict(probny, orient='index')
+
+excel.to_excel('groups_all.xlsx', sheet_name='group')            
+dicto={}
+dicto['book']=[100,'lala']
+dicto['cool']=[200,'lala']
+licz={}
+for key, val in dicto.items():
+    print(val)
+    if val[1] not in licz:
+        licz[val[1]]=val[0]
+    else:
+        licz[val[1]]+=val[0]
