@@ -18,34 +18,78 @@ import regex as re
 from pprint import pprint
 import pprint
 from time import time
-
-def checker(field_list, check_list):
-    if field_list:
-        for elem in check_list:
-            if any([elem in field for field in field_list]):
-                return True
-    else:
-        return False
+#czesi tylko 080
+classifications={'080': 'Universal Decimal Classification Number',
+'082': 'Dewey Decimal Classification Number',
+'083': 'Additional Dewey Decimal Classification Number',
+'084': 'Other Classification Number'}
     
-
-
+ukd_og = pd.read_excel ("C:/Users/dariu/ukd_og.xlsx", sheet_name='Arkusz1')
+dict_ = dict(zip(ukd_og['num'].to_list(),ukd_og['class'].to_list()))
 pliki=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/arto_2022-09-02.mrk",
 "D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/fennica_2022-09-02.mrk"]
-output={}
-for ks in pliki:
+pattern_a_marc=r'(?<=\$a).*?(?=\$|$)' 
+output=[]
+output2={}
+for ks in pliki[1:2]:
     ksiazki1=list_of_dict_from_file(ks)
     
     for rekord in tqdm(ksiazki1):
+        
+            
+        
         for key, value in rekord.items():
-            if key=='610' or key=='611' or key=='647' or key=='648' or key=='651'or key=='600':
-                print(key, value)
+            if key=='080':
+            
+                for v in value:
+                    if type(v) is list:
+                        print(v)
+
+                        
+         
+                    field_a=re.findall(pattern_a_marc, v)
+                    print(field_a)
+                    
+                    if field_a:
+                        
+                        print(field_a)
+                        if field_a[0].startswith('8'):
+                            
+                            if field_a[0] not in  output2:
+                                output2[field_a[0]]=1
+                            else:
+                                output2[field_a[0]]+=1
+        
+            if key=='080':# or key=='082' or key=='083' or key=='084':
+            #if key=='610' or key=='611' or key=='647' or key=='648' or key=='651'or key=='600':
+                
+                for v in value:
+                    if type(v) is list:
+                        
+                        print(rekord)
+                        
+                    field_a=re.findall(pattern_a_marc, v)
+                    if field_a:
+                        if field_a[0].startswith('8'):
+                            if field_a[0] not in  output2:
+                                output2[field_a[0]]=value
+                            else:
+                                output2[field_a[0]].append(value)
+                    
+                if key not in  output2:
+                    
+                    output2[key]=value
+                else:
+                    output2[key].append(value)
+                
                 if key not in output:
                     output[key]=1
                 else:
                     output[key]+=1
-excel=pd.DataFrame.from_dict(output, orient='index')
-
-excel.to_excel('finstats6xx.xlsx', sheet_name='6xxstats')
+excel=pd.DataFrame.from_dict(output2,orient='index')
+ex=excel.T
+df1 = pd.DataFrame(ex[0:1048570])
+excel.to_excel('fennicaclassification.xlsx', sheet_name='classification')
         
        rekord.get('610')
        rekord.get('611')
