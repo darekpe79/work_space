@@ -56,6 +56,66 @@ for t in test:
 excel=pd.DataFrame.from_dict(namelist, orient='index') 
 excel.to_excel("ukd.xlsx", sheet_name='Sheet_name_1')    
     
+#%%
+classifications={'080': 'Universal Decimal Classification Number',
+'082': 'Dewey Decimal Classification Number',
+'083': 'Additional Dewey Decimal Classification Number',
+'084': 'Other Classification Number'}
+    
+ukd_og = pd.read_excel ("C:/Users/dariu/ukd_og.xlsx", sheet_name='Arkusz1')
+dict_ = dict(zip(ukd_og['num'].to_list(),ukd_og['class'].to_list()))
+removed_value = dict_.pop(5)
+pliki=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/arto_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/fennica_2022-09-02.mrk"]
+pattern_a_marc=r'(?<=\$a).*?(?=\$|$)' 
+output=[]
+output2={}
+for ks in pliki:
+    ksiazki1=list_of_dict_from_file(ks)
+    
+    for rekord in tqdm(ksiazki1):
+        
+            
+        
+        for key, value in rekord.items():
+            if key=='080':
+            
+                for v in value:
+                    if type(v) is list:
+                        print(v)
+
+                        
+         
+                    field_a=re.findall(pattern_a_marc, v)
+                    print(field_a)
+                    
+                    if field_a:
+                        for num, classi in dict_.items():
+                            #classif=''
+                            print(field_a)
+                            if field_a[0].startswith(str(num)):
+                                classif=dict_[num]
+                                if field_a[0] not in  output2:
+                                    output2[field_a[0]]=[1,classif]
+                                else:
+                                    output2[field_a[0]][0]+=1
+                            elif field_a[0].startswith(str('5')):
+                                if field_a[0].startswith(str('51')):
+                                    classif='MATHEMATICS'
+
+                                    
+                                else:
+                                    classif='NATURAL SCIENCES'
+                                if field_a[0] not in  output2:
+                                    output2[field_a[0]]=[1,classif]
+                                else:
+                                    output2[field_a[0]][0]+=1
+                                    
+                                
+                          
+excel=pd.DataFrame.from_dict(output2,orient='index')
+
+excel.to_excel('finclassification2.xlsx', sheet_name='classification')
     
     
     
