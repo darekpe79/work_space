@@ -26,7 +26,7 @@ from time import sleep
 
 patternnum=r'(?<=<div class="nodetag">).*?(?=<\/div>)'
 #https://finto.fi/yso/en/page/p3537
-response = requests.get(url='https://udcsummary.info/php/index.php?id=67277&lang=en#')
+response = requests.get(url='https://udcsummary.info/php/index.php?lang=pl')
 bs=BeautifulSoup(response.content)
 soup = BeautifulSoup(response.text, 'html.parser')
 ds= soup.find_all('div',{"id":"classtree"}) 
@@ -65,8 +65,11 @@ classifications={'080': 'Universal Decimal Classification Number',
 ukd_og = pd.read_excel ("C:/Users/dariu/ukd_og.xlsx", sheet_name='Arkusz1')
 dict_ = dict(zip(ukd_og['num'].to_list(),ukd_og['class'].to_list()))
 removed_value = dict_.pop(5)
-pliki=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/arto_2022-09-02.mrk",
-"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/fennica_2022-09-02.mrk"]
+pliki=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_chapters_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/pbl_articles_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/pbl_books_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_articles_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_books_2022-08-26.mrk"]
 pattern_a_marc=r'(?<=\$a).*?(?=\$|$)' 
 output=[]
 output2={}
@@ -115,7 +118,7 @@ for ks in pliki:
                           
 excel=pd.DataFrame.from_dict(output2,orient='index')
 
-excel.to_excel('finclassification2.xlsx', sheet_name='classification')
+excel.to_excel('polclassification2.xlsx', sheet_name='classification')
     
     
     
