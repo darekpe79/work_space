@@ -68,28 +68,50 @@ with pd.ExcelWriter("Nationality_in_650.xlsx", engine='openpyxl', mode='a') as w
 from nltk.stem import PorterStemmer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import WordNetLemmatizer
+import re
 to_compare = pd.read_excel ("C:/Users/dariu/650_to_compare.xlsx", sheet_name='to_compare')
 pl_l=to_compare['LCSH_PBL']
-fin_l=to_compare['dictionary_cz']
+fin_l=to_compare['dictionaryfin']
+list_without_nan_fi = [x for x in fin_l if not isinstance(x, float)] 
 genre_nationality=pd.read_excel('C:/Users/dariu/genre,nationality.xlsx', sheet_name='genre')
 genre=genre_nationality['Genre']
 lemmatizer = WordNetLemmatizer()
 zlematyzowane=[]
-for g in genre:
+output={}
+for g in tqdm(genre):
     words = word_tokenize(g)
     lemmat=[]
     for w in words:
         w=w.casefold().strip()
-        lemmatizer = WordNetLemmatizer()
+        
         
         lemma1=lemmatizer.lemmatize(w)
-        print(lemma1)
+        #print(lemma1)
         lemmat.append(lemma1)
     zlematyzowane.append(' '.join(lemmat))    
-       
+    lemmatized=' '.join(lemmat)
+    
+    
+    for word in list_without_nan_fi:
+        words2 = word_tokenize(word)
+        lemmat2=[]
+        for w2 in words2:
+            
+        
+            word2=w2.casefold().strip()
+            lemma2=lemmatizer.lemmatize(word2)
+            #print(lemma2)
+            lemmat2.append(lemma2)
+        lemmatized2=' '.join(lemmat2)
+        print(lemmatized2)
+        if re.search(rf"{lemmatized}(?= |$)", lemmatized2, re.IGNORECASE):
+            print(word)
+            output[word]=[lemmatized2,lemmatized]
+    lemmatized2=''
+    lemmatized=''
+    
 
-    pass
-
+  
     
 sentence="rocks"
 words = word_tokenize(sentence)
