@@ -293,7 +293,71 @@ df_wszyscy_autorzy_NOTnan=df_wszyscy_autorzy.dropna()
 df_wszyscy_autorzy_NOTnan.to_excel("700_pbl_marc_books_700_2021-08-05BEZ_DUPLIKATOW_TYlko_VIAFY.xlsx", sheet_name='Sheet_name_1') 
 
                             
+#%% Ludki nowe 05.12.2022
+paths=["F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/arto.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_articles.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_books.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_chapters.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles0.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles1.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles2.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles3.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles4.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_books.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_chapters.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/fennica.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_articles.mrk",
+"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_books.mrk"]
+pattern3=r'(?<=\$a).*?(?=\$|$)' 
+#daty
+pattern4='(?<=\$d).*?(?=\$|$)'
+pattern5='(?<=\$1http:\/\/viaf\.org\/viaf\/).*?(?=\$|$| )'
+zViaf={}
+bezviaf={}
+viafs_list=[]
+
+#val100=[]
+for plik in paths:
+    dictrec=list_of_dict_from_file(plik)
+    
+
+    for rekord in tqdm(dictrec):
+        for key, val in rekord.items():
+            if key=='700' or key=='100' or key=='600':
+    
+                
+                for v in val:
                     
+                    #val100.append(vi)
+
+                    
+                    date = re.findall(pattern4, names)
+                    name = re.findall(pattern3, names)
+
+                    viaf=re.findall(pattern5, names)
+
+                    
+                    if name:
+                        name=name[0]
+                    else:
+                        name='brak'
+                    
+
+
+                    if viaf:
+                        viaf=viaf[0]
+                    else:
+                        viaf='brak'
+                    if viaf=='brak':
+                        if name not in bezviaf:
+                            bezviaf[name]=1
+                        else:
+                            bezviaf[name]+=1
+                    else:
+                        if name not in zViaf:
+                            zViaf[name]=[viaf,1]
+                        else:
+                            zViaf[name][1]+=1                 
                     
                             
                             
