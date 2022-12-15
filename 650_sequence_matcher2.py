@@ -45,38 +45,39 @@ joined2=' '.join(sorted_string)
 s = SequenceMatcher(None, joined1, joined2).ratio()
 #%% natioanlity, genre in 650
 import re
-to_compare = pd.read_excel ("C:/Users/dariu/650_to_compare.xlsx", sheet_name='to_compare')
+to_compare = pd.read_excel ("C:/Users/dariu/genre_in_650_lemmatized_all.xlsx", sheet_name='czech')
 genre_nationality=pd.read_excel('C:/Users/dariu/genre,nationality.xlsx', sheet_name='nationality')
 nationality=genre_nationality['adjective']
-pl_l=to_compare['LCSH_PBL']
+pl_l=to_compare[650]
 fin_l=to_compare['dictionary_cz']
 list_without_nan_cz = [x for x in fin_l if not isinstance(x, float)] 
 list_without_nan_pl = [x for x in pl_l if not isinstance(x, float)] 
 nationality= [x for x in nationality if not isinstance(x, float)] 
 output={}
-for field in list_without_nan_cz:
+for field in list_without_nan_pl:
     for tekst in nationality:
         tekst=tekst.strip()
     
         if re.search(rf"{tekst}(?= |$)", field, re.IGNORECASE):
             output[field]=tekst
 excel=pd.DataFrame.from_dict(output, orient='index') 
-excel.to_excel("Nationality_in_650.xlsx", sheet_name='fin') 
+excel.to_excel("Nationality_in_650_only_genres_Cze.xlsx", sheet_name='Nation') 
 with pd.ExcelWriter("Nationality_in_650.xlsx", engine='openpyxl', mode='a') as writer:  
     excel.to_excel(writer, sheet_name='Cz')
-#%% lemmitze    
+#%% lemmatize    
 from nltk.stem import PorterStemmer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import WordNetLemmatizer
-import re
-to_compare = pd.read_excel ("C:/Users/dariu/650_to_compare.xlsx", sheet_name='to_compare')
+import  regex as re
+to_compare = pd.read_excel ("C:/Users/dariu/genre_in_650_lemmatized_all.xlsx", sheet_name='BN')
 pl_l=to_compare['LCSH_PBL']
-fin_l=to_compare['dictionaryfin']
+fin_l=to_compare['LCSH_BN']
 list_without_nan_fi = [x for x in fin_l if not isinstance(x, float)] 
-genre_nationality=pd.read_excel('C:/Users/dariu/genre,nationality.xlsx', sheet_name='genre')
-genre=genre_nationality['Genre']
+genre_nationality=pd.read_excel('C:/Users/dariu/genre,nationality.xlsx', sheet_name='nationality')
+genre=genre_nationality['adjective']
 lemmatizer = WordNetLemmatizer()
-zlematyzowane=[]
+zlematyzowane={}
+
 output={}
 for g in tqdm(genre):
     words = word_tokenize(g)
@@ -88,8 +89,9 @@ for g in tqdm(genre):
         lemma1=lemmatizer.lemmatize(w)
         #print(lemma1)
         lemmat.append(lemma1)
-    zlematyzowane.append(' '.join(lemmat))    
+    
     lemmatized=' '.join(lemmat)
+    
     
     
     for word in list_without_nan_fi:
@@ -103,13 +105,15 @@ for g in tqdm(genre):
             #print(lemma2)
             lemmat2.append(lemma2)
         lemmatized2=' '.join(lemmat2)
-        print(lemmatized2)
-        if re.search(rf"{lemmatized}(?= |$)", lemmatized2, re.IGNORECASE):
-            print(word)
+       
+        if re.search(rf"(?<= |^|-){lemmatized}(?= |$)", lemmatized2, re.IGNORECASE):
+     
             output[word]=[lemmatized2,lemmatized]
-    lemmatized2=''
-    lemmatized=''
-    
+            zlematyzowane[lemmatized]=lemmatized2
+            
+
+excel=pd.DataFrame.from_dict(output, orient='index') 
+excel.to_excel("genre_in_650_lemmatized_BN.xlsx", sheet_name='fin')     
 
   
     
@@ -124,4 +128,69 @@ from nltk.stem import WordNetLemmatizer
 lemmatizer = WordNetLemmatizer()
 print("rocks :", lemmatizer.lemmatize("Songs"))
 print("corpora :", lemmatizer.lemmatize("corpora"))
-            
+
+#%% NLP
+
+from sklearn.feature_extraction.text import CountVectorizer
+class Category:
+  BOOKS = "BOOKS"
+  CLOTHING = "CLOTHING"
+
+train_x = ["i love the book", "this is a great book", "the fit is great", "i love the shoes"]
+train_y = [Category.BOOKS, Category.BOOKS, Category.CLOTHING, Category.CLOTHING]
+vectorizer = CountVectorizer(binary=True)
+train_x_vectors = vectorizer.fit_transform(train_x)
+print(vectorizer.get_feature_names_out())
+print(train_x_vectors.toarray())
+from sklearn import svm
+
+clf_svm = svm.SVC(kernel='linear')
+clf_svm.fit(train_x_vectors, train_y)
+test_x = vectorizer.transform(['i love the books'])
+
+clf_svm.predict(test_x)
+
+#ngram_range
+
+from sklearn import svm
+
+clf_svm = svm.SVC(kernel='linear')
+clf_svm.fit(train_x_vectors, train_y)
+test_x = vectorizer.transform(['i love the books'])
+
+clf_svm.predict(test_x)
+#train with spacy vectors
+import spacy
+
+nlp = spacy.load("en_core_web_lg")
+docs = [nlp(text) for text in train_x]
+print(docs[0].vector)
+train_x_word_vectors = [x.vector for x in docs]
+clf_svm_wv = svm.SVC(kernel='linear')
+clf_svm_wv.fit(train_x_word_vectors, train_y)
+test_x =["I love my earings"]
+test_docs = [nlp(text) for text in test_x]
+test_x_word_vectors =  [x.vector for x in test_docs]
+
+clf_svm_wv.predict(test_x_word_vectors)
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

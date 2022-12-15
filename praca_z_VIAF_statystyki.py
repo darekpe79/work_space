@@ -9,13 +9,13 @@ import json
 import pandas as pd
 import os
 from tqdm import tqdm
-from googletrans import Translator
+
 from itertools import zip_longest
 import regex as re
 import requests
 from time import time
-from alphabet_detector import AlphabetDetector
-ad = AlphabetDetector()
+#from alphabet_detector import AlphabetDetector
+#ad = AlphabetDetector()
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
@@ -294,20 +294,13 @@ df_wszyscy_autorzy_NOTnan.to_excel("700_pbl_marc_books_700_2021-08-05BEZ_DUPLIKA
 
                             
 #%% Ludki nowe 05.12.2022
-paths=["F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/arto.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_articles.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_books.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_chapters.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles0.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles1.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles2.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles3.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles4.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_books.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_chapters.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/fennica.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_articles.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_books.mrk"]
+paths=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_chapters_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles0_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles1_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles2_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles3_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles4_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_books_2022-08-26.mrk"]
 pattern3=r'(?<=\$a).*?(?=\$|$)' 
 #daty
 pattern4='(?<=\$d).*?(?=\$|$)'
@@ -316,7 +309,7 @@ zViaf={}
 bezviaf={}
 viafs_list=[]
 
-#val100=[]
+allnames={}
 for plik in paths:
     dictrec=list_of_dict_from_file(plik)
     
@@ -331,10 +324,10 @@ for plik in paths:
                     #val100.append(vi)
 
                     
-                    date = re.findall(pattern4, names)
-                    name = re.findall(pattern3, names)
+                    date = re.findall(pattern4, v)
+                    name = re.findall(pattern3, v)
 
-                    viaf=re.findall(pattern5, names)
+                    viaf=re.findall(pattern5, v)
 
                     
                     if name:
@@ -348,16 +341,20 @@ for plik in paths:
                         viaf=viaf[0]
                     else:
                         viaf='brak'
-                    if viaf=='brak':
-                        if name not in bezviaf:
-                            bezviaf[name]=1
-                        else:
-                            bezviaf[name]+=1
+                    if date:
+                        date=date[0]
+                    else: 
+                        date='brak'
+                    
+                    if name+' '+date+' '+viaf not in allnames:
+                            allnames[name+' '+date+' '+viaf]=[1,name,date,viaf]
                     else:
-                        if name not in zViaf:
-                            zViaf[name]=[viaf,1]
-                        else:
-                            zViaf[name][1]+=1                 
+                        allnames[name+' '+date+' '+viaf][0]+=1
+                        
+viaf_nazwa_df=pd.DataFrame.from_dict(allnames, orient='index') 
+
+
+viaf_nazwa_df.to_excel("NAMES_ALL_Cze.xlsx", engine='xlsxwriter')    
                     
                             
                             
