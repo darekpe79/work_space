@@ -220,19 +220,6 @@ root.mainloop()
 root.mainloop()
 
 ###Działające
-
-
-
-
-
-
-
-
-
-
-
-
-
 import regex as re
 from tkinter import *
 from tkinter import ttk
@@ -288,6 +275,70 @@ button= ttk.Button(win, text="Enter", command= get_value)
 button.pack()
 #get_value()
 win.mainloop()
+
+
+
+
+#####PROBA
+import regex as re
+from tkinter import *
+from tkinter import ttk
+import os
+from pathlib import Path
+from filecmp import cmp
+from tqdm import tqdm
+#Create an instance of tkinter frame or window
+win= Tk()
+#myFrame = Frame(win).place()
+#Set the geometry of tkinter frame
+win.geometry("750x250")
+
+def get_value():
+   global list_values
+   e_text=entry.get()
+   DATA_DIR = Path(re.escape(e_text))
+   files = sorted(os.listdir(DATA_DIR))
+   duplicate={}
+   list_values=[]
+   for i in range(len(files)):
+       
+       for j in range(i + 1, len(files)):
+           print(files[i], files[j])
+           
+           
+           comp = cmp(DATA_DIR/files[i], DATA_DIR/files[j], shallow = False)
+           if comp:
+               if any([files[i] in x for x in duplicate.values()]):
+                   continue
+               else:
+                   
+               
+                   
+                       if files[i] not in duplicate:
+                           
+                           duplicate[files[i]]=[files[j]]
+                       else:
+                           duplicate[files[i]].append(files[j])
+   for x in duplicate.values():
+       for y in x:
+           list_values.append(y)
+    
+    
+    
+   for i,x in duplicate.items():
+       Label(win, text = "● "+i +'=  '+', '.join(x) ).pack() #you can use a bullet point emoji.
+########
+
+
+entry= ttk.Entry(win,font=('Century 12'),width=100)
+entry.pack(pady= 30)
+#Create a button to display the text of entry widget
+button= ttk.Button(win, text="Enter", command= get_value)
+button.pack()
+
+#get_value()
+win.mainloop()
+
 
 
 

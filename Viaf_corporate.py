@@ -57,7 +57,7 @@ def keywithmaxval(d):
 
     return max_keys
 name_viaf={}
-#name='Drukarnia i Księgarnia Świętego Wojciecha. Wydawnictwo Święty Wojciech'
+#name='Cambridge University Press'
 all_data=pd.read_excel(r"D:/Nowa_praca/publishers_work/fin_publishers.xlsx")
 publisher=list(dict.fromkeys(all_data['publisher'].tolist()))
 output={}
@@ -69,7 +69,7 @@ for name in tqdm(publisher):
     
     else:
         name1=name.replace("\"", "").replace("'", "").strip(', . :[]').casefold()
-        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames+=+{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name1, number = 1)
+        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name1, number = 1)
         
         try:
             r = requests.get(search_query)
@@ -124,10 +124,10 @@ for name in tqdm(publisher):
             name_viaf[name]=error
             
             
-with open('institution_dict.json', 'w', encoding='utf-8') as jfile:
-    json.dump(output, jfile, ensure_ascii=False, indent=4)
-excel=pd.DataFrame.from_dict(output, orient='index') 
-excel.to_excel("Bn_publisher.xlsx", sheet_name='publisher') 
+with open('Fin_Bad_bulishers.json', 'w', encoding='utf-8') as jfile:
+    json.dump(bad_output, jfile, ensure_ascii=False, indent=4)
+excel=pd.DataFrame.from_dict(bad_output, orient='index') 
+excel.to_excel("Fin_Bad_publisher.xlsx", sheet_name='publisher') 
 lis=[]
 nowy={}
 prob={}   

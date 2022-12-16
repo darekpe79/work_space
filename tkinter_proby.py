@@ -4,10 +4,28 @@ Created on Tue Dec 13 11:27:52 2022
 
 @author: dariu
 """
+import tkinter as tk
+window= tk.Tk()
+window.title('my app')
+
+label=tk.Label(text="insert ")
+
+
+
+window.mainloop()
+
+
+
+
+
+
 
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showinfo
+
+
+
 
 # create the root window
 root = tk.Tk()
