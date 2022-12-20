@@ -50,15 +50,15 @@ with open(r"F:\Nowa_praca\fennica\statystyki\Nowy folder\blad2.txt",'w', encodin
     data.write(str(blad))
 
 
-#%%
+#%% MOJE KORPO Z ALGORYTMEM
 
 def keywithmaxval(d):
     max_keys = [key for key, value in d.items() if value == max(d.values())]
 
     return max_keys
 name_viaf={}
-#name='Cambridge University Press'
-all_data=pd.read_excel(r"D:/Nowa_praca/publishers_work/fin_publishers.xlsx")
+#name='Państwowe Wydawnictwo Naukowe,'
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/PBL_publishers1.xlsx')
 publisher=list(dict.fromkeys(all_data['publisher'].tolist()))
 output={}
 bad_output={}
@@ -123,29 +123,153 @@ for name in tqdm(publisher):
             
             name_viaf[name]=error
             
-            
-with open('Fin_Bad_bulishers.json', 'w', encoding='utf-8') as jfile:
+
+with open('PBL_Viafy_zle.json', 'w', encoding='utf-8') as jfile:
     json.dump(bad_output, jfile, ensure_ascii=False, indent=4)
 excel=pd.DataFrame.from_dict(bad_output, orient='index') 
-excel.to_excel("Fin_Bad_publisher.xlsx", sheet_name='publisher') 
-lis=[]
-nowy={}
-prob={}   
-#prob['lala']=1
+excel.to_excel("PBL_Viafy_zle.xlsx", sheet_name='publisher') 
 
-prob['lll']=1
+#%%FIN11
+import requests
+import json
+import pandas as pd
+from tqdm import tqdm
+import regex as re
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/fin_publishers_with_fin11.xlsx')
+publisher=list(dict.fromkeys(all_data[2].tolist()))
+
+
+output={}
+for x in tqdm(publisher):
+    #x='000002466'
+    #214970
+    URL=r'https://finto.fi/rest/v1/finaf/data?uri=http%3A%2F%2Furn.fi%2FURN%3ANBN%3Afi%3Aau%3Afinaf%3A'+x+'&format=application/ld%2Bjson'
+
+    try:
+        response = requests.get(url = URL).json()
+
+    
+    #print(json.dumps(response['graph'], indent=2))
+        graph=response['graph']
+    except:
+        continue
+    if graph[0]['uri']=='http://rdaregistry.info/Elements/a/P50006':
+        output[x]=[]
+    
+        
+    
+        # identyfikator=[]
+        # nazwa_i_pseudo=[]
+        # zmienna=False
+        # zmenna1=False
+        # zmienna2=False
+        # wariant_nazwy=[]
+        for content in graph:
+            
+    
+    
+            
+            
+           
+            if 'http://rdaregistry.info/Elements/a/P50006' in content:
+                
+                #print(content['http://rdaregistry.info/Elements/a/P50094'])
+                ident=content['http://rdaregistry.info/Elements/a/P50006']
+                if isinstance(ident, list):
+                    for i in ident:
+                        if 'uri' in i:
+                            output[x]=[i['uri']]
+                else:
+                    if 'uri' in i:
+                        output[x]=[i['uri']]
+                # zmienna1=True    
+            if 'prefLabel' in content:
+                
+                
+                nazwa=content['prefLabel']
+                output[x].append(nazwa['value'])
+                
+excel=pd.DataFrame.from_dict(output, orient='index') 
+excel.to_excel("fin_isni.xlsx", sheet_name='publisher')                 
+    
+#%%fin11 ---- Viaf
 def keywithmaxval(d):
     max_keys = [key for key, value in d.items() if value == max(d.values())]
 
-
-     
     return max_keys
-l=keywithmaxval(prob)
-nowy[l]=prob[l] 
+name_viaf={}
+#name='Państwowe Wydawnictwo Naukowe,'
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/PBL_publishers1.xlsx')
+publisher=list(dict.fromkeys(all_data['publisher'].tolist()))
+output={}
+bad_output={}
+for name in tqdm(publisher):
+    if name=='brak':
+        continue
+    
+    
+    else:
+        name1=name.replace("\"", "").replace("'", "").strip(', . :[]').casefold()
+        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name1, number = 1)
+        
+        try:
+            r = requests.get(search_query)
+            r.encoding = 'utf-8'
+            response = r.json()
+            number_of_records = int(response['searchRetrieveResponse']['numberOfRecords'])
+            #if number_of_records==1:
+            
+            response1=response['searchRetrieveResponse']['records']
+            name_to_check_bad={}
+            checker={}
+            proba={}
+            for elem in response1:
+                viaf = elem['record']['recordData']['viafID']
+                headings = elem['record']['recordData']['mainHeadings']['data']
+                if isinstance(headings, list):
+                    for head in headings:
+                        checkname=head['text'].replace("\"", "").replace("'", "").strip(', . :').casefold()
+                        s = SequenceMatcher(None, name1, checkname).ratio()
+                        print(s)
+                        
+                        if s>0.90:
+                            
+                            checker[viaf+' '+checkname]=s
+                            name_to_check_bad[name]=s
+                            proba[viaf+' '+checkname]=[name1,viaf, checkname,number_of_records,s,name]
+                            #output2[viaf+' '+ checkname]=[viaf,name1, checkname,number_of_records,s,name]
 
-lis.append(prob)
-excel=pd.DataFrame.from_dict(prob, orient='index') 
-t='Gießen'.casefold()
+                            
+                else:
+                    checkname=headings['text'].replace("\"", "").replace("'", "").strip(', . :').casefold()
+                    s = SequenceMatcher(None, name1, checkname).ratio()
+                    print(s)
+                    if s>0.90:
+                        name_to_check_bad[name]=s
+                        checker[viaf+' '+checkname]=s
+                        
+                        proba[viaf+' '+checkname]=[name1,viaf, checkname,number_of_records,s,name]
+                        #output2[viaf+' '+checkname]=[viaf, name1, checkname,number_of_records,s,name]
+                        
+            bestKeys=keywithmaxval(checker)
+            for best in bestKeys:
+                output[best]=proba[best]
+            if name not in name_to_check_bad:
+                bad_output[name]=number_of_records
+                
+                    
+                
+                
+        except Exception as error:
+            
+            name_viaf[name]=error
+
+
+        
+
+
+
+
 
 #%%
 

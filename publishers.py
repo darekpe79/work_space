@@ -18,10 +18,24 @@ from time import time
 #ad = AlphabetDetector()
 from concurrent.futures import ThreadPoolExecutor
 import threading
-paths=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/arto_2022-09-02.mrk",
-"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/fennica_2022-09-02.mrk"]
+paths=["D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/pbl_books_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/arto_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_articles_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_books_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/bn_chapters_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles0_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles1_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles2_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles3_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_articles4_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_books_2022-08-26.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/cz_chapters_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/fennica_2022-09-02.mrk",
+"D:/Nowa_praca/marki_02.09.2022/marki_02.09.2022/pbl_articles_2022-09-02.mrk"]
 pattern3=r'(?<=\$a).*?(?=\$|$)' 
 #daty
+fin11='(?<=\(FIN11\)).*?(?=$| |\$)'
+isni=r'(?<=isni\/).*?(?=\')'
 pattern4='(?<=\$b).*?(?=\$|$)'
 pattern5='(?<=\$1http:\/\/viaf\.org\/viaf\/).*?(?=\$|$| )'
 zViaf={}
@@ -35,7 +49,7 @@ for plik in paths:
 
     for rekord in tqdm(dictrec):
         for key, val in rekord.items():
-            if key=='260' or key=='264':
+            if key=='710':
     
                 
                 for v in val:
@@ -44,8 +58,8 @@ for plik in paths:
 
                     
                     #date = re.findall(pattern4, v)
-                    name = re.findall(pattern4, v)
-                    place = re.findall(pattern3, v)
+                    name = re.findall(pattern3, v)
+                    place = re.findall(fin11, v)
 
                     #viaf=re.findall(pattern5, v)
 
@@ -63,10 +77,10 @@ for plik in paths:
                         place='brak'
 
                     
-                    if name+' '+place not in allnames:
-                            allnames[name+' '+place]=[1,name,place]
+                    if name not in allnames:
+                            allnames[name]=[1]
                     else:
-                        allnames[name+' '+place][0]+=1
+                        allnames[name][0]+=1
                         
 viaf_nazwa_df=pd.DataFrame.from_dict(allnames, orient='index') 
-viaf_nazwa_df.to_excel("fin_publishers.xlsx", engine='xlsxwriter')
+viaf_nazwa_df.to_excel("all_710_not_only_Books.xlsx", engine='xlsxwriter')
