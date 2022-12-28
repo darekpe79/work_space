@@ -8,46 +8,8 @@ from tqdm import tqdm
 from itertools import zip_longest
 import regex as re
 import _pickle as pickle
-all_data=pd.read_excel(r"F:\Nowa_praca\fennica\statystyki\wszyscy autorzy i daty.xlsx")
-listaautor=all_data['nazwisko data'].tolist()
-listaautor.index('Tickell, Jerrard ')
-count=0
-name_viaf={}
-blad={}
-search_querylist=[]
-for name in tqdm(listaautor):
-    count+=1 
-    search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames+=+{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name.strip(), number = 1)
-    search_querylist.append(search_query)
-    try:
-        r = requests.get(search_query)
-        r.encoding = 'utf-8'
-        response = r.json()
-    except Exception as error:
-        blad[name]=error
-        name_viaf[name] = []
-        
-        continue
-        
-    number_of_records = int(response['searchRetrieveResponse']['numberOfRecords'])
-    if number_of_records > 10:
-        for elem in range(number_of_records)[11::10]:
-            search = "http://www.viaf.org//viaf/search?query=local.personalNames+=+{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search=name.strip(), number = elem)
-            r = requests.get(search_query)
-            r.encoding = 'utf-8'
-            response['searchRetrieveResponse']['records'] = response['searchRetrieveResponse']['records'] + r.json()['searchRetrieveResponse']['records']
-           
-    if number_of_records == 0:
-        name_viaf[name] = []
-    else: 
-        name_viaf[name] = response['searchRetrieveResponse']['records']
-    if count%100==0 or count==len(listaautor):
-        
-        with open(r"F:\Nowa_praca\fennica\statystyki\Nowy folder\baza_biogramy_viaf"+str(count)+".json", 'w', encoding='utf-8') as jfile:
-            json.dump(name_viaf, jfile, ensure_ascii=False, indent=4)
-        name_viaf={}
-with open(r"F:\Nowa_praca\fennica\statystyki\Nowy folder\blad2.txt",'w', encoding='utf-8') as data:
-    data.write(str(blad))
+from alphabet_detector import AlphabetDetector
+ad = AlphabetDetector()
 
 
 #%% MOJE KORPO Z ALGORYTMEM
@@ -56,12 +18,13 @@ def keywithmaxval(d):
     max_keys = [key for key, value in d.items() if value == max(d.values())]
 
     return max_keys
-name_viaf={}
+
 #name='Państwowe Wydawnictwo Naukowe,'
-all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/PBL_publishers1.xlsx')
-publisher=list(dict.fromkeys(all_data['publisher'].tolist()))
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/fin_publishers_with_fin11_isni_viaf_dziwne.xlsx',sheet_name='do_spr')
+publisher=list(dict.fromkeys(all_data['nazwa Marc 710'].tolist()))
 output={}
 bad_output={}
+name_viaf={}
 for name in tqdm(publisher):
     if name=='brak':
         continue
@@ -124,10 +87,119 @@ for name in tqdm(publisher):
             name_viaf[name]=error
             
 
-with open('PBL_Viafy_zle.json', 'w', encoding='utf-8') as jfile:
+with open('pozostale_710_fin_bezFIN11_bad.json', 'w', encoding='utf-8') as jfile:
     json.dump(bad_output, jfile, ensure_ascii=False, indent=4)
 excel=pd.DataFrame.from_dict(bad_output, orient='index') 
-excel.to_excel("PBL_Viafy_zle.xlsx", sheet_name='publisher') 
+excel.to_excel("pozostale_710_fin_bezFIN11_bad.xlsx", sheet_name='publisher') 
+
+
+#### Sprawdzam wyniki czy zgadza się 710-260-264
+from difflib import SequenceMatcher      
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/do_ujednolicania_viafowania/wszystko_bez_710_do_Viafowania_potem_ujednolicania_bez_duplikatów.xlsx')
+rslt_df = all_data[(all_data['fin11'] != 'brak')]
+publisher=list(dict.fromkeys(all_data['Oryginal_710_po_VIAF'].tolist()))
+all_data['matcher'] = all_data.apply(lambda x : SequenceMatcher(None, x['Oryginal_260_264'], x['Oryginal_710_po_VIAF_i_z_ujednolicone_bez_710']).ratio() if not any ([isinstance(x['Oryginal_260_264'], float),isinstance(x['Oryginal_710_po_VIAF_i_z_ujednolicone_bez_710'], float)]) else 'brak',axis=1)
+all_data.to_excel("wszystko_bez_710_matcher710-26x.xlsx", sheet_name='publisher') 
+
+##dociągam brakujące ujednolicone:
+    
+rslt_df = all_data[(all_data['z ujednolicone_bez_710(plik)'] == 'brak')]
+publisher=list(dict.fromkeys(rslt_df['VIAF'].tolist()))
+def lang_detect(texts):
+    # korean
+    if re.search("[\uac00-\ud7a3]", texts):
+        return "ko"
+    # japanese
+    if re.search("[\u3040-\u30ff]", texts):
+        return "ja"
+    # chinese
+    if re.search("[\u4e00-\u9FFF]", texts):
+        return "zh"
+    # russian
+    if re.search("[\u0400-\u0500]+", texts):
+        return "ru"
+    return None
+
+def keywithmaxval(d):
+    max_keys = [key for key, value in d.items() if value == max(d.values())]
+
+    return max_keys
+output={}
+
+for name in tqdm(publisher):
+    if name=='brak':
+        continue
+    
+    
+    else:
+        
+        
+       # name = '139876367'
+
+        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name, number = 1)
+        
+        try:
+            r = requests.get(search_query)
+            r.encoding = 'utf-8'
+            response = r.json()
+            number_of_records = int(response['searchRetrieveResponse']['numberOfRecords'])
+            if number_of_records>=1:
+            
+                response1=response['searchRetrieveResponse']['records']
+                name_to_check_bad={}
+                checker={}
+                proba={}
+                for elem in response1:
+                    viaf = elem['record']['recordData']['viafID']
+                    if viaf==name:
+     
+                        headings = elem['record']['recordData']['mainHeadings']['data']
+                        
+                        if isinstance(headings, list):
+                            for head in headings:
+                                sources=head['sources']['s']
+                                text=head['text']
+                                if ad.is_arabic(text) or ad.is_cyrillic(text) or ad.is_hebrew(text) or ad.is_greek(text) or lang_detect(text) :
+                                    continue
+                             
+                                
+                               
+                                if isinstance(sources, list):
+                                  
+                                    
+                                    checker[text]=len(sources)
+                                    proba[text]=[name,sources]
+                                    
+                                    print(sources)
+                                else:
+                                    checker[text]=1
+                                    proba[text]=[name,sources]
+                        else:
+                            sources=headings['sources']['s']
+                            text=headings['text']
+                            checker[text]=1
+                            proba[text]=[name,sources]
+                        
+                                 
+                            
+                bestKeys=keywithmaxval(checker)
+                for best in bestKeys:
+                    output[best]=proba[best]
+
+                    
+                        
+                    
+                
+        except Exception as error:
+            
+            name_viaf[name]=error
+
+
+excel=pd.DataFrame.from_dict(output, orient='index') 
+excel.to_excel("ujednolicone_bez_710.xlsx", sheet_name='publisher') 
+with open('ujednolicone_bez_710.json', 'w', encoding='utf-8') as jfile:
+    json.dump(output, jfile, ensure_ascii=False, indent=4)        
+     
 
 #%%FIN11
 import requests
@@ -135,8 +207,10 @@ import json
 import pandas as pd
 from tqdm import tqdm
 import regex as re
-all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/fin_publishers_with_fin11.xlsx')
-publisher=list(dict.fromkeys(all_data[2].tolist()))
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/fin_publishers_with_fin11_isni_viaf.xlsx')
+rslt_df = all_data[(all_data['fin11'] != 'brak')]
+publisher=list(dict.fromkeys(all_data['fin11'].tolist()))
+#publisher=['000005851','000006117']
 
 
 output={}
@@ -179,10 +253,12 @@ for x in tqdm(publisher):
                     for i in ident:
                         if 'uri' in i:
                             output[x]=[i['uri']]
-                else:
-                    if 'uri' in i:
+                elif 'uri' in ident:
                         output[x]=[i['uri']]
                 # zmienna1=True    
+            else:
+                output[x]=['brak_isni']
+                
             if 'prefLabel' in content:
                 
                 
@@ -190,17 +266,72 @@ for x in tqdm(publisher):
                 output[x].append(nazwa['value'])
                 
 excel=pd.DataFrame.from_dict(output, orient='index') 
-excel.to_excel("fin_isni.xlsx", sheet_name='publisher')                 
+excel.to_excel("fin_isni.xlsx", sheet_name='publisher') 
+
+
+###isni to viaf
+
+
+rslt_df = excel[(excel[0] != 'brak_isni')]
+publisher=list(dict.fromkeys(rslt_df[0].tolist()))
+viafs={}
+ISNI_Pattern='(?<=isni\/).*?(?=\'|$)'
+for name in tqdm(publisher):
+    if name=='brak':
+        continue
     
-#%%fin11 ---- Viaf
+    
+    else:
+        name = re.findall(ISNI_Pattern, name)[0]
+        
+        
+        #name = '147390924'
+
+        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name, number = 1)
+        
+        #try:
+        r = requests.get(search_query)
+        r.encoding = 'utf-8'
+        response = r.json()
+        number_of_records = int(response['searchRetrieveResponse']['numberOfRecords'])
+        if number_of_records>=1:
+        
+            response1=response['searchRetrieveResponse']['records']
+            name_to_check_bad={}
+            checker={}
+            proba={}
+            for elem in response1:
+                viaf = elem['record']['recordData']['viafID']
+                viafs[name]=viaf
+excel=pd.DataFrame.from_dict(viafs, orient='index') 
+excel.to_excel("isni-viaf.xlsx", sheet_name='publisher')                  
+    
+#%%fin11 ---- Viaf _____UJEDNOLICANIE NAZWA
+ISNI_Pattern='(?<=isni\/).*?(?=\'|$)'
+def lang_detect(texts):
+    # korean
+    if re.search("[\uac00-\ud7a3]", texts):
+        return "ko"
+    # japanese
+    if re.search("[\u3040-\u30ff]", texts):
+        return "ja"
+    # chinese
+    if re.search("[\u4e00-\u9FFF]", texts):
+        return "zh"
+    # russian
+    if re.search("[\u0400-\u0500]+", texts):
+        return "ru"
+    return None
+
 def keywithmaxval(d):
     max_keys = [key for key, value in d.items() if value == max(d.values())]
 
     return max_keys
 name_viaf={}
 #name='Państwowe Wydawnictwo Naukowe,'
-all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/PBL_publishers1.xlsx')
-publisher=list(dict.fromkeys(all_data['publisher'].tolist()))
+all_data=pd.read_excel(r'D:/Nowa_praca/publishers_work/do_ujednolicania/wszystko_z_710_do_ujednolicania_bez_duplikatów.xlsx')
+rslt_df = all_data[(all_data['nazwa_z_710'] != 'brak')]
+publisher=list(dict.fromkeys(rslt_df['VIAF'].tolist()))
 output={}
 bad_output={}
 for name in tqdm(publisher):
@@ -209,65 +340,80 @@ for name in tqdm(publisher):
     
     
     else:
-        name1=name.replace("\"", "").replace("'", "").strip(', . :[]').casefold()
-        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name1, number = 1)
+        
+        
+        #name = '147390924'
+
+        search_query = "http://www.viaf.org//viaf/search?query=local.corporateNames%20all%20%22{search}&maximumRecords=10&startRecord={number}&httpAccept=application/json".format(search = name, number = 1)
         
         try:
             r = requests.get(search_query)
             r.encoding = 'utf-8'
             response = r.json()
             number_of_records = int(response['searchRetrieveResponse']['numberOfRecords'])
-            #if number_of_records==1:
+            if number_of_records>=1:
             
-            response1=response['searchRetrieveResponse']['records']
-            name_to_check_bad={}
-            checker={}
-            proba={}
-            for elem in response1:
-                viaf = elem['record']['recordData']['viafID']
-                headings = elem['record']['recordData']['mainHeadings']['data']
-                if isinstance(headings, list):
-                    for head in headings:
-                        checkname=head['text'].replace("\"", "").replace("'", "").strip(', . :').casefold()
-                        s = SequenceMatcher(None, name1, checkname).ratio()
-                        print(s)
-                        
-                        if s>0.90:
-                            
-                            checker[viaf+' '+checkname]=s
-                            name_to_check_bad[name]=s
-                            proba[viaf+' '+checkname]=[name1,viaf, checkname,number_of_records,s,name]
-                            #output2[viaf+' '+ checkname]=[viaf,name1, checkname,number_of_records,s,name]
-
-                            
-                else:
-                    checkname=headings['text'].replace("\"", "").replace("'", "").strip(', . :').casefold()
-                    s = SequenceMatcher(None, name1, checkname).ratio()
-                    print(s)
-                    if s>0.90:
-                        name_to_check_bad[name]=s
-                        checker[viaf+' '+checkname]=s
-                        
-                        proba[viaf+' '+checkname]=[name1,viaf, checkname,number_of_records,s,name]
-                        #output2[viaf+' '+checkname]=[viaf, name1, checkname,number_of_records,s,name]
-                        
-            bestKeys=keywithmaxval(checker)
-            for best in bestKeys:
-                output[best]=proba[best]
-            if name not in name_to_check_bad:
-                bad_output[name]=number_of_records
-                
+                response1=response['searchRetrieveResponse']['records']
+                name_to_check_bad={}
+                checker={}
+                proba={}
+                for elem in response1:
+                    viaf = elem['record']['recordData']['viafID']
+     
+                    headings = elem['record']['recordData']['mainHeadings']['data']
                     
-                
+                    if isinstance(headings, list):
+                        for head in headings:
+                            sources=head['sources']['s']
+                            text=head['text']
+                            if ad.is_arabic(text) or ad.is_cyrillic(text) or ad.is_hebrew(text) or ad.is_greek(text) or lang_detect(text) :
+                                continue
+                         
+                            
+                           
+                            if isinstance(sources, list):
+                              
+                                
+                                checker[text]=len(sources)
+                                proba[text]=[name,sources]
+                                
+                                print(sources)
+                            else:
+                                checker[text]=1
+                                proba[text]=[name,sources]
+                    else:
+                        sources=headings['sources']['s']
+                        text=headings['text']
+                        checker[text]=1
+                        proba[text]=[name,sources]
+                        
+                                 
+                            
+                bestKeys=keywithmaxval(checker)
+                for best in bestKeys:
+                    output[best]=proba[best]
+
+                    
+                        
+                    
                 
         except Exception as error:
             
             name_viaf[name]=error
 
 
+excel=pd.DataFrame.from_dict(output, orient='index') 
+excel.to_excel("ujednolicone_wszystkie.xlsx", sheet_name='publisher') 
+with open('ujednolicone_wszystkie.json', 'w', encoding='utf-8') as jfile:
+    json.dump(output, jfile, ensure_ascii=False, indent=4)        
+
+
+with open('D:/Nowa_praca/publishers_work/do_ujednolicania/ujednolicone_wszystkie.json', encoding='utf-8') as fh:
+    data = json.load(fh)
+
+print(data)
+
         
-
-
 
 
 
