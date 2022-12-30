@@ -40,7 +40,7 @@ for x in tqdm(liczby):  #214970
             
             
            
-            if 'c' in content:
+            if 'http://rdaregistry.info/Elements/a/P50094' in content:
                 
                 #print(content['http://rdaregistry.info/Elements/a/P50094'])
                 ident=content['http://rdaregistry.info/Elements/a/P50094']
