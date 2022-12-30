@@ -13,9 +13,54 @@ import translators as ts
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 pat=r'(?<=\$a).*?(?=\$|$)'
+link_pat=r'(?<=\$0).*?(?=\$|$)'
+genre = pd.read_excel ('C:/Users/dariu/650__do_pracy_wszystko.xlsx', sheet_name='PBL_650')
+list650=genre['subfield_a'].to_list()
+#%%uppercase split
+dicto={}
+proba={}
+for elem in list650:
+    for el in elem.split(', '):
+        el=el.strip()
+        #print(el)
+        if el[0].isupper():
+            #print (el)
+            # if elem not in dicto:
+            #     dicto[elem]=[el]
+            # else:
+            #     dicto[elem].append(el)
+            if elem in dicto:
+                dicto[elem].append(el)
+            else:
+                dicto[elem]=[el]
+                
+        else:
+            print(el)
+            if elem in dicto: 
+                pos=len(dicto[elem])
+                dicto[elem][pos-1]+=','+el
+                
+            else:
+                dicto[elem]=[elem]
+excel=pd.DataFrame.from_dict(dicto, orient='index')
+excel.to_excel('PBL_650_rozbite2.xlsx', sheet_name='650')               
 
-genre = pd.read_excel ('C:/Users/dariu/BN2_cale_650.xlsx', sheet_name=0)
-desk_600=genre['desk_600'].to_list()
+#%%
+dictionary_translate=genre['dictionary_translate'].to_list()
+dicto={}
+for link in desk_600:
+    pat=r'(?<=\$7[a-zA-Z]{2}).*?(?=\$|$)'
+    ident=re.findall(pat, link)
+    
+    if ident:
+        goodnum=''.join(filter(str.isdigit, ident[0]))
+        print(goodnum)
+        pad_string =goodnum.zfill(9)
+        print(pad_string)
+        URL=r'https://aleph.nkp.cz/F/?func=direct&doc_number={}&local_base=AUT'.format(pad_string)
+        dicto[link]=URL
+excel=pd.DataFrame.from_dict(dicto, orient='index')
+excel.to_excel('czech_links.xlsx', sheet_name='650')     
 pl1=genre['pl1'].to_list()
 setpl1 = list(dict.fromkeys(pl1))
 part1=setpl1[:2400]
@@ -69,16 +114,18 @@ def  translate_my_friend3 (k):
         results[k].append(translated_en)
 
         return results
-with ThreadPoolExecutor(3) as executor:
-    
-    results=list(tqdm(executor.map(translate_my_friend3,part5),total=len(part5)))
+list_without_nan = [x for x in part8 if type(x) is not float]   
+with ThreadPoolExecutor(1) as executor:
+ 
+    results=list(tqdm(executor.map(translate_my_friend3,list_without_nan),total=len(list_without_nan)))
+
 output={}
 for li in results:
     for k,v in li.items():
         output[k]=v
 
 excel=pd.DataFrame.from_dict(output, orient='index')
-excel.to_excel('BNpart5.xlsx')  
+excel.to_excel('BNpart8.xlsx')  
 
 #%%split text by space and unique
 genre = pd.read_excel ('C:/Users/dariu/650_czechy.xlsx', sheet_name=0)
@@ -87,9 +134,10 @@ wynik=[]
 for d in desk_600:
     for c in d.split(' '):
         wynik.append(c)
-listaaa=set([c for d in desk_600 for c in d.split(' ')])
+list_without_nan = [x for x in google_translate if type(x) is not float] 
+listaaa=set([c for d in list_without_nan for c in d.split(' ')])
 excel=pd.DataFrame(listaaa)
-excel.to_excel('czechunique650.xlsx', sheet_name='650')  
+excel.to_excel('Bnunique650.xlsx', sheet_name='650')  
 #%%
 genre.to_html()
 genre_list=genre.desk655.to_list()
