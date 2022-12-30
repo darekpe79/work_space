@@ -30,20 +30,7 @@ patternb='(?<=\$b).*?(?=\$|$)'
 patternviaf='(?<=\$1http:\/\/viaf\.org\/viaf\/).*?(?=\$|$| )'
 patfin11=r'(?<=\(FIN11\)).*?(?=$| |\$)'
 
-paths=["E:/Python/marki_02.09.2022/pbl_books_2022-09-02.mrk",
-"E:/Python/marki_02.09.2022/arto_2022-09-02.mrk",
-"E:/Python/marki_02.09.2022/bn_articles_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/bn_books_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/bn_chapters_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_articles0_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_articles1_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_articles2_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_articles3_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_articles4_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_books_2022-08-26.mrk",
-"E:/Python/marki_02.09.2022/cz_chapters_2022-09-02.mrk",
-"E:/Python/marki_02.09.2022/fennica_2022-09-02.mrk",
-"E:/Python/marki_02.09.2022/pbl_articles_2022-09-02.mrk"]
+paths=['E:/Python/do_prob.mrk']
 
 
 #daty
@@ -177,8 +164,7 @@ for plik in paths:
                     
     to_file2(nametopath+d1+'.mrk',record)                    
                     
-zmiena='2\$aEesti Evangeelne Luterlik Kirik.$0(FIN11)000007129'                  
-fin11finder=re.findall(patfin11, zmiena)                    
+                
                     
                     
                     
