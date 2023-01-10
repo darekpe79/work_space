@@ -69,15 +69,15 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import WordNetLemmatizer
 import  regex as re
-to_compare = pd.read_excel ("C:/Users/dariu/genre_in_650_lemmatized_all.xlsx", sheet_name='BN')
-pl_l=to_compare['LCSH_PBL']
-fin_l=to_compare['LCSH_BN']
-list_without_nan_fi = [x for x in fin_l if not isinstance(x, float)] 
-genre_nationality=pd.read_excel('C:/Users/dariu/genre,nationality.xlsx', sheet_name='nationality')
-genre=genre_nationality['adjective']
+to_compare = pd.read_excel ("D:/Nowa_praca/650_dokumenty/nowe_do_lematyzacji_650.xlsx", sheet_name='bn')
+pl_l=to_compare['bn_650']
+#fin_l=to_compare['LCSH_BN']
+list_without_nan_fi = [x for x in pl_l if not isinstance(x, float)] 
+genre_nationality=pd.read_excel('D:/Nowa_praca/650_dokumenty/genre,nationality.xlsx', sheet_name='genre')
+genre=genre_nationality['Genre']
 lemmatizer = WordNetLemmatizer()
 zlematyzowane={}
-
+lemmatize650=[]
 output={}
 for g in tqdm(genre):
     words = word_tokenize(g)
@@ -105,15 +105,16 @@ for g in tqdm(genre):
             #print(lemma2)
             lemmat2.append(lemma2)
         lemmatized2=' '.join(lemmat2)
+        lemmatize650.append(lemmatized2)
        
-        if re.search(rf"(?<= |^|-){lemmatized}(?= |$)", lemmatized2, re.IGNORECASE):
+        if re.search(rf"(?<= |^|-|\(){lemmatized}(?= |$|\))", lemmatized2, re.IGNORECASE):
      
             output[word]=[lemmatized2,lemmatized]
             zlematyzowane[lemmatized]=lemmatized2
             
 
 excel=pd.DataFrame.from_dict(output, orient='index') 
-excel.to_excel("genre_in_650_lemmatized_BN.xlsx", sheet_name='fin')     
+excel.to_excel("genre_in_650_lemmatized_bn.xlsx", sheet_name='fi')     
 
   
     
