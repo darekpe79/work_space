@@ -15,7 +15,9 @@ class  Employee:
     def fullname(self):  #method
         return '{} {}'.format(self.first,self.last)
 
-emp_1=(Employee('Darek', "Perla", 10000))
+emp_1=(Employee('Darek', "Perla", 10000)) # instance
 emp_2=(Employee('User', "Test", 20000))
 print(emp_1.email)
-emp_1.fullname() #method with ()
+emp_1.fullname() #method == Employee.fullname(emp_1)
+
+
