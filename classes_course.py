@@ -3,6 +3,8 @@
 Created on Tue Jan 10 14:15:19 2023
 
 @author: darek
+
+return NOTIMPLEMENTED - zapamiętać
 """
 import datetime
 class  Employee:
@@ -12,11 +14,29 @@ class  Employee:
         self.first=first    #atrributes of class
         self.last=last
         self.pay=pay
-        self.email=first+'.'+last+'@company.com'  
+        #self.email=first+'.'+last+'@company.com'  
         Employee.num_of_emps+=1 #class value
         
+    def __repr__(self):
+        return "Employee('{}', '{}', {})".format(self.first, self.last, self.pay)
+    def __str__(self):
+        return "Employee({} - {})".format(self.fullname, self.email)
+    def __add__(self, other):
+        return self.pay+other.pay
+    def __len__(self):
+        return len(self.fullname())
+    @property
     def fullname(self):  #method (regular method with instance as variable)
         return '{} {}'.format(self.first,self.last)
+    @fullname.setter
+    def fullname(self,name):
+        first,last=name.split(' ')
+        self.first = first
+        self.last = last
+        
+    @property
+    def email(self):  #method (regular method with instance as variable)
+        return '{}.{}@email.com'.format(self.first,self.last)
     def apply_raise(self):
         self.pay=int(self.pay*self.raise_amount)
     #Classmethods
@@ -67,10 +87,19 @@ my_date.weekday()
         
         
         
-emp_1=(Employee('Darek', "Perla", 10000)) # instance
+emp_1=(Employee('Darek', 'Perla',500)) # instance
+print(emp_1)
+emp_1.first='Jim'
+ 
+print(emp_1.email) #email się nie zmienia mimo zmiany imienia jesli to atrybut więc zrobiłem z tego metodę, dodając decorator property, używam metody jak atrybutu(bez nawiasów)
+print(len(emp_1))
+print(repr(emp_1))#mimo że metoda w klasie ponieważ jest specjalna użyjemy jej jak funkcji
+print(emp_1.__repr__())# klasycznie również
+emp_1.fullname='Dar Per'
+print(emp_1.fullname)
 emp_2=(Employee('User', "Test", 20000))
 print(emp_1.email)
-emp_1.fullname() #method == Employee.fullname(emp_1)
+emp_1.fullname #method == Employee.fullname(emp_1)
 print(emp_1.raise_amount)
 Employee.set_raise_amt(1.05)
 print(emp_1.raise_amount)
@@ -82,6 +111,7 @@ Employee.raise_amount=1.07 # - to to samo co- Employee.set_raise_amt(1.05)
 print(emp_1.raise_amount)
 print(emp_2.raise_amount)
 emp_2.apply_raise()
+
 print(emp_2.pay)
 
 
@@ -106,8 +136,9 @@ print(dev_1.prog_lang)
 #print(help(Developer))
 dev_1.apply_raise()
 print(dev_1.pay)
+mgr=(Manager('User', "Test", 20000, [dev_1]))
+mgr.print_emps()
 
-
-
+n,s,p='Jhon-Doe-10000'.split('-')
 
 
