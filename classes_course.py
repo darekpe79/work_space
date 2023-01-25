@@ -95,8 +95,9 @@ print(emp_1.email) #email się nie zmienia mimo zmiany imienia jesli to atrybut 
 print(len(emp_1))
 print(repr(emp_1))#mimo że metoda w klasie ponieważ jest specjalna użyjemy jej jak funkcji
 print(emp_1.__repr__())# klasycznie również
-emp_1.fullname='Dar Per'
+emp_1.fullname='dar far'
 print(emp_1.fullname)
+emp_1.first
 emp_2=(Employee('User', "Test", 20000))
 print(emp_1.email)
 emp_1.fullname #method == Employee.fullname(emp_1)

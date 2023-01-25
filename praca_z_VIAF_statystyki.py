@@ -19,20 +19,20 @@ from time import time
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
-paths=["F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/arto.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_articles.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_books.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/BN_chapters.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles0.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles1.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles2.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles3.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_articles4.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_books.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/cz_chapters.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/fennica.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_articles.mrk",
-"F:/Nowa_praca/06.05.2022,Wszyscy ujednolicone czasopisma i ludzieMARC_EXCEL/PBL_books.mrk"]
+paths=["D:/Nowa_praca/marki_04_01_2023/cz_articles1_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_articles2_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_articles3_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_articles4_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_books_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_chapters_2022-09-02_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/fennica_2022-09-02_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/pbl_articles_2022-09-02_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/pbl_books_2022-09-02_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/arto_2022-09-02_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/bn_articles_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/bn_books_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/bn_chapters_2022-08-26_30-12-2022.mrk",
+"D:/Nowa_praca/marki_04_01_2023/cz_articles0_2022-08-26_30-12-2022.mrk"]
 pattern3=r'(?<=\$a).*?(?=\$|$)' 
 #daty
 pattern4='(?<=\$d).*?(?=\$|$)'
@@ -43,16 +43,16 @@ viafs_list=[]
 
 #val100=[]
 for plik in paths:
-    lista=mark_to_list(plik)
-    dictrec=list_of_dict_from_list_of_lists(lista)
-    
+  #  lista=mark_to_list(plik)
+  #  dictrec=list_of_dict_from_list_of_lists(lista)
+    dictrec=list_of_dict_from_file(plik) 
 
     for rekord in tqdm(dictrec):
         for key, val in rekord.items():
             if key=='700' or key=='100' or key=='600':
     
-                v=val.split('❦')
-                for names in v:
+                
+                for names in val:
                     
                     #val100.append(vi)
 
