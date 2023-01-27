@@ -122,7 +122,7 @@ for plik in paths:
 viaf_nazwa_df=pd.DataFrame.from_dict(result, orient='index') 
 bez_viaf_nazwa_df=pd.DataFrame.from_dict(bezviaf, orient='index')
 
-viaf_nazwa_df.to_excel("wszystko_z_VIAF.xlsx", sheet_name='Sheet_name_1')
+viaf_nazwa_df.to_excel("języki_stats.xlsx", sheet_name='Sheet_name_1')
 bez_viaf_nazwa_df.to_excel("wszystko_bez_VIAF.xlsx", engine='xlsxwriter')
 podpola=['a','h']
 field=['041']
