@@ -88,9 +88,12 @@ for plik in paths:
                                     result['43a'+n]['counter']+=1
                 
         else:
-             print(rekord['008'][0][35:38])
-                if key=='008':
-                 print(val)
+             val008=rekord['008'][0][35:38]
+             if '008'+val008 not in result:
+                 result['008'+val008]={'language':val008,'field':'008', 'subfiled':'brak', 'counter':1}
+             else:
+                 result['008'+val008]['counter']+=1
+
                         
                             
                             
