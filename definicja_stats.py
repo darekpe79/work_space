@@ -68,7 +68,7 @@ for plik in paths:
                         second_h=re.findall(pattern4, names)
     
                         
-                        if name and second:
+                        if name_a and second_h:
                             for n in name_a:
                                 if '43a'+n not in result:
                                     result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
@@ -80,7 +80,7 @@ for plik in paths:
                                     result['43h'+s]={'language':s,'field':'43', 'subfiled':'h', 'counter':1}
                                 else:
                                     result['43h'+s]['counter']+=1
-                        elif name:
+                        elif name_a:
                             for n in name_a:
                                 if '43a'+n not in result:
                                     result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
