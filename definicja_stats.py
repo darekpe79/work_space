@@ -36,12 +36,12 @@ paths=["D:/Nowa_praca/marki_04_01_2023/cz_articles1_2022-08-26_30-12-2022.mrk",
 "D:/Nowa_praca/marki_04_01_2023/cz_articles0_2022-08-26_30-12-2022.mrk"]
 pattern3=r'(?<=\$a).*?(?=\$|$)' 
 #daty
-pattern4='(?<=\$d).*?(?=\$|$)'
+pattern4='(?<=\$h).*?(?=\$|$)'
 pattern5='(?<=\$1http:\/\/viaf\.org\/viaf\/).*?(?=\$|$| )'
 zViaf={}
 bezviaf={}
 viafs_list=[]
-
+result={}
 #val100=[]
 for plik in paths:
   #  lista=mark_to_list(plik)
@@ -49,23 +49,53 @@ for plik in paths:
     dictrec=list_of_dict_from_file(plik) 
 
     for rekord in tqdm(dictrec):
-        for key, val in rekord.items():
-            if key=='700' or key=='100' or key=='600':
-    
+        value=rekord.get('041')
+        if value:
+
+            for key, val in rekord.items():
                 
-                for names in val:
+                if key=='041':
+        
                     
-                    #val100.append(vi)
-
-                    
-                    
-                    name = re.findall(pattern3, names)
-
-                    viaf=re.findall(pattern5, names)
-
-                    
-                    if name:
-                        name=name[0]
+                    for names in val:
+                        
+                        #val100.append(vi)
+    
+                        
+                        
+                        name_a = re.findall(pattern3, names)
+    
+                        second_h=re.findall(pattern4, names)
+    
+                        
+                        if name and second:
+                            for n in name_a:
+                                if '43a'+n not in result:
+                                    result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
+                                else:
+                                    result['43a'+n]['counter']+=1
+                                
+                            for s in second_h:
+                                if '43h'+s not in result:
+                                    result['43h'+s]={'language':s,'field':'43', 'subfiled':'h', 'counter':1}
+                                else:
+                                    result['43h'+s]['counter']+=1
+                        elif name:
+                            for n in name_a:
+                                if '43a'+n not in result:
+                                    result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
+                                else:
+                                    result['43a'+n]['counter']+=1
+                
+        else:
+             print(rekord['008'][0][35:38])
+                if key=='008':
+                 print(val)
+                        
+                            
+                            
+                                
+                                
                     else:
                         name='brak'
                     
@@ -91,12 +121,76 @@ bez_viaf_nazwa_df=pd.DataFrame.from_dict(bezviaf, orient='index')
 
 viaf_nazwa_df.to_excel("wszystko_z_VIAF.xlsx", sheet_name='Sheet_name_1')
 bez_viaf_nazwa_df.to_excel("wszystko_bez_VIAF.xlsx", engine='xlsxwriter')
+podpola=['a','h']
+field=['041']
+paths=["E:/Python/do_prob.mrk"]
+for path in paths:
+    dictrec=list_of_dict_from_file(path) 
+    for rekord in tqdm(dictrec[:1]):
+        id_rec=rekord['001']
+        recstat={}
+        for key, val in rekord.items():
+            
+            
+            if key in field:
+                
+                pattern=r'(?<=\$).{2,}?(?=\$|$)' 
+                for v in val:
+                    subfield=re.findall(pattern, v)
+                    recstat={}
+                    for p in subfield:
+                        
+                        if p[0] in podpola:
+                            print(p, key)
+                            if key+p[0]+p[1:] not in recstat:
+                                print(val)
+                                recstat[key+p[0]+p[1:]]={p[0]:p[1:],'counter':1}
+                            else:
+                                if key+p[0]+p[1:] in recstat:
+                                    recstat[key+p[0]+p[1:]]['counter']+=1
+                                
+
+def recstats (record, field, subfield):
+    id_rec=rekord['001']
+    recstat={}
+
+    for key, val in rekord.items():
+        
+        
+        if key in field:
+            
+            pattern=r'(?<=\$).{2,}?(?=\$|$)' 
+            for v in val:
+                subfields=re.findall(pattern, v)
+                
+                for p in subfields:
+                    
+                    if p[0] in subfield:
+                        
+                        if key+p[0]+p[1:] not in recstat:
+                            
+                            recstat[key+p[0]+p[1:]]={'field':key, 'subfield':p[0], p[0]:p[1:],'counter':1,'rec_id':id_rec[0]}
+                        else:
+                            if key+p[0]+p[1:] in recstat:
+                                recstat[key+p[0]+p[1:]]['counter']+=1
+    return recstat
+x=recstats(rekord,['041'],['a','h'])
+def recsstats (path,field,subfield):
+    dictrec=list_of_dict_from_file(path) 
+    for rekord in tqdm(dictrec[:1]):
+        data=recstats(rekord,['041'],['a','h'])
+        for key, value in data.items():
+            print(value)
+            
+    
+    
+# F1 rekord, pole, podpole – dict
+# F2 wejscie lista i pola i podpola-  lista dictow
+# F3 lista dict - stats 
 
 
-paths="D:/Nowa_praca/do_prob.mrk"
-dictrec=list_of_dict_from_file(paths) 
+           
 
-lista=['700','600','100']
 # x=''
 # for n in lista[1:]:
 #     print (n)
@@ -104,10 +198,7 @@ lista=['700','600','100']
 # pr=f"if key=='{lista[0]}'"+x+':'     
 # exec(pr)
 
-stri='larea'
-print(stri[1:])
-budowany={}
-budowany[stri[0]]=stri[1:]
+
 
 if key in lista:
 
@@ -117,10 +208,10 @@ podpola=['a','b']
         
     pattern=r'(?<=\$).{2,}?(?=\$|$)' 
     subfield=re.findall(pattern, value)
-    budowany={}
+    recstat={}
     for p in subfield:
         if p[0] in podpola:
-            budowany[p[0]]=p[1:]
+            recstat[p[0]]=p[1:]
             
             
 
