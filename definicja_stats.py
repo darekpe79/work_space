@@ -70,22 +70,22 @@ for plik in paths:
                         
                         if name_a and second_h:
                             for n in name_a:
-                                if '43a'+n not in result:
-                                    result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
+                                if '41a'+n not in result:
+                                    result['41a'+n]={'language':n,'field':'41', 'subfiled':'a', 'counter':1}
                                 else:
-                                    result['43a'+n]['counter']+=1
+                                    result['41a'+n]['counter']+=1
                                 
                             for s in second_h:
-                                if '43h'+s not in result:
-                                    result['43h'+s]={'language':s,'field':'43', 'subfiled':'h', 'counter':1}
+                                if '41h'+s not in result:
+                                    result['41h'+s]={'language':s,'field':'41', 'subfiled':'h', 'counter':1}
                                 else:
-                                    result['43h'+s]['counter']+=1
+                                    result['41h'+s]['counter']+=1
                         elif name_a:
                             for n in name_a:
-                                if '43a'+n not in result:
-                                    result['43a'+n]={'language':n,'field':'43', 'subfiled':'a', 'counter':1}
+                                if '41a'+n not in result:
+                                    result['41a'+n]={'language':n,'field':'41', 'subfiled':'a', 'counter':1}
                                 else:
-                                    result['43a'+n]['counter']+=1
+                                    result['41a'+n]['counter']+=1
                 
         else:
              val008=rekord['008'][0][35:38]
@@ -119,7 +119,7 @@ for plik in paths:
                         else:
                             zViaf[name][1]+=1
                             
-viaf_nazwa_df=pd.DataFrame.from_dict(zViaf, orient='index') 
+viaf_nazwa_df=pd.DataFrame.from_dict(result, orient='index') 
 bez_viaf_nazwa_df=pd.DataFrame.from_dict(bezviaf, orient='index')
 
 viaf_nazwa_df.to_excel("wszystko_z_VIAF.xlsx", sheet_name='Sheet_name_1')
