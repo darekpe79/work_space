@@ -9,6 +9,14 @@ import json
 from pymarc import MARCReader
 from pymarc import parse_json_to_array
 
+
+with open('E:/Python/literaturoznawstwo_polon.json', encoding='utf-8') as fh:
+    dataname = json.load(fh)
+    
+for names in dataname[:1]:
+    print (names)
+    for key, val in names.items():
+        print (key, val)
 url = "https://data.bn.org.pl/api/institutions/bibs.json?author=Rokita%2C+Zbigniew+%281989-+%29&amp;limit=100"
 data = requests.get(url).json()
 nexturl=data['nextPage']
