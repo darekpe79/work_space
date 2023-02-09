@@ -50,6 +50,7 @@ for name in namesall:
         x=json.dumps(lista)
     
         records = parse_json_to_array(x)
+        
         for record in records:
             print (record)
         with open(name+'.mrc' , 'wb') as data1:
