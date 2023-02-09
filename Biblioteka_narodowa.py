@@ -10,7 +10,7 @@ from pymarc import MARCReader
 from pymarc import parse_json_to_array
 
 
-with open('E:/Python/literaturoznawstwo_polon.json', encoding='utf-8') as fh:
+with open('C:/Users/dariu/literaturoznawstwo_polon.json', encoding='utf-8') as fh:
     dataname = json.load(fh)
     
 for names in dataname[:1]:
