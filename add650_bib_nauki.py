@@ -23,7 +23,7 @@ listadospr=set(listadospr)
         
 # dd/mm/YY
 d1 = today.strftime("%d-%m-%Y")
-field650=pd.read_excel('D:/Nowa_praca/650_dokumenty/650__do_pracy_wszystko.xlsx', sheet_name='czech2',dtype=str)
+field650=pd.read_excel('D:/Nowa_praca/650_dokumenty/650__do_pracy_wszystko.xlsx', sheet_name='bn2',dtype=str)
 listy=dict(zip(field650['desk_650'].to_list(),field650['tonew650_national'].to_list()))
 def isNaN(num):
     return num!= num
@@ -56,16 +56,12 @@ def capfirst(s):
         
 
 
-paths=["D:/Nowa_praca/marki_04_01_2023/cz_chapters_2022-09-02_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_articles0_2022-08-26_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_articles1_2022-08-26_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_articles2_2022-08-26_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_articles3_2022-08-26_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_articles4_2022-08-26_30-12-2022.mrk",
-"D:/Nowa_praca/marki_04_01_2023/cz_books_2022-08-26_30-12-2022.mrk"
+paths=["C:/Users/dariu/bn_chapters_2022-08-26_30-12-2022_08-02-2023.mrk",
+"C:/Users/dariu/bn_books_2022-08-26_30-12-2022_08-02-2023.mrk",
+"C:/Users/dariu/bn_articles_2022-08-26_30-12-2022_08-02-2023.mrk"
 ]
 
-
+pattern4='\$2ELB'
 
 
 #val100=[]
@@ -84,6 +80,9 @@ for plik in paths:
             for key,val in rec.items():
                 if key=='650':
                     for v in val:
+                        # name = re.findall(pattern4, v)
+                        # if len(name)>1:
+                        #     print(rec['001'][0])
                         
                         if v in towork:
                             counter.add(rec['001'][0])
