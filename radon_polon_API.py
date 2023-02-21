@@ -8,7 +8,7 @@ Created on Fri Jan 13 11:42:31 2023
 import requests
 import json
 import time
-#DANE ZINTEGROWANE
+#DANE ZINTEGROWANE TUTAJ Mogę wydobyć orcid
 url = 'https://radon.nauka.gov.pl/opendata/scientist/search'
 
 
@@ -16,7 +16,7 @@ body={
   "resultNumbers": 1,
   "token": None,
   "body": {
-    "uid": None,
+    "uid": '95A330F69C940B5E1B1874B7FB01680B4465035E',
     "firstName": None,
     "lastName": None,
     "employmentMarker": None,
@@ -73,8 +73,8 @@ print(end_time-start_time)
     
     
     
-with open(r"literaturoznawstwo_polon.json", 'w', encoding='utf-8') as jfile:
-    json.dump(all_data, jfile, ensure_ascii=False, indent=4)
+with open(r"nauki o sztuce_polon.json", 'w', encoding='utf-8') as jfile:
+    json.dump(list_data, jfile, ensure_ascii=False, indent=4)
 list_data = []    
 def get_names(url):
     global list_data
@@ -90,12 +90,12 @@ def get_names(url):
     try:
         token = response.json()['pagination']['token']
         
-        get_names(f'https://radon.nauka.gov.pl/opendata/polon/employees?resultNumbers=100&disciplineName=literaturoznawstwo&penaltyMarker=false&token={token}')
+        get_names(f'https://radon.nauka.gov.pl/opendata/polon/employees?resultNumbers=100&disciplineName=nauki o sztuce&penaltyMarker=false&token={token}')
     except KeyError:
         pass
     return
 
 start_time=time.time()
-get_names('https://radon.nauka.gov.pl/opendata/polon/employees?resultNumbers=100&disciplineName=literaturoznawstwo&penaltyMarker=false')
+get_names('https://radon.nauka.gov.pl/opendata/polon/employees?resultNumbers=100&disciplineName=nauki o sztuce&penaltyMarker=false')
 end_time=time.time()
 print(end_time-start_time)

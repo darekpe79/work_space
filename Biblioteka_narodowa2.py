@@ -12,16 +12,17 @@ from pymarc import TextWriter
 import pandas as pd
 from definicje import *
 
-with open('C:/Users/dariu/literaturoznawstwo_polon.json', encoding='utf-8') as fh:
+with open('nauki o sztuce_polon.json', encoding='utf-8') as fh:
     dataname = json.load(fh)
 namesall=[]   
 for names in dataname:
     print (names['firstName'])
     print (names['lastName'])
-    namesall.append(names['firstName']+' '+ names['lastName'])
+    if names['firstName']:
+        namesall.append(names['firstName']+' '+ names['lastName'])
     
 names=pd.DataFrame(dataname) #orient='index')    
-names.to_excel("lista_literaturoznawstwo.xlsx", sheet_name='Sheet_name_1') 
+names.to_excel("lista_nauki o sztuce.xlsx", sheet_name='Sheet_name_1') 
 allrecords=[]
 for name in namesall:      
     print(name)
@@ -60,7 +61,7 @@ for name in namesall:
             writer.write(record)
 
         writer.close()
-writer = TextWriter(open('all_literaturoznawstwo1900records.mrk','wt',encoding="utf-8"))
+writer = TextWriter(open('nauki_o_sztuce813records.mrk','wt',encoding="utf-8"))
 for record in allrecords:
     #allrecords.append(record)
 ### and write each record to it
@@ -74,7 +75,7 @@ with open(name+'.mrc' , 'wb') as data1:
         data1.write(my_record.as_marc())
     writer.close()  
             
-path='C:/Users/dariu/all_literaturoznawstwo1900records.mrk'
+path='C:/Users/dariu/nauki_o_sztuce813records.mrk'
 listofphrases=['Artykuł z czasopisma kulturalnego','Artykuł z czasopisma społeczno-kulturalnego']
 dictrec=list_of_dict_from_file(path) 
 recordskultural=[]
@@ -101,9 +102,9 @@ for record in dictrec:
 to_file2('onlycultural_literaturoznawstwo.mrk',recordskultural)
 
 data=pd.DataFrame(dictrec)
-data.to_excel("records_literaturoznawstwo.xlsx", sheet_name='Sheet_name_1') 
+data.to_excel("records_nauki_o_sztuce813records.xlsx", sheet_name='Sheet_name_1') 
 
 data=pd.DataFrame.from_dict(rodzaj,orient='index')
-data.to_excel("655stats.xlsx", sheet_name='Sheet_name_1') 
+data.to_excel("955nauki_o_sztuce.xlsx", sheet_name='Sheet_name_1') 
 
 
