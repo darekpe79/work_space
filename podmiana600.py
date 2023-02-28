@@ -21,7 +21,7 @@ from pymarc import Record, Field
 import pandas as pd
 from copy import deepcopy
 from definicje import *
-my_marc_files = ["D:/Nowa_praca/marki_08.02.2023/proba655.mrc"]
+my_marc_files = ["C:/Users/dariu/pbl_articles_2022-09-02_30-12-2022_08-02-2023.mrc"]
 
 field650=pd.read_excel('C:/Users/dariu/Downloads/pbl_marc_articles.xlsx', sheet_name='Sheet1',dtype=str)
 listy=dict(zip(field650['001'].to_list(),field650['600'].to_list()))
@@ -34,29 +34,19 @@ allrec=[]
 antoherbad=[]
 records=[]
 for my_marc_file in tqdm(my_marc_files):
-    writer = TextWriter(open(my_marc_file.replace('.mrc','.mrk'),'wt',encoding="utf-8"))
-    with open(my_marc_file, 'rb') as data:
+    savefile=my_marc_file.split('/')[-1]
+    with open('pblrpobaviafy.mrc','wb') as data1, open(my_marc_file, 'rb') as data:
         reader = MARCReader(data)
         for record in reader:
-            #record['001'].value()
+            print(record['001'].value())
             
-            if 'pl000008663' in listy:
-                newvalue=listy['pl000008663'].split('$')
-                indicators=[e for e in newvalue[0]]
-                subfileds_values=[]
-                for values in newvalue[1:]:
-                    if len(values)>1:
-                        
-                        
-                    
-                    
-                
             
+                        
             #print(record)
+            
             for field in record:
-                field.indicators
-                field.subfields
-                if field.tag=='655':
+
+                if field.tag=='600':
                     
                     # for key,val in field.subfields_as_dict().items():
                     #    print(key,val)
@@ -65,45 +55,26 @@ for my_marc_file in tqdm(my_marc_files):
                         ind_1 = field.indicator1
                         #print(ind_1)
                         if not ind_1.isdigit() and not ind_1==" ":
-                            #print(type(record))
-                            print(field.as_marc())
+                            if record['001'].value() in listy:
+                                newvalue=listy[record['001'].value()].split('$')
+                                indicators=[e for e in newvalue[0]]
+                                subfileds_values=[]
+                                for values in newvalue[1:]:
+                                    
+                                    if len(values)>1:
+                                        subfileds_values.append(values[0])
+                                        subfileds_values.append(values[1:])
+                            print(subfileds_values)
+                            field.indicators=indicators
+                            field.subfields=compose_data(subfileds_values)
                     except:
                         continue
             
-            
-            writer.write(record)
-    writer.close()    
-                
-                #print(field['a'])
-                for subfield in field.get_subfields('a'):
-                    print(subfield)
-               #print(fields.__str__())
-                #print(fields.value())
-                
-                field.tag
-                new_subfields=[]
-                for subfield in field:
-                    print(subfield)
-                    new_subfield=compose_data(subfield[1])
-                    new_subfields.extend([subfield[0],new_subfield])
-                    
-
-                field.subfields=new_subfields
-                
-                
-                    #allrecords.append(record)
-                ### and write each record to it
-            writer.write(record)
-    writer.close()
-                    
+            data1.write(record.as_marc())
+       
 
 
 
 
 
-from pymarc import Record
 
-my_new_record = Record()
-for field in my_new_record:
-    field.add_subfield('u', 'http://www.loc.gov', 0)
-    print(field)

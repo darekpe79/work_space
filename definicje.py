@@ -266,7 +266,8 @@ def to_file2 (file_name, list_of_dict_records):
     file1.close()        
             
             
-            
+def get_indexes(l, val):
+    return [i for i,value in enumerate(l) if value==val]         
             
             
             
