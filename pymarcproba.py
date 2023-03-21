@@ -19,9 +19,22 @@ import warnings
 from pymarc import MARCReader
 from pymarc import Record, Field 
 import pandas as pd
-my_marc_files = [
-"D:/Nowa_praca/marki_08.02.2023/pbl_articles_2022-09-02_30-12-2022_08-02-2023.mrc",
-"D:/Nowa_praca/marki_08.02.2023/pbl_books_2022-09-02_30-12-2022_08-02-2023.mrc"]
+my_marc_files = ["C:/Users/dariu/BN_czarek/msplit00000015.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000000.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000001.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000002.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000003.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000004.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000005.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000006.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000007.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000008.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000009.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000010.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000011.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000012.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000013.mrc",
+"C:/Users/dariu/BN_czarek/msplit00000014.mrc"]
 
 field650=pd.read_excel('C:/Users/dariu/Downloads/pbl_marc_articles.xlsx', sheet_name='Sheet1',dtype=str)
 listy=dict(zip(field650['001'].to_list(),field650['600'].to_list()))
@@ -32,12 +45,24 @@ bezviaf={}
 records=[]
 allrec=[]
 antoherbad=[]
+
 for my_marc_file in tqdm(my_marc_files):
+    savefile=my_marc_file.split('/')[-1].split('.')[0]
+    records=[]
     with open(my_marc_file, 'rb') as data:
         reader = MARCReader(data)
         for record in reader:
-            print()
-            allrec.append(record)
+            
+            records.append(record)
+    writer = TextWriter(open(savefile+'mrk','wt',encoding="utf-8"))
+    for record in records:
+        #allrecords.append(record)
+    ### and write each record to it
+        writer.write(record)
+    writer.close() 
+            
+            
+            
             try:
                 for my_field in record:
                 #### Control fields (in the range 00x) don't have indicators. 
