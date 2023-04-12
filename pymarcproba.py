@@ -268,3 +268,14 @@ for record in records[:3]:
 writer.close() 
 v='1'
 v.isdigit()
+
+with open('C:/Users/dariu/viafyproba.mrc', 'rb') as data:
+    reader = MARCReader(data)
+    for record in reader:
+        my = record.get_fields('100','700')
+        for field in my:
+            field.subfields
+            print(field.value())
+            for subfield in field:
+                print(subfield[1])
+
