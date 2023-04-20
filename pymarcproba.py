@@ -269,13 +269,26 @@ writer.close()
 v='1'
 v.isdigit()
 
-with open('C:/Users/dariu/viafyproba.mrc', 'rb') as data:
+with open('espana.mrc','wb') as data1, open('D:/Nowa_praca/Espana/MONOMODERN/MONOMODERN.mrc', 'rb') as data:
     reader = MARCReader(data)
-    for record in reader:
-        my = record.get_fields('100','700')
-        for field in my:
-            field.subfields
-            print(field.value())
-            for subfield in field:
-                print(subfield[1])
-
+    counter=0
+    for record in tqdm(reader):
+        switch=False
+        try:
+            my = record.get_fields('080')
+            for field in my:
+                subfields=field.get_subfields('a')
+                field.subfields
+                
+                for subfield in subfields:
+                    if subfield.startswith('82'):
+                        #print(subfield)
+                        switch=True
+            if switch:
+                counter+=1
+                print(counter)
+                
+                
+                data1.write(record.as_marc())
+        except:
+            pass
