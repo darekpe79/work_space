@@ -20,6 +20,14 @@ Latitude = "52.23"
 Longitude = "21.0111"
  
 location = geolocator.reverse(Latitude+","+Longitude)
+address = location.raw['address']
+
+geodata_pd=pd.DataFrame.from_dict(address,orient='index') 
+geodata_pd.to_excel("miasto-danepokaz.xlsx", sheet_name='Sheet_name_1')
+dicto={}    
+dicto['1']={'imiona':"ilona"}
+
+dictproba=pd.DataFrame.from_dict(dicto,orient='index') 
 field650=pd.read_excel('C:/Users/dariu/miasto-dane.xlsx', sheet_name='Sheet_name_1',dtype=str) 
 dictionary650=field650.to_dict('records')
 # Display
@@ -66,7 +74,7 @@ geodata=  list(geodata)
 with open('D:/pub_places.json', encoding='utf-8') as fh:
     dataname = json.load(fh)        
 geodata={}   
-for data in tqdm(dataname):
+for data in tqdm(dataname[:50]):
     try:
         latitude=data['coordinates'].split(',')[0]
         longitude =data['coordinates'].split(',')[1]

@@ -18,7 +18,7 @@ text = "The ISSN of this journal is 1234-567X."
 pattern = r'\b\d{4}-\d{3}[\dX]\b'
 match = re.findall(pattern, text)
 
-URL=r'https://dialnet.unirioja.es/revistas/submateria/2310?registrosPorPagina=50&inicio=251'
+URL=r'https://dialnet.unirioja.es/revistas/submateria/2340?registrosPorPagina=50&inicio=151'
 header={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '\
            'AppleWebKit/537.36 (KHTML, like Gecko) '\
            'Chrome/75.0.3770.80 Safari/537.36'}
@@ -68,61 +68,54 @@ for url in tqdm(lista):
         else:
             czasopisma[tytul]=[tytul,sub_tytul]
 places=pd.DataFrame.from_dict(czasopisma, orient='index')
-places.to_excel("Filologías_Generalidades_periodicos_dialnet.xlsx")            
+places.to_excel("Filologías_Filologías_clásicas_antiguas_dialnet.xlsx")            
 
-issn=['lala','fala']
-issn[1:]
-for i in issn:
-    print(i+i)
-    tytul=element.find('h5', {'class':'item-result-title'})
-    
-    if tytul:
-        wlasciwy=tytul.text
-        
-        #wlasciwy=wlasciwy.split('    ')
-        #print(wlasciwy)
-        wlasciwy=wlasciwy.replace('\nKey-title \xa0', '')#strip('\nKey-title \xa0')
-        #print(wlasciwy.strip())
-        #break
+#%% OAI harvesting with senor Niko
 
-    tytul2=bs.find_all('div', {'class':'item-result-content-text'})
-    for tyt in tytul2:
-        if 'Title proper:' in tyt.text:
-            print(tyt.text)
+from sickle import Sickle
+sickle = Sickle('https://dialnet.unirioja.es/oai/OAIHandler')
+issny=pd.read_excel('D:/Nowa_praca/Espana/all_issns_dialnet.xlsx', sheet_name='Arkusz1',dtype=str)
+listy=issny.issn.to_list()
+	
+'0049-5719' in listy
+
+records = sickle.ListRecords(metadataPrefix='oai_dc', set='23',ignore_deleted=True)
+counter=0
+records_lista=[]
+for record in records:
+    record.header
+    print(record.header.identifier)
     
-    
-    
-    
-    
-    #issns2=issns.find('p')
-    #issns=issns2.text
-    
+
+    try:
+        sources=record.metadata['source'] 
+    except KeyboardInterrupt:
+        break
+    except:
+        sources=[]
+    if sources:
+        for source in sources:
             
-        
-    
-    
-        
-    if issns==None:
-        issns=bs.find('div', {'sidebar-accordion-list-selected-item'}).text
-        issns=issns.strip('ISN :')
-        #print(issns)
-        
-        
-    elif issns is not None:
-        issns2=issns.find('p')
-        issns=issns2.text
-        issns=issns.strip('ISN :')
-    else:
-        issns='brak'
-    
-    
-    
+            match = re.findall(pattern, source)
+            if match:
+                for issn in match:
+                    
+                    if issn in listy:
+                        records_lista.append(record.metadata)
+                        
+                    
+    counter+=1
+    if counter==100:
+        break
 
-
-    
+with open ('articles_espana.json', 'w', encoding='utf-8') as file:
+    json.dump(records_lista,file,ensure_ascii=False)   
 
 
 
 
-    
+
+
+
+
 
