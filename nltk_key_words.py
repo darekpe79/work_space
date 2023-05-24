@@ -44,3 +44,10 @@ def clean_the_text(text):
 def common_words(l_1, l_2):
         matching_words = set.intersection(set(l_1), set(l_2))
         return matching_words
+    
+for word in list_1:
+    if not word in list_2:
+        if word in freq_table:
+            freq_table[word] += 1
+        else:
+            freq_table[word] = 1

@@ -146,31 +146,31 @@ my_marc_files = ["D:/Nowa_praca/Espana/ksiazki i artykuly do wyslania_17.05.2023
 switch=False
 for my_marc_file in tqdm(my_marc_files):
     filename=my_marc_file.split('/')[-1].split('.')[0]
-    writer = TextWriter(open(filename+'nowe650.mrk','wt',encoding="utf-8"))
+    writer = TextWriter(open(filename+'nowe6502.mrk','wt',encoding="utf-8"))
     
-    with open(my_marc_file, 'rb')as data, open(filename+'nowe650.mrc','wb')as data1:
+    with open(my_marc_file, 'rb')as data, open(filename+'nowe6502.mrc','wb')as data1:
         reader = MARCReader(data)
         #fields_to_check={}
         counter=0
         counter2=0
         for record in tqdm(reader):
-            # if record['001'].value()=='spart385':
-            #     print(record)
-            #     switch=True
+             if record['001'].value()=='spart1089':
+                 print(record)
+                 switch=True
                 
             
-            # if switch:
-               # print(record['001'].value())
+             if switch:
+                print(record['001'].value())
                 counter2+=1
                 print(counter2)
-                if counter2 % 11==0:
-                    rotate_VPN()
+                
                 
                # print(record)
                 
                 check = record.get_fields('650')
                 if not check:
-                    
+                    if counter2 % 11==0:
+                        rotate_VPN()
                     
                     delay = randint(10, 15)
                     print(delay)
@@ -183,28 +183,31 @@ for my_marc_file in tqdm(my_marc_files):
                         header={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '\
                                    'AppleWebKit/537.36 (KHTML, like Gecko) '\
                                    'Chrome/75.0.3770.80 Safari/537.36'}
-                        page=get(URL, headers=header)
-                        bs=BeautifulSoup(page.content, features="lxml")
-                        print(bs)
-                        block=bs.find_all('td', {'class':'metadataFieldValue dc_subject'})
-                        key_words_to_use=[]
-                        
-                        if block:
-                            for b in block[0].text.split(';'):
-                                key_words_to_use.append(b)
-                            print(key_words_to_use)
-                            for word in key_words_to_use:
-                                my_new_650_field = Field(
-        
-                                            tag = '650', 
-        
-                                            indicators = ['0','4'],
-        
-                                            subfields = [Subfield('a', word),])
-                                            
-                                            
-                                record.add_ordered_field(my_new_650_field)     
-               
+                        try:
+                            page=get(URL, headers=header)
+                            bs=BeautifulSoup(page.content, features="lxml")
+                            print(bs)
+                            block=bs.find_all('td', {'class':'metadataFieldValue dc_subject'})
+                            key_words_to_use=[]
+                            
+                            if block:
+                                for b in block[0].text.split(';'):
+                                    key_words_to_use.append(b)
+                                print(key_words_to_use)
+                                for word in key_words_to_use:
+                                    my_new_650_field = Field(
+            
+                                                tag = '650', 
+            
+                                                indicators = ['0','4'],
+            
+                                                subfields = [Subfield('a', word),])
+                                                
+                                                
+                                    record.add_ordered_field(my_new_650_field)     
+                        except:
+                            print('pominięty--',(record['001'].value()))
+                             
                 data1.write(record.as_marc()) 
                 writer.write(record)    
 writer.close() 

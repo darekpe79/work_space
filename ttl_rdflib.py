@@ -34,7 +34,27 @@ for word in tqdm(words655):
         print(sub,pred,obj)
         
         
-        for s,p,o in g.triples((sub, SKOS.altLabel, None)):
+        for s,p,o in g.triples((sub, None, None)):
             print(s,p,o)
             my_close_matches=str(o)
+            
+from rdflib import Graph, Literal, Namespace, RDF, URIRef
+
+graph = Graph()
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+graph.bind('skos', skos)
+
+graph.add((URIRef('URI'), RDF['type'], skos['Concept']))
+graph.add((URIRef('URI'), skos['prefLabel'], Literal('Temp', lang='en')))
+graph.add((URIRef('URI'), skos['related'], URIRef('URI-Related')))
+print(graph.serialize(format='pretty-xml'))
+#skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+graph.bind('skos', skos)
+graph.add((URIRef('https:/bn-lit-skos.lab.dariah.pl/scheme/Agenci_literaccy'), RDF['type'], skos['Concept']))
+
+graph.add((URIRef('https:/bn-lit-skos.lab.dariah.pl/scheme/Agenci_literaccy'), skos['prefLabel'], Literal('Agenci literaccy', lang='pl')))
+graph.add((URIRef('https:/bn-lit-skos.lab.dariah.pl/scheme/Agenci_literaccy'), skos['closeMatch'], URIRef('http:/www.wikidata.org/entity/Q4764988')))
+graph.add((URIRef('https:/bn-lit-skos.lab.dariah.pl/scheme/Agenci_literaccy'), skos['altLabel'], Literal('Agent literacki', lang='pl')))
+
+print(graph.serialize(format='pretty-xml'))
   
