@@ -624,13 +624,28 @@ record.add_field(
 #%%
 #viaf_combination
 #tworzenie slowniczka
-my_marc_files = ["D:/Nowa_praca/Espana/ksiazki i artykuly do wyslania_17.05.2023/ksiazki_do_poprawienia_viafu.mrc"]
+fields_to_check={}
+my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc"]
 for my_marc_file in tqdm(my_marc_files):
    # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
     
     with open(my_marc_file, 'rb') as data:
         reader = MARCReader(data)
-        fields_to_check={}
+       # fields_to_check={}
         for record in tqdm(reader):
             my = record.get_fields('700','600','100')
             
@@ -650,11 +665,27 @@ for my_marc_file in tqdm(my_marc_files):
                                 text=text+l
                     fields_to_check[text]=sub_1[0]
 #uzycie slowniczka i dodanie viafow oczywistych                                
-my_marc_files = ["D:/Nowa_praca/Espana/ksiazki i artykuly do wyslania_17.05.2023/ksiazki_do_poprawienia_viafu.mrc"]
+my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc"]
+counter=0
 for my_marc_file in tqdm(my_marc_files):
-    writer = TextWriter(open('ksiazki_zpoprawionym_viafem.mrk','wt',encoding="utf-8"))
+    filename=my_marc_file.split('/')[-1].split('.')[0]
+    writer = TextWriter(open(filename+'new_viaf.mrk','wt',encoding="utf-8"))
     
-    with open(my_marc_file, 'rb') as data:
+    with open(my_marc_file, 'rb')as data, open(filename+'new_viaf.mrc','wb')as data1:
         reader = MARCReader(data)
         #fields_to_check={}
         for record in tqdm(reader):
@@ -669,7 +700,7 @@ for my_marc_file in tqdm(my_marc_files):
                 if sub_1:
                     continue
                 else:
-                    print(field)
+                    #print(field)
                     if sub_a and sub_d:
                         text=''
                         for sub in sub_a+sub_d:
@@ -679,10 +710,12 @@ for my_marc_file in tqdm(my_marc_files):
                                 if l.isalnum():
                                     text=text+l
                         if text in fields_to_check:
+                            counter+=1
                             print(text, fields_to_check[text])
                     
                             field.add_subfield('1', fields_to_check[text])
-            print(record)
+            #print(record)
+            data1.write(record.as_marc())
             writer.write(record)    
 writer.close()                    
 L = ['a', "term1", 'b', "term2", 'c', "term3", 'd', "termN"]

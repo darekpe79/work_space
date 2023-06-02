@@ -37,7 +37,7 @@ for element in block:
     a_tag.text
 czasopisma={}
 for url in tqdm(lista): 
-    delay = randint(36, 66)
+    delay = randint(56, 66)
     print(delay)
     time.sleep(delay)
     URL=fr'https://dialnet.unirioja.es{url}'
@@ -140,21 +140,24 @@ from pymarc import Record, Field
 import pandas as pd
 from definicje import *
 from nordvpn_switcher import initialize_VPN,rotate_VPN,terminate_VPN
+import sys
+
+sys.setrecursionlimit(10000)
 initialize_VPN(save=1,area_input=['complete rotation'])
 rotate_VPN()
 my_marc_files = ["D:/Nowa_praca/Espana/ksiazki i artykuly do wyslania_17.05.2023/article_do_wysylki.mrc"]
 switch=False
 for my_marc_file in tqdm(my_marc_files):
     filename=my_marc_file.split('/')[-1].split('.')[0]
-    writer = TextWriter(open(filename+'nowe6502.mrk','wt',encoding="utf-8"))
+    writer = TextWriter(open(filename+'nowe6507.mrk','wt',encoding="utf-8"))
     
-    with open(my_marc_file, 'rb')as data, open(filename+'nowe6502.mrc','wb')as data1:
+    with open(my_marc_file, 'rb')as data, open(filename+'nowe6507.mrc','wb')as data1:
         reader = MARCReader(data)
         #fields_to_check={}
         counter=0
         counter2=0
         for record in tqdm(reader):
-             if record['001'].value()=='spart1089':
+             if record['001'].value()=='spart13000':
                  print(record)
                  switch=True
                 
@@ -170,9 +173,9 @@ for my_marc_file in tqdm(my_marc_files):
                 check = record.get_fields('650')
                 if not check:
                     if counter2 % 11==0:
-                        rotate_VPN()
+                         rotate_VPN()
                     
-                    delay = randint(10, 15)
+                    delay = randint(55, 65)
                     print(delay)
                     time.sleep(delay)
                     print(record)
@@ -212,38 +215,64 @@ for my_marc_file in tqdm(my_marc_files):
                 writer.write(record)    
 writer.close() 
 
-#Checking_posibilities
-
-URL=r'https://dialnet.unirioja.es/servlet/oaiart?codigo=798509&orden=0&info=link'.replace("oaiart", "articulo")
-header={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '\
-           'AppleWebKit/537.36 (KHTML, like Gecko) '\
-           'Chrome/75.0.3770.80 Safari/537.36'}
-page=get(URL, headers=header)
-bs=BeautifulSoup(page.content, features="lxml")
-print(bs)
-block=bs.find_all('td', {'class':'metadataFieldValue dc_subject'})
-print(block[0].text)
-key_words_to_use=[]
-for b in block:
-    palabras_list=b.text.split(';')
-    number=len(palabras_list)
-    if (number % 2) == 0:
-        number=number/2
-        for palabra in palabras_list[number:]:
-            key_words_to_use.append(palabra)
-    else:
-        key_words_to_use.append(palabras_list[0])
-        new_number=int((number-1)/2+1)
-        
-        
-    for palabra in palabras_list[new_number:]:
-        key_words_to_use.append(palabra)
-
+#naprawa pola 100
+my_marc_files = ["C:/Users/dariu/articles_poskrobaniu_650.mrc"]
+switch=False
+for my_marc_file in tqdm(my_marc_files):
+    filename=my_marc_file.split('/')[-1].split('.')[0]
+    writer = TextWriter(open(filename+'articlegood100.mrk','wt',encoding="utf-8"))
     
+    with open(my_marc_file, 'rb')as data, open(filename+'articlegood100.mrc','wb')as data1:
+        reader = MARCReader(data)
+        #fields_to_check={}
+        counter=0
+        counter2=0
+        for record in tqdm(reader):
+
+                
+                
+               # print(record)
+                
+                check = record.get_fields('100')
+                if len(check)>1:
+                    
+                    
+                    for field in check[1:]:
+                        print(field.value())
+                        my_new_700_field = Field(
+
+                                    tag = '700', 
+
+                                    indicators = [' ',' '],
+
+                                    subfields = [Subfield('a', field.value()),])
+                                    
+                        record.remove_field(field)           
+                        record.add_ordered_field(my_new_700_field)            
+                data1.write(record.as_marc()) 
+                writer.write(record)    
+writer.close()
+
+#sortowanie rekordów po 001:
+    
+with open('C:/Users/dariu/articles_poskrobaniu_650articlegood100.mrc', 'rb') as f:
+    reader = MARCReader(f)
+    records = list(reader)
+    
+    
+    records.sort(key=lambda record: int(re.findall(r'\d+', record['001'].value())[0]))
+writer = TextWriter(open('articles_sorted_31.05.2023.mrk','wt',encoding="utf-8"))   
+with open('articles_sorted_31.05.2023.mrc', 'wb') as f:
+    
+    for record in records:
 
 
+        f.write(record.as_marc()) 
+        writer.write(record)    
+writer.close()
 
+dictionary={'kcy':1, "ksy2":3, "kay3":2}
 
-
-
-
+lista=list(dictionary.items())
+lista[0][1]
+lista.sort(key=lambda x:x[0][1])
