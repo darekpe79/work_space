@@ -93,3 +93,69 @@ record = modify_marc_field(record, '001', None, '987654321')
 # Print the modified record
 print("\nModified Record:")
 print(record)
+
+
+#%%
+import requests
+import urllib.parse
+
+url = "https://www.viaf.org/viaf/search"
+query = "local.personalNames = 'Zieliński, Bogusław 1951'"
+
+params = {
+    "query": query,
+    "maximumRecords": 10,
+    "startRecord": 1,
+    "httpAccept": "application/json"
+}
+
+encoded_query = urllib.parse.quote(query)
+full_url = f"{url}?query={encoded_query}&maximumRecords={params['maximumRecords']}&startRecord={params['startRecord']}&httpAccept={params['httpAccept']}"
+
+response = requests.get(full_url)
+
+if response.status_code == 200:
+    data = response.json()
+    print(data)
+else:
+    print("Request failed with status code:", response.status_code)
+    
+    
+    
+    
+import requests
+import urllib.parse
+
+def get_viaf_id(name, birth_date):
+    url = "https://www.viaf.org/viaf/search"
+    query = f"local.personalNames = '{name} {birth_date}'"
+
+    params = {
+        "query": query,
+        "maximumRecords": 10,
+        "startRecord": 1,
+        "httpAccept": "application/json"
+    }
+
+    encoded_query = urllib.parse.quote(query)
+    full_url = f"{url}?query={encoded_query}&maximumRecords={params['maximumRecords']}&startRecord={params['startRecord']}&httpAccept={params['httpAccept']}"
+
+    response = requests.get(full_url)
+
+    if response.status_code == 200:
+        data = response.json()
+        if "records" in data["searchRetrieveResponse"]:
+            records = data["searchRetrieveResponse"]["records"]
+            viaf_ids = [record["record"]["recordData"]["viafID"] for record in records]
+            return viaf_ids
+        else:
+            return []
+    else:
+        print("Request failed with status code:", response.status_code)
+        return []
+
+# Example usage
+name = "Zieliński, Bogusław"
+birth_date = "1951"
+viaf_ids = get_viaf_id(name, birth_date)
+print(viaf_ids)

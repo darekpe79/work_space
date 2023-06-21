@@ -25,28 +25,49 @@ skos = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 # Find all concepts with their close matches and preferred labels
 concepts = graph.subjects(predicate=skos.prefLabel, object=None)
+labels_close={}
 count=0
 for concept in concepts:
+    concept_str=str(concept)
+    labels_close[concept_str]={'Preferred Label:':'',"Close Match:":[] }
     count+=1
-    if count==3:
-        break
+
     print(concept)
     preferred_label = graph.value(subject=concept, predicate=skos.prefLabel)
     if preferred_label:
         print("Preferred Label:", preferred_label)
+        labels_close[concept_str]['Preferred Label:']=str(preferred_label)
 
         close_matches = graph.objects(subject=concept, predicate=skos.closeMatch)
 
         for match in close_matches:
+            labels_close[concept_str]['Close Match:'].append(str(match))
             print(match)
-            match_label = graph.value(subject=match, predicate=skos.prefLabel)
-            if match_label:
-                print("Close Match:", match, "-", match_label)
+            
+            # match_label = graph.value(subject=match, predicate=skos.prefLabel)
+            # if match_label:
+            #     print("Close Match:", match, "-", match_label)
 
-        print("\n")
+for subject, object in graph.subject_objects(predicate=skos.closeMatch):
+   # Wykonaj operacje na parze (subject, object)
+   print("Subject:", subject)
+   print("Object:", object)
 
+'''W bibliotece rdflib dostępne są różne metody do pobierania informacji z grafu RDF. 
+Oto różnice między trzema z nich: `graph.value`, `graph.objects` i `graph.subject`:
 
+1. `graph.value(subject, predicate, any=False)` - Ta metoda zwraca pojedynczą wartość (obiekt) 
+dla podanego podmiotu (subject) i predykatu (predicate) w grafie. 
+Jeśli jest więcej niż jedna wartość pasująca do tego wzorca, metoda zwraca tylko pierwszą z nich.
+Parametr `any=False` ogranicza liczbę zwracanych wyników do jednego. 
+Przykład użycia: `graph.value(subject, predicate)`
 
+2. `graph.objects(subject, predicate)` - Ta metoda zwraca wszystkie obiekty, które są powiązane z danym podmiotem (subject) i predykatem (predicate) w grafie. Zwraca listę wszystkich obiektów, które spełniają ten wzorzec. Przykład użycia: `graph.objects(subject, predicate)`
+
+3. `graph.subjects(predicate, object)` - Ta metoda zwraca wszystkie podmioty, które mają powiązania z danym predykatem (predicate) i obiektem (object) w grafie. Zwraca listę wszystkich podmiotów, które spełniają ten wzorzec. Przykład użycia: `graph.subjects(predicate, object)`
+Mając to na uwadze, w przypadku grafu RDF możemy użyć tych metod w celu pobrania różnych informacji. Metoda `graph.value` jest przydatna, gdy chcemy otrzymać pojedynczą wartość, np. wartość preferowanego znacznika (prefLabel) dla określonego podmiotu. Metoda `graph.objects` jest użyteczna, gdy chcemy pobrać wszystkie obiekty powiązane z danym podmiotem i predykatem. Natomiast metoda `graph.subjects`
+ pozwala nam otrzymać wszystkie podmioty, które mają określony predykat i obiekt.
+Graph.subject_objects(predicate) służy do pobierania par (subject, object) dla wszystkich potrójek w grafie, które mają określony predykat (predicate). Zwraca ona generator, który można iterować, aby uzyskać wszystkie pary (subject, object) spełniające ten wzorzec.'''
 #%%
 
 
@@ -62,7 +83,7 @@ y = json.loads(v)
 words={} 
 for word in tqdm(words655):
     
-    #objects=Literal("Apologia", lang='pl')
+    objects=Literal("Aforyzmy", lang='pl')
     objects=URIRef('http:/www.wikidata.org/entity/Q109174024')
     # subject = URIRef("http://id.sgcb.mcu.es/Autoridades/LEM201014730/concept")
     # predicate=URIRef("http:/www.w3.org/2004/02/skos/core#closeMatch")
@@ -75,7 +96,7 @@ for word in tqdm(words655):
     
     close_matches=[]
     loc_library=[]
-    for sub, pred, obj in g.triples((None, SKOS.closeMatch, None)):  
+    for sub, pred, obj in g.triples((None, SKOS.closeMatch ,None)):  
         print(sub,pred,obj)
         
         
