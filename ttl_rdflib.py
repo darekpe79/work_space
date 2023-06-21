@@ -11,6 +11,45 @@ from rdflib.namespace import DC, DCTERMS, DOAP, FOAF, SKOS, OWL, RDF, RDFS, VOID
 from rdflib import Dataset
 from rdflib import URIRef
 from rdflib import Literal
+#new approach
+from rdflib import Graph, Namespace
+
+# Load the TTL data into an RDF graph
+graph = Graph()
+graph.parse("D:/Nowa_praca/lit_bn_skos_27_04_23.ttl", format='ttl')
+
+
+
+# Define the SKOS namespace
+skos = Namespace("http://www.w3.org/2004/02/skos/core#")
+
+# Find all concepts with their close matches and preferred labels
+concepts = graph.subjects(predicate=skos.prefLabel, object=None)
+count=0
+for concept in concepts:
+    count+=1
+    if count==3:
+        break
+    print(concept)
+    preferred_label = graph.value(subject=concept, predicate=skos.prefLabel)
+    if preferred_label:
+        print("Preferred Label:", preferred_label)
+
+        close_matches = graph.objects(subject=concept, predicate=skos.closeMatch)
+
+        for match in close_matches:
+            print(match)
+            match_label = graph.value(subject=match, predicate=skos.prefLabel)
+            if match_label:
+                print("Close Match:", match, "-", match_label)
+
+        print("\n")
+
+
+
+#%%
+
+
 
 g = Graph()
 g.parse("D:/Nowa_praca/lit_bn_skos_27_04_23.ttl", format='ttl')
@@ -23,18 +62,24 @@ y = json.loads(v)
 words={} 
 for word in tqdm(words655):
     
-    objects=Literal("Apologia", lang='pl')
-   # subject = URIRef("http://id.sgcb.mcu.es/Autoridades/LEM201014730/concept")
-    predicate=URIRef("http:/www.w3.org/2004/02/skos/core#closeMatch")
-    
+    #objects=Literal("Apologia", lang='pl')
+    objects=URIRef('http:/www.wikidata.org/entity/Q109174024')
+    # subject = URIRef("http://id.sgcb.mcu.es/Autoridades/LEM201014730/concept")
+    # predicate=URIRef("http:/www.w3.org/2004/02/skos/core#closeMatch")
+    for subject in g.subjects(predicate=SKOS.closeMatch, object=objects):
+        print(subject)
+        for obj in g.objects(predicate=SKOS.prefLabel, subject=subject):
+            print(obj)
+            
+        
     
     close_matches=[]
     loc_library=[]
-    for sub, pred, obj in g.triples((None, None, objects)):  
+    for sub, pred, obj in g.triples((None, SKOS.closeMatch, None)):  
         print(sub,pred,obj)
         
         
-        for s,p,o in g.triples((sub, None, None)):
+        for s,p,o in g.triples((sub, SKOS.prefLabel, None)):
             print(s,p,o)
             my_close_matches=str(o)
             

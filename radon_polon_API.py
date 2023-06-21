@@ -131,6 +131,10 @@ names.to_excel("literaturoznawstwo_id_names_orcid.xlsx", sheet_name='Sheet_name_
 
 ###GOOD ORCID PART Zaciaganie prac po ORCID
 
+#https://pub.orcid.org/v3.0/expanded-search/?q=family-name:Umerle
+#https://pub.orcid.org/v3.0/expanded-search/?q=(family-name:Umerle AND given-names:Tomasz)
+
+
 to_compare = pd.read_excel ("C:/Users/dariu/literaturoznawstwo_id_names_orcid.xlsx", sheet_name='Sheet_name_1')
 dicto = to_compare.to_dict('records')#('dict')['orcid']
 
@@ -140,8 +144,9 @@ for values in dicto:
     counter+=1
     print(counter)
     orcid=values['orcid']
+    orcid='0000-0002-7335-0568'
     if type(orcid)!=float:
-        #print(orcid)
+        print(orcid)
        
         alldata[orcid]={}
         try:
@@ -150,6 +155,7 @@ for values in dicto:
             
             r=requests.get(url, headers=headers)
             works=r.json()['activities-summary']['works']['group']
+            
             #family_name=r.json()['person']['name']['family-name']['value']
             #name=r.json()['person']['name']['given-names']['value']
             papers_list=[]
@@ -189,4 +195,3 @@ for data,value in dataname.items():
 
 names=pd.DataFrame.from_dict(newdata, orient='index')
 names.to_excel('orcid_prace_literaturoznawstwo.xlsx')
-
