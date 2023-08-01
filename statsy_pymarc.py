@@ -21,35 +21,89 @@ import pandas as pd
 from copy import deepcopy
 from definicje import *
 
-my_marc_files = ["D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/arto_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/pbl_articles_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/bn_articles_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/bn_books_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/bn_chapters_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_articles0_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_articles1_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_articles2_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_articles3_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_articles4_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_books_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/cz_chapters_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/fennica_21-02-2023.mrc",
-"D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/pbl_books_21-02-2023.mrc"]
+my_marc_files = ["D:/Nowa_praca/nowe marki nowy viaf/bn_articles_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/bn_books_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/bn_chapters_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_articles0_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_articles1_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_articles2_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_articles3_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_articles4_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_books_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/cz_chapters_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/fi_arto_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/fi_fennica_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/pbl_articles_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/pbl_books_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/sp_ksiazki_composed_unify2_do_wyslanianew_viaf.mrc"]
 
 my_marc_files2 =["C:/Users/dariu/libri_marc_bn_articles_2023-3-13.mrc",
 "C:/Users/dariu/libri_marc_bn_books_2023-03-14.mrc"]
 
+import pymarc
+
+
+
+
 zviaf={}
 bezviaf={}
 field_260_264=set()
-
-#count=0
-for my_marc_file in tqdm(my_marc_files2):
+language_statistics = {}
+language_place_statistics = {}
+for my_marc_file in tqdm(my_marc_files):
     #writer = TextWriter(open(my_marc_file.replace('.mrc','.mrk'),'wt',encoding="utf-8"))
     with open(my_marc_file, 'rb') as data:
         reader = MARCReader(data)
+     
         for record in tqdm(reader):
-            #count+=1
+            # record_language_stats = extract_language_statistics(record)
+    
+            # # Update overall language statistics with the current record's statistics
+            # for language_code, frequency in record_language_stats.items():
+            #     if language_code in language_statistics:
+            #         language_statistics[language_code] += frequency
+            #     else:
+            #         language_statistics[language_code] = frequency
+            
+            
+            
+            record_language_place_stats = extract_language_place_statistics(record)
+
+# Update overall language-place statistics with the current record's statistics
+            for language_place, frequency in record_language_place_stats.items():
+                if language_place in language_place_statistics:
+                    language_place_statistics[language_place] += frequency
+                else:
+                    language_place_statistics[language_place] = frequency
+            
+jezyki_df=pd.DataFrame.from_dict(language_place_statistics, orient='index')
+jezyki_df.to_excel("language_place_statistics.xlsx")             
+           
+def extract_language_place_statistics(record):
+    language_place_stats = {}
+
+    language_field = record['041'] if '041' in record else None
+    place_fields = record.get_fields('260') + record.get_fields('264')
+
+    if language_field and place_fields:
+        languages = language_field.get_subfields('a')
+        places = [field.get_subfields('a') for field in place_fields]
+
+        for language in languages:
+            for place in places:
+                for p in place:
+                    key = f"{language.strip()}|{p.strip()}"
+                    if key:
+                        if key in language_place_stats:
+                            language_place_stats[key] += 1
+                        else:
+                            language_place_stats[key] = 1
+
+    return language_place_stats
+
+    
+
+#count+=1
             #print(count)
            
             #print(record)

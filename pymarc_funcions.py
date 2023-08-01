@@ -94,6 +94,23 @@ record = modify_marc_field(record, '001', None, '987654321')
 print("\nModified Record:")
 print(record)
 
+#%%
+def extract_language_statistics(record):
+    language_stats = {}
+
+    if '041' in record:
+        field_041 = record.get_fields('041')
+
+        for field in field_041:
+            for subfield in field.get_subfields('a'):
+                language_code = subfield.strip()
+                if language_code:
+                    if language_code in language_stats:
+                        language_stats[language_code] += 1
+                    else:
+                        language_stats[language_code] = 1
+
+    return language_stats
 
 #%%
 import requests

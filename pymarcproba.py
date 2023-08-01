@@ -237,9 +237,11 @@ for record in records:
     writer.write(record)
 writer.close() 
 
-my_new_marc_filename = "my_new_marc_file.mrc" 
+my_new_marc_filename = "D:/Nowa_praca/nowe marki nowy viaf/bn_books_21-02-2023composenew_viaf.mrc"
 with open(my_new_marc_filename , 'wb') as data:
-    for my_record in records:
+    reader = MARCReader(data)
+    for my_record in reader:
+        print(my_record)
         ### and write each record to it
         data.write(my_record.as_marc())
 with open('f20232.xml' , 'wb') as data:

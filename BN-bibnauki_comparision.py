@@ -234,11 +234,28 @@ for idNauki, idBn in tqdm(dopasowane.items()):
                     output[idNauki].append((ident,dictionary[ident]))
 with open ('BibNauk_hasla.json', 'w', encoding='utf-8') as file:
     json.dump(output,file,ensure_ascii=False) 
-                
-                
+#usunięcie duplikatów haseł przedmiotowych 
+from definicje import *               
+with open ('C:/Users/dariu/Desktop/BNvsBibNauki/bibnau_bn_final_results (1).json', 'r',encoding='utf-8') as f:
+    dopasowane=json.load(f)              
             
-        
- 
-
-        
+results={}       
+for k, v in dopasowane.items():
+    results[k]=[]
+    results[k].append(v[0][0])
+    lista=v[0][1]
+    unique(lista)
+    results[k].append(lista)
+results=compose_data(results)
+with open ('28062023results_final_all.json', 'w',encoding='utf-16') as file:
+    json.dump(results,file,ensure_ascii=False) 
     
+
+
+converted_data = json.dumps(results, ensure_ascii=True)
+
+# Write the converted data to a JSON file
+with open('output.json', 'w', encoding='utf-8') as f:
+    f.write(converted_data)       
+    
+bytes('lala')

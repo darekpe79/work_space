@@ -873,3 +873,24 @@ with open ('C:/Users/dariu/check.json', 'r', encoding='utf-8') as json_file:
     
 with open('article_compose_espana.json', 'w', encoding='utf-8') as f:
     json.dump(data_article_composed, f)
+    
+    
+    
+#save all as json     
+    
+for my_marc_file in tqdm(["D:/Nowa_praca/nowe marki nowy viaf/bn_articles_21-02-2023composenew_viaf.mrc",
+"D:/Nowa_praca/nowe marki nowy viaf/bn_books_21-02-2023composenew_viaf.mrc"]):
+    filename=my_marc_file.split('/')[-1].split('.')[0]
+    
+    writer2 = JSONWriter(open(filename+'.json','wt',encoding="utf-8"))
+    with open(my_marc_file, 'rb')as data:
+        reader = MARCReader(data)
+        #fields_to_check={}
+        for record in tqdm(reader):
+           # print(record)
+
+                   
+
+            writer2.write(record)
+    writer2.close()
+writer.close()

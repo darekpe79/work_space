@@ -9,11 +9,12 @@ import pandas as pd
 import re
 from tqdm import tqdm
 from definicje import *
+from ast import literal_eval
 # DANE OD STRONY SLOWNIKOW plik wiki_sparql- od strony wikidata
 #finowie
-fin650=pd.read_excel('C:/Users/dariu/07062023finowie_650_zebrane_do_maczowania.xlsx', sheet_name='Sheet1',dtype=str)
-cze650=pd.read_excel('C:/Users/dariu/14062023czesi__650_zebrane_do_maczowania.xlsx', sheet_name='Sheet1',dtype=str)
-esp650=pd.read_excel('C:/Users/dariu/14062023hiszpanie_650_zebrane_do_maczowania.xlsx', sheet_name='Sheet1',dtype=str)
+fin650=pd.read_excel('D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/07062023finowie_650_zebrane_do_maczowania_ver2.xlsx', sheet_name='Sheet1',dtype=str)
+cze650=pd.read_excel('D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/14062023czesi__650_zebrane_do_maczowania_ver.2.xlsx', sheet_name='Sheet1',dtype=str)
+esp650=pd.read_excel('D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/14062023hiszpanie_650_zebrane_do_maczowania_ver.2.xlsx', sheet_name='Sheet1',dtype=str)
 # set_finowie=set(fin650.Wiki.to_list())
 # set_czesi=set(cze650.Wiki.to_list())
 # set_esp=set(esp650.Wiki.to_list())
@@ -99,7 +100,7 @@ for elements in tqdm(fin_dictionary):
                             matched[elements['field_650']]['cze_a'] = elements2['subfield_a']
                             matched[elements['field_650']]['en_wiki_label']=elements2['en_label']
                             found_match = True  # Match found, set flag to True
-                            #break
+                            break
                     if fin_elem == "N/A" or fin_elem == '0' or fin_elem == 'brak':
                         continue
                     else:
@@ -115,7 +116,7 @@ for elements in tqdm(fin_dictionary):
                                 if elements2['LOC_id'] not in matched[elements['field_650']]['loc_id']:
                                     matched[elements['field_650']]['loc_id'].append(elements2['LOC_id'])
                             found_match = True  # Match found, set flag to True
-                            #break
+                            break
                         
             if key=='LOC_id':
                 if type(val)==float:
@@ -137,6 +138,7 @@ for elements in tqdm(fin_dictionary):
                             matched[elements['field_650']]['cze_a'] = elements2['subfield_a']
                             dowykluczenia_cze[elements2['field_650']]='znalezione'
                             found_match = True  # Match found, set flag to True
+                            break
                     else:
                         if loc in matched[elements['field_650']]['loc_id']:
                             print(loc)
@@ -150,6 +152,7 @@ for elements in tqdm(fin_dictionary):
                                     matched[elements['field_650']]['en_wiki_label']=elements2['en_label']
                             dowykluczenia_cze[elements2['field_650']]='znalezione'
                             found_match = True 
+                            break
                         
         
                 
@@ -237,19 +240,26 @@ for key, value in matched.items():
 
     
     wiki_id=value.get('wiki_id')
+   # print(wiki_id)
     loc_id=value.get('loc_id') 
     ids=wiki_id+loc_id
+   # print(ids)
     if ids:
         
         for esp_elem in esp_dictionary:
+            
             
             wiki_esp=esp_elem.get('Wiki')
             if isinstance(wiki_esp, float):
                 continue
             if wiki_esp:
+               wiki_esp=wiki_esp.split(',')
                
                for wiki_esp_elem in wiki_esp:
+                   print(wiki_esp_elem)
                    if wiki_esp_elem in ids:
+                       
+                       print(wiki_esp_elem)
                        matched[key]['field_650_esp'] = esp_elem['subfield_a']
                        matched[key]['en_wiki_label'] = esp_elem['en_wiki_label']
                        esp_do_wykluczenia[esp_elem['subfield_a']]='znalezione'
@@ -354,6 +364,186 @@ for elem in esp_dictionary:
                         
                         matched[elem['subfield_a']]['loc_id'].append(loc)
                         
-                        
+from rdflib import Graph, plugin
+from rdflib.serializer import Serializer
+from rdflib.namespace import DC, DCTERMS, DOAP, FOAF, SKOS, OWL, RDF, RDFS, VOID, XMLNS, XSD
+from rdflib import Dataset
+from rdflib import URIRef
+from rdflib import Literal
+#new approach
+from rdflib import Graph, Namespace
+
+# Load the TTL data into an RDF graph
+graph = Graph()
+graph.parse("D:/Nowa_praca/lit_bn_skos_27_04_23.ttl", format='ttl')
+
+
+
+# Define the SKOS namespace
+skos = Namespace("http://www.w3.org/2004/02/skos/core#")
+
+# Find all concepts with their close matches and preferred labels
+concepts = graph.subjects(predicate=skos.prefLabel, object=None)
+labels_close={}
+count=0
+for concept in concepts:
+    concept_str=str(concept)
+    labels_close[concept_str]={'Preferred Label:':'',"Close Match:":[] }
+    count+=1
+
+    print(concept)
+    preferred_label = graph.value(subject=concept, predicate=skos.prefLabel)
+    if preferred_label:
+        print("Preferred Label:", preferred_label)
+        labels_close[concept_str]['Preferred Label:']=str(preferred_label)
+
+        close_matches = graph.objects(subject=concept, predicate=skos.closeMatch)
+
+        for match in close_matches:
+            labels_close[concept_str]['Close Match:'].append(str(match))  
+dowywaleniapl={}
+for key_val in matched:
+    flag=False
+    # print(matched[key_val]['wiki_id'])  
+    # print(matched[key_val]['loc_id']) 
+    ids=matched[key_val]['loc_id']+matched[key_val]['wiki_id']
+    for labels in labels_close:
+        closematches=labels_close.get(labels).get('Close Match:')
+        for match in closematches:
+            if match.startswith('http:/www.wikidata.org'):
+                match=match.replace('http:/www.wikidata.org','http://www.wikidata.org')
+                if match in ids:
+                    dowywaleniapl[labels]='jest'
+                    print(closematches)
+                    matched[key_val]['pl_concept']=labels
+                    flag=True
+                    
+                    break
+            if match.startswith('http:/id.loc.gov'):
+                match=match.split(r'/')[-1]
+                if match in ids:
+                    matched[key_val]['pl_concept']=labels
+                    dowywaleniapl[labels]='jest'
+                    flag=True
+                    print(match)
+                    break
+               #print(match)
+                
+        if flag:
+            break
+    if not flag:
+        matched[key_val]['pl_concept']='N/D'
+            
+    
+    
+                    
+
+
+for labels in labels_close:
+    if labels in dowywaleniapl:
+        print(labels)
+    else:
+        matched[labels]={'pl_concept':labels,'loc_id':[] ,'en_wiki_label': 'N/D', 'wiki_id':[],'cze_a':'N/D','field_650_cze':'N/D','fin_a':'N/D','field_a_fin':'N/D','field_650_esp':'N/D' }
+        closematches=labels_close.get(labels).get('Close Match:')
+        for match in closematches:
+            
+            if match.startswith('http:/www.wikidata.org'):
+                match=match.replace('http:/www.wikidata.org','http://www.wikidata.org')
+
+                matched[labels]['wiki_id'].append(match)
+                    
+                    
+                 
+            if match.startswith('http:/id.loc.gov'):
+                match=match.split(r'/')[-1]
+                
+                matched[labels]['loc_id'].append(match)
 fin_df=pd.DataFrame.from_dict(matched, orient='index')
-fin_df.to_excel("fi_cze_sp3.xlsx")   
+fin_df.to_excel("fi_cze_sp_pl6.xlsx")  
+#matching all to wiki one table
+all_data=pd.read_excel('D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/fi_cze_sp_pl6.xlsx', sheet_name='Sheet1',dtype=str).fillna('')
+all_dictionary=all_data.to_dict('records')
+all_dictionary=[e for e in all_dictionary if literal_eval(e['wiki_id'])]
+
+
+for keyval in all_dictionary:
+    keyval['wiki_id']=literal_eval(keyval['wiki_id'])
+    keyval['loc_id']=literal_eval(keyval['loc_id'])
+    keyval['cze_a']=[keyval['cze_a']]
+    keyval['cze_id']=keyval['cze_id'].split(',')
+    keyval['en_wiki_label']=[keyval['en_wiki_label']]
+    keyval['esp_id']=keyval['esp_id'].split(',')
+    keyval['fi_id']=keyval['fi_id'].split(',')
+    del keyval['field650']
+    del keyval['field_650_cze']
+    keyval['field_a_esp']=[keyval['field_a_esp']]
+    del keyval['field_a_fin']
+    keyval['fin_a']=[keyval['fin_a']]
+    keyval['pl_concept']=[keyval['pl_concept']]
+    
+    for k, v in keyval.items():
+        if v==['']:
+            keyval[k]=[]
+    
+    
+    
+    
+    
+for idx, elem in tqdm(enumerate(all_dictionary)):
+    if elem:
+        for idx2, e in enumerate(all_dictionary[idx+1:]):
+            if e:
+                matched=False
+                for wiki_id in elem['wiki_id']:
+                    if wiki_id in e['wiki_id']:
+                        matched=True
+                        break
+                if matched:
+                    for key, val in elem.items():
+                        elem[key].extend(e[key])
+                    all_dictionary[idx+1+idx2] = 0
+
+all_data=[]
+for x in all_dictionary:
+    if x==0:
+        continue
+    else:
+        all_data.append(x)
+       
+for x in all_data:
+    for k, v in x.items():
+        unique(x[k])        
+fin_df=pd.DataFrame(all_data)
+fin_df.to_excel("27062023_matched_fi_cze_sp_pl_ver_1.xlsx")         
+a = ['b', 'a', 'b', 'a', 'c']
+unique(a)
+for elem in a:
+    if elem=='b' or elem=='c' or elem=='a':
+        a.remove(elem)
+    
+        
+            
+            
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+                        
