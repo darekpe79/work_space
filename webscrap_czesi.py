@@ -14,40 +14,47 @@ from tqdm import tqdm
 import regex as re
 import time
 from definicje import *
+from ast import literal_eval
 pat=r'(?<=\$7[a-zA-Z]{2}).*?(?=\$|$)'
 
-genre = pd.read_excel (r"D:\Nowa_praca\655_articles.xlsx")
+genre = pd.read_excel (r"D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/01082023_matched_fi_cze_sp_pl_(broader_narrower-yso,cze,fi).xlsx", sheet_name='Arkusz1')
 genre_list=genre.desk655.to_list()
-results={}
-for number in tqdm(genre_list):
+ids=[]
+for things in genre.cze_id.to_list():
+    things=literal_eval(things) 
+    if things:
+        for thing in things:
+            ids.append(thing)
     
-    num=re.findall(pat, number)
-    if num:
-        goodnum=''.join(filter(str.isdigit, num[0]))
-        print(goodnum)
-        pad_string = goodnum.zfill(9)
+results={}
+for number in tqdm(ids):
+    
+    # num=re.findall(pat, number)
+    # if number:
+    #     goodnum=''.join(filter(str.isdigit, num[0]))
+    #     print(goodnum)
+    #     pad_string = goodnum.zfill(9)
 
         
+     URL=f'https://aleph.nkp.cz/F/?func=find-c&local_base=aut&ccl_term=ica={number}'
+    # URL=r'https://aleph.nkp.cz/F/?func=direct&doc_number={}&local_base=AUT'.format(pad_string)
+     page=get(URL)
+     bs=BeautifulSoup(page.content, features="lxml")
+     #genre_eng=bs.find("td", text="Angl. ekvivalent").find_next_sibling("td").text
+     table=bs.find("td", text="Angl. ekvivalent")
+     if table:
+         genre_eng=table.find_next_sibling("td").text
+         print(genre_eng)
+         results[number]=genre_eng
+     else:
+         results[number]='no Eng. '+URL
+     time.sleep(4)
         
-        URL=r'https://aleph.nkp.cz/F/?func=direct&doc_number={}&local_base=AUT'.format(pad_string)
-        page=get(URL)
-        bs=BeautifulSoup(page.content, features="lxml")
-        #genre_eng=bs.find("td", text="Angl. ekvivalent").find_next_sibling("td").text
-        table=bs.find("td", text="Angl. ekvivalent")
-        if table:
-            genre_eng=table.find_next_sibling("td").text
-            print(genre_eng)
-            results[number]=genre_eng
-        else:
-            results[number]='no Eng. '+URL
-    else:
-        results[number]='no Eng. '
-        
-    time.sleep(1.5)
+    
     
     
 excel=pd.DataFrame.from_dict(results, orient='index')
-excel.to_excel('655_articles_cz.xlsx', sheet_name='655')     
+excel.to_excel('07082023_elb_en_cz_uzupelnienie.xlsx', sheet_name='new')     
             
 URL=r'https://aleph.nkp.cz/F/?func=direct&doc_number=000133957&local_base=AUT'.format(goodnum)
 

@@ -414,3 +414,39 @@ if label:
     print(f"The English label for {entity_id} is: {label}")
 else:
     print(f"Entity ID '{entity_id}' not found or does not have an English label.")
+    
+#%%    
+fin_dict={}     
+for key, value in tqdm(new_dict_url.items()):
+    print(value) 
+    uri=value[0]
+    fin_dict[uri]=[key,value[1]]
+      
+
+
+    uri="http://www.yso.fi/onto/yso/p10225"
+    #fin_dict[uri]=[]
+        
+    endpoint = "https://finto.fi/rest/v1/yso/data"
+    params = {
+        "uri": uri,
+        "format": "application/ld+json"
+    }
+    
+    response = requests.get(endpoint, params=params)
+
+    data = response.json()
+
+    
+    
+    # Extract close match from Wikidata
+    graph_list = data["graph"]
+    extracted_list=[]
+    for graph in graph_list:
+        if graph['uri']==uri:
+            #print(graph)
+            
+            for g in graph['prefLabel']:
+                if g['lang']=='en':
+                    print(g['value'])
+                    
