@@ -371,12 +371,13 @@ for my_marc_file in tqdm(my_marc_files):
                         new_field.append(dictionary_to_check[subfield])
             if new_field:
                 unique(new_field)
+                my_new_380_field=None
                 for new in new_field:
                     if 'Secondary literature' in new:
                         
                         
                     
-                        my_new_245_field = Field(
+                        my_new_380_field2 = Field(
             
                                 tag = '380', 
             
@@ -389,7 +390,7 @@ for my_marc_file in tqdm(my_marc_files):
                                             ]
                                 ) 
 
-                        record.add_ordered_field(my_new_245_field)
+                        record.add_ordered_field(my_new_380_field2)
                         
                     else:
                         
@@ -639,7 +640,7 @@ my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023com
 "D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
 "D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
 "D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc"]
+"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc", 'D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc']
 for my_marc_file in tqdm(my_marc_files):
    # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
     
@@ -665,21 +666,9 @@ for my_marc_file in tqdm(my_marc_files):
                                 text=text+l
                     fields_to_check[text]=sub_1[0]
 #uzycie slowniczka i dodanie viafow oczywistych                                
-my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc"]
+my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_chapters_2023-08-07.mrc",
+"D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_articles_2023-08-07.mrc",
+"D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_books_2023-08-07.mrc"]
 counter=0
 for my_marc_file in tqdm(my_marc_files):
     filename=my_marc_file.split('/')[-1].split('.')[0]
