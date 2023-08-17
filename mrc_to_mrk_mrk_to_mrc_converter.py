@@ -34,13 +34,15 @@ def convert_mrk_to_marc(mrk_file_path, mrc_file_path):
                 if tag < '010':
                     value = line[6:]
                     if tag == '008':
-                        value = value.replace('{bsol}', '\\')
+                        value = value.replace('\\', ' ')
                     record.add_field(Field(tag=tag, data=value))
                 else:
                     indicators = line[6:8].replace('\\', ' ')
                     subfields_raw = line[8:].split('$')[1:]
                     subfields_list = []
                     for subfield in subfields_raw:
+                        if not subfield:  # Skip empty subfields
+                            continue
                         code = subfield[0]
                         value = subfield[1:]
                         subfields_list.append(Subfield(code=code, value=value))
@@ -71,7 +73,7 @@ def start_conversion():
         convert_mrk_to_marc(file1_path, file2_path)
 
 root = tk.Tk()
-root.title('MARC and MRK Converter')
+root.title('MRC and MRK Converter by Dariusz Perliński')
 
 conversion_type_var = tk.StringVar(root)
 conversion_type_var.set('MARC to MRK')
