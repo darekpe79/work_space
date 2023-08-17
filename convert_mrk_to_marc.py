@@ -45,13 +45,15 @@ def convert_mrk_to_marc(mrk_file_path, mrc_file_path):
                     # Control fields (001 to 009)
                     value = line[6:]
                     if tag == '008':
-                        value = value.replace('{bsol}', '\\')
+                        value = value.replace('\\', ' ')
                     record.add_field(Field(tag=tag, data=value))
                 else:
                     indicators = line[6:8].replace('\\', ' ')
                     subfields_raw = line[8:].split('$')[1:]
                     subfields_list = []
                     for subfield in subfields_raw:
+                        if not subfield:  # Skip empty subfields
+                            continue
                         code = subfield[0]
                         value = subfield[1:]
                         if tag == '080' and code == '1':
@@ -112,12 +114,12 @@ root.mainloop()
 
 
 # Example usage
-mrk_file_path = 'D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/przyklad_niszczenie_liter.mrk'
+mrk_file_path = 'C:/Users/dariu/libri_marc_bn_articles_2023-08-07new_viaf_11-08-2023.mrk'
 mrc_file_path = 'output.mrc'
 
 
 convert_mrk_to_marc(mrk_file_path, mrc_file_path)
-for my_marc_file in tqdm(['D:/work_space/genre_655.mrc']):
+for my_marc_file in tqdm(['D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/przyklad_niszczenie_liter2 (2).mrc']):
     writer = TextWriter(open('genre_655.mrk','wt',encoding="utf-8"))
     with open(my_marc_file, 'rb') as data, open(my_marc_file+'genre_655.mrc','wb')as data1:
         reader = MARCReader(data)

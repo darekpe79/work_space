@@ -548,4 +548,27 @@ for key,val in broader_elb_id.items():
 df = pd.DataFrame(list(broader_fi_cze.items()), columns=['broader', 'narrower'])
   
 df.to_excel("01082023key-broader_val-narrower_cze_fin_sp.xlsx")                  
-      
+#%% dla pomocy zamiast id całe koncepty
+field650=pd.read_excel('D:/Nowa_praca/słowniki_praca_fin_cze_sp_pl/08082023_matched_fi_cze_sp_pl_(broader_narrower-yso,cze,esp)_FINAL.xlsx', sheet_name='Sheet1',dtype=str)
+dictionary_dataframe=field650.to_dict('records')  
+concept={}
+for data in tqdm(dictionary_dataframe):
+    if type (data['broader']) is not float:
+        
+        list_broader=literal_eval(data['broader'])
+        concept[data['libri_id']]={'broader':[]}
+        for broader in list_broader:
+            
+            for data1 in dictionary_dataframe:
+                
+                
+                if broader==data1['libri_id']:
+                    print(data['elb_concept'])
+                    print(data1['elb_concept'])
+                    concept[data['libri_id']]['broader'].append(data1['elb_concept'])
+            
+fin_df=pd.DataFrame.from_dict(concept, orient='index')   
+fin_df.to_excel("key-narrower_val-broader.xlsx")                
+            
+            
+        
