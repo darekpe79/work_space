@@ -9,6 +9,8 @@ from pymarc import Record, Field, Subfield, MARCWriter, MARCReader, TextWriter
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+
+
 def convert_marc_to_mrk(mrc_file_path, mrk_file_path):
     writer = TextWriter(open(mrk_file_path, 'wt', encoding="utf-8"))
     with open(mrc_file_path, 'rb') as data:
@@ -17,10 +19,39 @@ def convert_marc_to_mrk(mrc_file_path, mrk_file_path):
             writer.write(record)
     writer.close()
     messagebox.showinfo('Success', 'Conversion completed successfully!')
+    
+def mark_to_list(path):
+    records = []
+    with open(path, 'r', encoding = 'utf-8') as mrk:
+        record = []
+        for line in mrk.readlines():
+            if line == '\n':
+                pass
+            elif line.startswith('=LDR') and record: 
+                records.append(record)
+                record = []
+                record.append(line)
+            else:
+                record.append(line)
+        records.append(record)   
+    final_output = []  
+    for record in records:      
+        cleared_record=[]
+        for i, field in enumerate(record):
+            if not field.startswith('='):
+                cleared_record[-1]=cleared_record[-1][:-1]+field
+                
+            else:
+                cleared_record.append(field)
+        final_output.append(cleared_record)
+        
+    return final_output
 
 def convert_mrk_to_marc(mrk_file_path, mrc_file_path):
-    with open(mrk_file_path, 'r', encoding='utf-8') as file:
-        records = file.read().strip().split('\n\n')
+    # with open(mrk_file_path, 'r', encoding='utf-8') as file:
+    #     records = file.read().strip().split('\n\n')
+    records = mark_to_list(mrk_file_path)
+    records = [''.join(sublist).strip() for sublist in records]
 
     with open(mrc_file_path, 'wb') as marc_file:
         writer = MARCWriter(marc_file)

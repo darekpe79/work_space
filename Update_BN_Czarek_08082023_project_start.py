@@ -289,6 +289,82 @@ for my_marc_file in tqdm(my_marc_files):
             data1.write(record.as_marc())
             writer.write(record)    
 writer.close()                
+
+#%%
+#add issns by title
+fields_to_check={}
+my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/es_articles_sorted_31.05.2023.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
+"D:/Nowa_praca/marki_compose_19.05.2023/sp_ksiazki_composed_unify2_do_wyslanianew_viaf.mrc"]
+for my_marc_file in tqdm(my_marc_files):
+   # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
+    
+    with open(my_marc_file, 'rb') as data:
+        reader = MARCReader(data)
+       # fields_to_check={}
+        for record in tqdm(reader):
+            my = record.get_fields('773')
+            if len(my)==1:
+            
+            
+                for field in my:
+                   # field.add_subfield('d', '1989-2022')
+                    sub_t=field.get_subfields('t')
+                    sub_x=field.get_subfields('x')
+                    
+                    if sub_x and sub_t:
+                        fields_to_check[sub_t[0]]=sub_x[0]
+
+
+my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_chapters_2023-08-07new_viaf.mrc",
+"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_books_2023-08-07new_viaf.mrc",
+"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_libri_marc_bn_articles_2023-08-07new_viaf.mrc"]
+counter=0
+for my_marc_file in tqdm(my_marc_files):
+    #filename=my_marc_file.split('/')[-1].split('.')[0]
+    writer = TextWriter(open(my_marc_file+'+773x.mrk','wt',encoding="utf-8"))
+    
+    with open(my_marc_file, 'rb')as data, open(my_marc_file+'+773x.mrc','wb')as data1:
+        reader = MARCReader(data)
+        #fields_to_check={}
+        for record in tqdm(reader):
+            my = record.get_fields('773')
+        
+        
+            for field in my:
+               # field.add_subfield('d', '1989-2022')
+                sub_t=field.get_subfields('t')
+                
+                sub_x=field.get_subfields('x')
+                if sub_x:
+                    
+                    continue
+                else:
+                    #print(field)
+                    
+                    if sub_t:
+                        if sub_t[0] in fields_to_check:
+                            
+                            
+                    
+                            field.add_subfield('x', fields_to_check[sub_t[0]])
+            #print(record)
+            data1.write(record.as_marc())
+            writer.write(record)    
+writer.close()   
 #%%773 records s
 fields_to_check={}
 my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
@@ -364,80 +440,7 @@ for my_marc_file in tqdm(my_marc_files):
             writer.write(record)    
 writer.close()   
 
-#add issns by title
-fields_to_check={}
-my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/es_articles_sorted_31.05.2023.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/sp_ksiazki_composed_unify2_do_wyslanianew_viaf.mrc"]
-for my_marc_file in tqdm(my_marc_files):
-   # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
-    
-    with open(my_marc_file, 'rb') as data:
-        reader = MARCReader(data)
-       # fields_to_check={}
-        for record in tqdm(reader):
-            my = record.get_fields('773')
-            if len(my)==1:
-            
-            
-                for field in my:
-                   # field.add_subfield('d', '1989-2022')
-                    sub_t=field.get_subfields('t')
-                    sub_x=field.get_subfields('x')
-                    
-                    if sub_x and sub_t:
-                        fields_to_check[sub_t[0]]=sub_x[0]
 
-
-my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_chapters_2023-08-07new_viaf.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_books_2023-08-07new_viaf.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_libri_marc_bn_articles_2023-08-07new_viaf.mrc"]
-counter=0
-for my_marc_file in tqdm(my_marc_files):
-    #filename=my_marc_file.split('/')[-1].split('.')[0]
-    writer = TextWriter(open(my_marc_file+'+773x.mrk','wt',encoding="utf-8"))
-    
-    with open(my_marc_file, 'rb')as data, open(my_marc_file+'+773x.mrc','wb')as data1:
-        reader = MARCReader(data)
-        #fields_to_check={}
-        for record in tqdm(reader):
-            my = record.get_fields('773')
-        
-        
-            for field in my:
-               # field.add_subfield('d', '1989-2022')
-                sub_t=field.get_subfields('t')
-                
-                sub_x=field.get_subfields('x')
-                if sub_x:
-                    
-                    continue
-                else:
-                    #print(field)
-                    
-                    if sub_t:
-                        if sub_t[0] in fields_to_check:
-                            
-                            
-                    
-                            field.add_subfield('x', fields_to_check[sub_t[0]])
-            #print(record)
-            data1.write(record.as_marc())
-            writer.write(record)    
-writer.close()   
 
 #%% 710
 from definicje import *
@@ -724,7 +727,7 @@ x=set(fields_to_check)
 
 was=[]
 new=[]
-my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_libri_marc_bn_articles_2023-08-07new_viaf.mrc"]
+my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/processed/llibri_marc_bn_chapters_2023-08-07_processed.mrc"]
 for my_marc_file in tqdm(my_marc_files):
    # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
     
@@ -741,16 +744,16 @@ for my_marc_file in tqdm(my_marc_files):
 
 
 
-with open('NEW-marc_bn_articles_2023-08-07.marc', 'wb') as marc_out:
+with open('WAS-marc_bn_chapters_2023-08-07_processed.mrc', 'wb') as marc_out:
     writer = MARCWriter(marc_out)
-    for record in new:
+    for record in was:
         writer.write(record)
     writer.close()
 
 # 2. Saving records using TextWriter for a human-readable version:
-with open('NEW-marc_bn_articles_2023-08-07.mrk', 'w', encoding='utf-8') as text_out:
+with open('WAS-marc_bn_chapters_2023-08-07_processed.mrk', 'w', encoding='utf-8') as text_out:
     writer = TextWriter(text_out)
-    for record in new:
+    for record in was:
         
         writer.write(record)
 #%%
