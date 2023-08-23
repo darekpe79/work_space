@@ -51,16 +51,17 @@ def mark_to_list(path):
                 cleared_record[-1]=cleared_record[-1][:-1]+field
                 
             else:
-                cleared_record.append(field)
+                cleared_record.append(field.strip())
         final_output.append(cleared_record)
         
     return final_output
 
-# NOTE: For the MRK to MARC conversion, you might also want to count records for progress. 
-# I've omitted that for simplicity, but you can apply the same logic as above.
+
 def convert_mrk_to_marc(mrk_file_path, mrc_file_path):
     records = mark_to_list(mrk_file_path)
-    records = [''.join(sublist).strip() for sublist in records]
+    # with open(mrk_file_path, 'r', encoding='utf-8') as file:
+    #     records = file.read().strip().split('\n\n')
+    #records = [''.join(sublist).strip() for sublist in records]
 
     progress_bar["maximum"] = len(records)
     progress_bar["value"] = 0
@@ -68,11 +69,11 @@ def convert_mrk_to_marc(mrk_file_path, mrc_file_path):
     with open(mrc_file_path, 'wb') as marc_file:
         writer = MARCWriter(marc_file)
         for record_data in records:
-            record_lines = record_data.split('\n')
+            #record_lines = record_data.split('\n')
             record = Record()
-            record.leader = record_lines[0][6:]
+            record.leader = record_data[0][6:]
 
-            for line in record_lines[1:]:
+            for line in record_data[1:]:
                 tag = line[1:4]
                 if tag < '010':
                     value = line[6:]
