@@ -175,48 +175,48 @@ print(dd)
 
     #changing and spliting 773 field:
         
-    new_field=[]
-    numbers_info=[]
-    
-    for i, my_field in enumerate(dd['773']['t'].split(',')):
-        new_subfields=my_field.strip()
-        #print(i,new_subfields )
-        if i==0:
-            new_field.append(Subfield('t',new_subfields))
-        if new_subfields.startswith("ISSN"):
-            print(i)
-            number=i
-            new_field.append(Subfield('x',new_subfields.replace("ISSN ", "")))
-        try:
-            if number:
-                if i>number:
-                    numbers_info.append(my_field)
-        except:
-            pass
-        
-    
-    
-    
-    rest_string=(',').join(numbers_info).strip()
-    new_field.append(Subfield('g',rest_string))
+new_field=[]
+numbers_info=[]
 
+for i, my_field in enumerate(dd['773']['t'].split(',')):
+    new_subfields=my_field.strip()
+    #print(i,new_subfields )
+    if i==0:
+        new_field.append(Subfield('t',new_subfields))
+    if new_subfields.startswith("ISSN"):
+        print(i)
+        number=i
+        new_field.append(Subfield('x',new_subfields.replace("ISSN ", "")))
+    try:
+        if number:
+            if i>number:
+                numbers_info.append(my_field)
+    except:
+        pass
     
-    dd.remove_field(dd['773'])
-    my_new_773_field = Field(
-    
-            tag = '773', 
-    
-            indicators = ['0',' '],
-    
-            subfields = new_field
-            ) 
-    
-    dd.add_ordered_field(my_new_773_field)       
-    print (dd)
+
+
+
+rest_string=(',').join(numbers_info).strip()
+new_field.append(Subfield('g',rest_string))
+
+
+dd.remove_field(dd['773'])
+my_new_773_field = Field(
+
+        tag = '773', 
+
+        indicators = ['0',' '],
+
+        subfields = new_field
+        ) 
+
+dd.add_ordered_field(my_new_773_field)       
+print (dd)
     #Working with issn:
         
-    if new_rec.get_fields('022'):
-        my_022s = new_rec.get_fields('022')
+    if dd.get_fields('022'):
+        my_022s = dd.get_fields('022')
         if len(my_022s)>1:
             new_issn_list=[]
             for my_500 in my_022s:
@@ -230,7 +230,7 @@ print(dd)
             issn=new_field[index_x+1]
             new_issn_list.remove(issn)
             for my_500 in my_022s:
-                new_rec.remove_field(my_500)
+                dd.remove_field(my_500)
                 
             my_new_022_field = Field(
             
@@ -241,8 +241,8 @@ print(dd)
                     subfields = ['a', issn,'l',new_issn_list[0]]
                     ) 
             
-            new_rec.add_ordered_field(my_new_022_field)
+            dd.add_ordered_field(my_new_022_field)
         else:
                    
-            new_rec['022']['a']=new_rec['022']['a'].replace('(Revista) ISSN ', '')
-    data1.write(new_rec.as_marc())        
+            dd['022']['a']=dd['022']['a'].replace('(Revista) ISSN ', '')
+    data1.write(dd.as_marc())        
