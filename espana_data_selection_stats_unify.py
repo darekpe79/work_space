@@ -626,21 +626,26 @@ record.add_field(
 #viaf_combination
 #tworzenie slowniczka
 fields_to_check={}
-my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/pbl_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/bn_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles0_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles1_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles2_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles3_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_articles4_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_books_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/cz_chapters_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/fennica_21-02-2023compose.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc",
-"D:/Nowa_praca/marki_compose_19.05.2023/pbl_articles_21-02-2023compose.mrc", 'D:/Nowa_praca/marki_compose_19.05.2023/ksiazki_composed_unify2_do_wyslania.mrc']
+my_marc_files = ["D:/Nowa_praca/21082023_nowe marki nowy viaf/sp_ksiazki_composed_unify2_do_wyslanianew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_articles_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_books_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_chapters_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/BOSLIT_dataset.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles0_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles1_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles2_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles3_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles4_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_books_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_chapters_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/es_articles_sorted_31.05.2023_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/fi_arto_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/fi_fennica_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_articles_2023-08-07new_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_books_2023-08-07_processednew_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_chapters_2023-08-07_processednew_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/pbl_articles_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/pbl_books_21-02-2023composenew_viafnew_viaf_processed.mrc"]
 for my_marc_file in tqdm(my_marc_files):
    # writer = TextWriter(open('artykuly_hiszpania_do_wyslania.mrk','wt',encoding="utf-8"))
     
@@ -666,9 +671,26 @@ for my_marc_file in tqdm(my_marc_files):
                                 text=text+l
                     fields_to_check[text]=sub_1[0]
 #uzycie slowniczka i dodanie viafow oczywistych                                
-my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_chapters_2023-08-07.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_articles_2023-08-07.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/libri_marc_bn_books_2023-08-07.mrc"]
+my_marc_files =["D:/Nowa_praca/21082023_nowe marki nowy viaf/sp_ksiazki_composed_unify2_do_wyslanianew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_articles_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_books_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/bn_chapters_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/BOSLIT_dataset.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles0_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles1_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles2_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles3_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_articles4_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_books_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/cz_chapters_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/es_articles_sorted_31.05.2023_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/fi_arto_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/fi_fennica_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_articles_2023-08-07new_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_books_2023-08-07_processednew_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/NEW-marc_bn_chapters_2023-08-07_processednew_viaf.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/pbl_articles_21-02-2023composenew_viafnew_viaf_processed.mrc",
+"D:/Nowa_praca/21082023_nowe marki nowy viaf/pbl_books_21-02-2023composenew_viafnew_viaf_processed.mrc"]
 counter=0
 for my_marc_file in tqdm(my_marc_files):
     filename=my_marc_file.split('/')[-1].split('.')[0]
@@ -765,7 +787,7 @@ for my_marc_file in tqdm(my_marc_files):
 writer.close() 
             
 #%%correct field "d"  
-my_marc_files = ["D:/Nowa_praca/Espana/ksiazki_compose.mrc"]
+my_marc_files = ["C:/Users/dariu/BOSLIT_datasetnew_viaf.mrc"]
 records_double_d=set()
 for my_marc_file in tqdm(my_marc_files):
     filename=my_marc_file.split('/')[-1].split('.')[0]
@@ -799,7 +821,7 @@ for my_marc_file in tqdm(my_marc_files):
 
                     if sub_d:
                         if field['d'][0].isnumeric():
-                            field['d']="("+field['d']+")"
+                            field['d']="("+field['d'].strip('.')+")"
                    
             data1.write(record.as_marc()) 
             writer.write(record)    
