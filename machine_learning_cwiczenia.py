@@ -62,12 +62,12 @@ def wczytaj_dane(sciezka):
         'recenzja': recenzje,
         'sentyment': sentymenty
     })
-sciezka_do_danych = r'C:/Users/dariu/aclImdb/train'  # Zaktualizuj, jeśli potrzeba
+sciezka_do_danych = r'C:/Users/dariu/aclImdb/train'  
 
 # Wczytanie danych treningowych
 df_train = wczytaj_dane(sciezka_do_danych)
 
-# Wyświetl pierwsze wiersze ramki danych
+
 print(df_train.head())
 
 # Pobranie listy słów nieznaczących (stop words)
