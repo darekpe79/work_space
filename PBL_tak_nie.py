@@ -124,6 +124,7 @@ json_file_path15 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T11
 excel_file_path15 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/poeci_po_godzinach_2022-09-14.xlsx'
 # ... więcej plików w razie potrzeby
 
+
 # Użycie funkcji
 df1 = load_and_merge_data(json_file_path, excel_file_path)
 df2 = load_and_merge_data(json_file_path2, excel_file_path2)
@@ -199,7 +200,7 @@ dataset_dict = DatasetDict({
 
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
-    output_dir="./results",
+    output_dir="C:/Users/User/Desktop/materiał_do_treningu/",
     num_train_epochs=4,              # liczba epok
     per_device_train_batch_size=4,   # rozmiar batcha
     per_device_eval_batch_size=4,
@@ -207,6 +208,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,               # waga decay
     logging_dir='./logs',
     evaluation_strategy="epoch",
+    save_steps=100,
     no_cuda=True  # Używanie CPU
 )
 
@@ -241,13 +243,14 @@ results = trainer.evaluate()
 
 # Wyniki
 print(results)
-model_path = "model_TRUE_FALSE_4epoch"
+
+model_path = "C:/Users/User/Desktop/materiał_do_treningu/model_TRUE_FALSE_4epoch"
 model.save_pretrained(model_path)
 tokenizer.save_pretrained(model_path)
 import joblib
 
 # Zapisanie LabelEncoder
-joblib.dump(label_encoder, 'label_encoder_true_false.joblib')
+joblib.dump(label_encoder, 'C:/Users/User/Desktop/materiał_do_treningu/label_encoder_true_false.joblib')
 
 
 #%% Logistyczna regresja
@@ -255,9 +258,37 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+
+import os
+
+import re
+from nltk.corpus import stopwords
+import nltk
+import spacy
+
+# Załaduj polski model językowy
+nlp = spacy.load('pl_core_news_sm')
+
+# Pobierz polskie stop words
+stop_words = nlp.Defaults.stop_words
+
+def clean_text(text):
+    # Usunięcie znaków specjalnych
+    text = re.sub(r'\W', ' ', text)
+    # Usunięcie wszystkich pojedynczych znaków
+    text = re.sub(r'\s+[a-zA-Z]\s+', ' ', text)
+    # Zamiana wielokrotnych spacji na pojedynczą spację
+    text = re.sub(r'\s+', ' ', text, flags=re.I)
+    # Konwersja na małe litery
+    text = text.lower()
+    # Usunięcie stop words
+    text = ' '.join(word for word in text.split () if word not in stop_words)
+    return text
+
 df = combined_df
 # Połącz tytuł i tekst artykułu w jednym polu
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+df['combined_text']=df['combined_text'].apply(clean_text)
 from sklearn.preprocessing import LabelEncoder
 df['do PBL'] = df['do PBL'].astype(str)
 # Kodowanie etykiet
@@ -267,7 +298,7 @@ df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
 X_train, X_test, y_train, y_test = train_test_split(df['combined_text'], df['do PBL'], test_size=0.2, random_state=42)
 
 # Przekształcenie tekstu na reprezentację TF-IDF
-vectorizer = TfidfVectorizer(max_features=5000)
+vectorizer = TfidfVectorizer(max_features=50000)
 X_train_tfidf = vectorizer.fit_transform(X_train)
 X_test_tfidf = vectorizer.transform(X_test)
 
@@ -303,24 +334,24 @@ loaded_model = joblib.load('logistic_regression_model.pkl')
 # Wczytanie TfidfVectorizer, jeśli został zapisany
 loaded_vectorizer = joblib.load('tfidf_vectorizer.pkl')
 label_encoder = joblib.load('label_encoder_logistic_reg.pkl')
-results = []
+# results = []
 
-for i in range(100, 200):
-    title = df.iloc[i]['Tytuł artykułu']
-    text = df.iloc[i]['Tekst artykułu']
-    full_text = title + " " + text
-    tfidf = loaded_vectorizer.transform([full_text])
-    predicted = loaded_model.predict(tfidf)
-    predicted_label = label_encoder.inverse_transform(predicted)[0]
+# for i in range(100, 200):
+#     title = df.iloc[i]['Tytuł artykułu']
+#     text = df.iloc[i]['Tekst artykułu']
+#     full_text = title + " " + text
+#     tfidf = loaded_vectorizer.transform([full_text])
+#     predicted = loaded_model.predict(tfidf)
+#     predicted_label = label_encoder.inverse_transform(predicted)[0]
 
-    results.append({
-        'Title': title,
-        'Text': text,
-        'Original': df.iloc[i]['do PBL'],
-        'Predicted': predicted_label
-    })
+#     results.append({
+#         'Title': title,
+#         'Text': text,
+#         'Original': df.iloc[i]['do PBL'],
+#         'Predicted': predicted_label
+#     })
 
-results_df = pd.DataFrame(results)
+# results_df = pd.DataFrame(results)
 
 
 
@@ -332,24 +363,20 @@ loaded_vectorizer = joblib.load('tfidf_vectorizer.pkl')
 
 # Przygotowanie danych do przewidywania
 # (przykład dla jednego rekordu, ale można to zrobić dla wielu)
-sample_title = "tekst o poezji"
-sample_text = '''Zmarł Lew Rubinstein, rosyjski poeta i krytyk Kremla, czołowa postać podziemnej sceny literackiej z czasów ZSRR. Jak poinformowała jego córka, śmierć nastąpiła kilka dni po potrąceniu przez samochód, do którego doszło na ulicach Moskwy.
+sample_title = "Olga Tokarczuk w kapitule konkursu na najlepszy polski scenariusz"
+sample_text = '''Wkrótce odbędzie się 12 edycja Script Fiesty, czyli festiwalu poświęconego scenopisarstwu. Podczas trwania wydarzenia odbędą się dwa konkursy. W kapitule jednego z nich zasiądzie polska noblistka – Olga Tokarczuk. Olga Tokarczuk to jedna z najważniejszych współczesnych polskich pisarek, która w 2018 roku uhonorowana została Nagrodą Nobla w dziedzinie literatury, z kolei w zeszłym roku został jej przyznany akademicki tytuł honorowy w Uniwersytecie w Tel Awiwie. Autorka "Ksiąg Jakubowych" nie zamyka się tylko na tworzenie tekstów literackich i obecnie pracuje także nad grą na bazie jej twórczości, a teraz trafiła do kapituły konkursu Script Fiesta. Script Fiesta to wyjątkowy festiwal filmowy skupiony wokół scenariuszy i słowa. W tym roku od 18 do 21 kwietnia będzie trwała jego 12. edycja. Jest to jedno z największych tego typu wydarzeń w Europie. Podczas czterech dni odbędą się liczne projekcje filmowe, panele dyskusyjne i wykłady. Zorganizowane zostaną także dwa konkursy: na najlepszy scenariusz polskiego filmu, który miał swoją premierę w 2023 r. oraz na koncepcję serialu. Zgłoszenia do konkursu można nadsyłać do 21 stycznia. Do wygrania jest łącznie 70 tys. zł!
 
-76-letni Rubinstein został potrącony przez samochód 8 stycznia i w stanie krytycznym trafił do szpitala. Przeszedł operację i wprowadzono go w śpiączkę farmakologiczną. 12 stycznia w mediach pojawiła się informacja o śmierci Rubinsteina, jednak krewni i lekarze zdementowali te doniesienia. Dwa dni później pisarz jednak zmarł.
+W Konkursie Głównym jury będzie miało za zadanie obejrzeć 10 filmów z 2023 r. i pośród nich wybrać zwycięski tytuł. Trzy produkcje zostaną wyświetlone podczas trwania festiwalu. Autorowi, autorce lub osobie autorskiej, która stworzy najlepszy scenariusz, będzie przysługiwała nagroda wysokości 50 tysięcy złotych. W kapitule konkursu znaleźli się między innymi: Jerzy Skolimowski, Maciej Ślesicki, Małgorzata Szumowska, Paweł Maślona, Paweł Maślona oraz Kaja Krawczyk-Wnuk. Wśród wybitnych scenarzystów zasiądzie również Olga Tokarczuk! Polska noblistka wraz z całą kapitułą będzie musiała wybrać najlepszy scenariusz.
 
-Wydział transportowy Moskwy stwierdził, że kierowca samochodu nie zwolnił, gdy Rubinstein przechodził przez ulicę. Według wstępnych informacji sprawca wypadku w minionym roku dopuścił się kilkunastu wykroczeń drogowych. Przeciwko mężczyźnie wszczęto sprawę karną.
+O pracy scenarzysty członek Kapituły Konkursu Głównego – Paweł Maślona – mówi tak:
 
-Rubinstein debiutował pod koniec lat 60., wydając swoje utwory w wydawnictwach podziemnych oraz na Zachodzie. W Związku Sowieckim wiersze te doczekały się publikacji dekadę później. Razem z Dmitrijem Prigowem i Wsiewołodem Niekrasowem zaliczany był do twórców oraz czołowych przedstawicielu konceptualizmu moskiewskiego, awangardowego ruchu literackiego, który w latach 70. i 80. XX wieku kpił z oficjalnej doktryny socrealizmu.
+– Od dawna mam poczucie, że zawód scenarzysty to najbardziej niewdzięczny i najbardziej niedoceniany zawód w branży filmowej. Tym bardziej cieszę się, że powstał festiwal poświęcony w całości sztuce scenariopisarstwa i jest mi niezmiernie miło, że mogę być jego częścią.
 
-Praca w bibliotece zainspirowała Rubinsztejna do stworzenia własnej formy zapisu poetyckiego zwanej „kart-artem”, zgodnie z którym rozbite na pojedyncze zdania utwory są umieszczane na fiszkach. Powstałe dzięki temu kompozycje stanowiły często zlepek cytatów, które mogły być odczytywane w losowej kolejności w różnorodnych interpretacjach. Czytał je podczas występów scenicznych, które oscylowały na pograniczu recytacji i teatru.
+Drugi z konkursów, czyli ten na koncept scenariusza serialowego, jest kierowany nie tylko do wziętych scenarzystów, ale też do amatorów. Każdy może więc nadesłać swój pomysł na scenariusz. Tym razem w jury zasiądą: Juliusz Machulski, Michał Kwieciński oraz Kalina Alabrudzińska. Wygrany otrzyma 20 tysięcy złotych.
 
-Po upadku ZSRR Rubinstein zyskał rozgłos, a jego prace były szeroko opublikowane. Wiersze poety przetłumaczono m.in. na angielski, niemiecki, fiński, hiszpański i polski. Tom jego utworów „Zdarzenie bez nazwy” ukazał się w Polsce nakładem wydawnictwa Pogranicze. Rubinstein brał udział w licznych międzynarodowych festiwalach literackich i muzycznych, w 2013 roku był gościem Festiwalu Miłosza w Krakowie.
-
-Rubinstein otwarcie krytykował Władimira Putina i regularnie protestował przeciwko nasilającym się represjom ze strony Kremla i łamaniu praw człowieka. W 2017 roku opuścił rosyjski PEN, uznając, że organizacja nie wywiązuje się ze swojego obowiązku ochrony prześladowanych pisarzy.
-
-Po inwazji na Ukrainę podpisał wraz z innymi znanymi pisarzami list otwarty, w którym potępił wojnę. Stowarzyszenie Memoriał przekazało, że Rubinstein nie był aresztowany ani ścigany za swoje wypowiedzi, nawet gdy represje władz się zaostrzyły, jednak jego tragiczna śmierć w styczniu, tuż przed drugą rocznicą rosyjskiej napaści na Ukrainę, „wydaje się gorzko symboliczna”.'''
+Chociaż Tokarczuk głównie jest kojarzona ze swojej twórczości literackiej, to jednak jest ona także współtwórczynią scenariusza do produkcji "Pokot". Film został stworzony na bazie jej książki, zatytułowanej "Prowadź swój pług przez kości umarłych".'''
 sample_combined_text = sample_title + " " + sample_text
-
+sample_combined_text=clean_text(sample_combined_text)
 # Przekształcenie tekstu do formatu TF-IDF
 sample_tfidf = loaded_vectorizer.transform([sample_combined_text])
 
@@ -363,6 +390,253 @@ predicted_label = label_encoder.inverse_transform(predicted)[0]
 print("Przewidywana etykieta:", predicted_label)
 
 
+
+#%% logistyczna regresja word2vec
+import numpy as np
+from gensim.models import Word2Vec
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+import joblib
+
+df = combined_df
+df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+
+df['do PBL'] = df['do PBL'].astype(str)
+label_encoder = LabelEncoder()
+df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
+
+# Tokenizacja tekstu
+tokenized_text = [text.split() for text in df['combined_text']]
+
+# Trenowanie modelu Word2Vec
+word2vec_model = Word2Vec(tokenized_text, vector_size=1000, window=5, min_count=1, workers=8)
+
+# Funkcja do przekształcania tekstu w wektor
+def document_vector(doc):
+    doc = [word for word in doc if word in word2vec_model.wv.key_to_index]
+    return np.mean(word2vec_model.wv[doc], axis=0) if doc else np.zeros(word2vec_model.vector_size)
+
+# Przekształcenie tekstu w wektory
+X = np.array([document_vector(text.split()) for text in df['combined_text']])
+y = df['do PBL'].values
+
+# Podział na zbiór treningowy i testowy
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Trenowanie modelu regresji logistycznej
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# Predykcja na zbiorze testowym
+predictions = model.predict(X_test)
+
+# Ocena modelu
+accuracy = accuracy_score(y_test, predictions)
+print(f'Accuracy: {accuracy}')
+
+# Zapisanie modelu regresji logistycznej
+joblib.dump(model, 'logistic_regression_model.pkl')
+
+# Opcjonalnie, zapisz również model Word2Vec
+joblib.dump(word2vec_model, 'word2vec_model.pkl')
+
+#%%Drzewo decyzyjne TFidf
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+df = combined_df
+df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+
+df['do PBL'] = df['do PBL'].astype(str)
+label_encoder = LabelEncoder()
+df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
+
+X_train, X_test, y_train, y_test = train_test_split(df['combined_text'], df['do PBL'], test_size=0.2, random_state=42)
+
+vectorizer = TfidfVectorizer(max_features=5000)
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Trenowanie modelu drzewa decyzyjnego
+model = DecisionTreeClassifier()
+
+model.fit(X_train_tfidf, y_train)
+
+predictions = model.predict(X_test_tfidf)
+
+accuracy = accuracy_score(y_test, predictions)
+print(f'Accuracy: {accuracy}')
+#%% Drzewo decyzyjne Word2vec
+import numpy as np
+import pandas as pd
+from gensim.models import Word2Vec
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+# Załóżmy, że 'combined_df' to Twoja ramka danych
+df = combined_df
+
+# Połącz tytuł i tekst artykułu w jednym polu
+df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+
+# Przygotowanie etykiet
+df['do PBL'] = df['do PBL'].astype(str)
+label_encoder = LabelEncoder()
+df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
+
+# Tokenizacja tekstu
+tokenized_text = [text.split() for text in df['combined_text']]
+
+# Trenowanie modelu Word2Vec
+word2vec_model = Word2Vec(tokenized_text, vector_size=1000, window=5, min_count=1, workers=4)
+
+# Funkcja do przekształcania tekstu w wektor
+def document_vector(doc):
+    doc = [word for word in doc if word in word2vec_model.wv.key_to_index]
+    return np.mean(word2vec_model.wv[doc], axis=0) if doc else np.zeros(word2vec_model.vector_size)
+
+# Przekształcenie tekstu w wektory
+X = np.array([document_vector(text.split()) for text in df['combined_text']])
+
+# Etykiety
+y = df['do PBL'].values
+
+# Podział na zbiór treningowy i testowy
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Trenowanie modelu drzewa decyzyjnego
+model = DecisionTreeClassifier()
+model.fit(X_train, y_train)
+
+# Predykcja na zbiorze testowym
+predictions = model.predict(X_test)
+
+# Ocena modelu
+accuracy = accuracy_score(y_test, predictions)
+print(f'Accuracy: {accuracy}')
+
+#%% DO COLABU
+
+# Importowanie niezbędnych bibliotek
+import pandas as pd
+import json
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import os
+import re
+from nltk.corpus import stopwords
+import nltk
+import spacy
+import joblib
+
+# Definicja funkcji do wczytywania i łączenia danych z plików JSON i Excel
+def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "do PBL", "hasła przedmiotowe"]):
+    # Wczytanie danych z pliku JSON
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        json_data = json.load(file)
+    df_json = pd.DataFrame(json_data)
+
+    # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
+    df_json = df_json[['Link', 'Tekst artykułu']]
+
+    # Konwersja wartości w kolumnie 'Tekst artykułu' na stringi
+    df_json['Tekst artykułu'] = df_json['Tekst artykułu'].astype(str)
+
+    # Wczytanie danych z pliku Excel
+    df_excel = pd.read_excel(excel_file_path)
+
+    # Dodanie kolumny indeksowej do DataFrame'a z Excela
+    df_excel['original_order'] = df_excel.index
+
+    # Połączenie DataFrame'ów
+    merged_df = pd.merge(df_json, df_excel, on=common_column, how="inner")
+
+    # Sortowanie połączonego DataFrame według kolumny 'original_order'
+    merged_df = merged_df.sort_values(by='original_order')
+
+    # Konwersja wartości w kolumnach 'Tytuł artykułu' i 'Tekst artykułu' na stringi w połączonym DataFrame
+    merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
+    merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
+
+    # Znalezienie indeksu ostatniego 'True' w kolumnie 'do PBL', gdzie 'hasła przedmiotowe' jest wypełnione
+    last_true_filled_index = merged_df[(merged_df['do PBL'] == True) & (merged_df['hasła przedmiotowe'].notna())].index[-1]
+
+    # Ograniczenie DataFrame do wierszy do ostatniego 'True' włącznie, gdzie 'hasła przedmiotowe' jest wypełnione
+    merged_df = merged_df.loc[:last_true_filled_index]
+    merged_df = merged_df.reset_index(drop=True)
+
+    # Ograniczenie do wybranych kolumn
+    selected_columns = merged_df[selected_columns_list]
+
+    return selected_columns
+
+# Wczytanie danych za pomocą zdefiniowanej funkcji
+df1 = load_and_merge_data(json_file_path, excel_file_path)
+
+# Przygotowanie środowiska do przetwarzania języka naturalnego
+# Załaduj polski model językowy
+nlp = spacy.load('pl_core_news_sm')
+
+# Pobierz polskie stop words
+stop_words = nlp.Defaults.stop_words
+
+# Definicja funkcji do czyszczenia tekstu
+def clean_text(text):
+    # Usunięcie znaków specjalnych
+    text = re.sub(r'\W', ' ', text)
+    # Usunięcie wszystkich pojedynczych znaków
+    text = re.sub(r'\s+[a-zA-Z]\s+', ' ', text)
+    # Zamiana wielokrotnych spacji na pojedynczą spację
+    text = re.sub(r'\s+', ' ', text, flags=re.I)
+    # Konwersja na małe litery
+    text = text.lower()
+    # Usunięcie stop words
+    text = ' '.join(word for word in text.split() if word not in stop_words)
+    return text
+
+# Przygotowanie danych do modelowania
+df = df1
+# Połącz tytuł i tekst artykułu w jednym polu
+df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+df['combined_text'] = df['combined_text'].apply(clean_text)
+
+# Kodowanie etykiet
+df['do PBL'] = df['do PBL'].astype(str)
+label_encoder = LabelEncoder()
+df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
+
+# Podział na zbiór treningowy i testowy
+X_train, X_test, y_train, y_test = train_test_split(df['combined_text'], df['do PBL'], test_size=0.2, random_state=42)
+
+# Przekształcenie tekstu na reprezentację TF-IDF
+vectorizer = TfidfVectorizer(max_features=50000)
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Trenowanie modelu regresji logistycznej
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train_tfidf, y_train)
+
+# Predykcja na zbiorze testowym
+predictions = model.predict(X_test_tfidf)
+
+# Ocena modelu
+accuracy = accuracy_score(y_test, predictions)
+print(f'Accuracy: {accuracy}')
+
+# Zapisanie modelu i narzędzi
+joblib.dump(model, 'logistic_regression_model.pkl')
+joblib.dump(vectorizer, 'tfidf_vectorizer.pkl')
+joblib.dump(label_encoder, 'label_encoder_logistic_reg.pkl')
 
 
 
