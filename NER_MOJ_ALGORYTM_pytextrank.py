@@ -19,7 +19,7 @@ stopwords_config = {"word": list(STOP_WORDS)}
 nlp.add_pipe("textrank", config={"stopwords": stopwords_config})
 
 # example text
-text = """Zmarł Feliks W. Kres, autor „Księgi Całości”, prekursor polskiej fantasy < /tytuł > Jeden z najważniejszych polskich autorów fantasty, autor popularnego cyklu „Księga Całości”, Feliks W. Kres nie żyje. Pisarz zmarł w wieku 56 lat po walce z chorobą. Wiadomość o jego śmierci przekazało wydawnictwo Fabryka Słów.
+text = """Zmarł Feliks W. Kres, autor „Księgi Całości”, prekursor polskiej fantasy </tytuł> Jeden z najważniejszych polskich autorów fantasty, autor popularnego cyklu „Księga Całości”, Feliks W. Kres nie żyje. Pisarz zmarł w wieku 56 lat po walce z chorobą. Wiadomość o jego śmierci przekazało wydawnictwo Fabryka Słów.
 
 „Nie ma słów właściwych, by przekazać taką informację. Po zaciętej walce z chorobą odszedł od nas Feliks W. Kres. Kresie, pozostawiłeś po sobie pustkę, której jeszcze nie umiemy ogarnąć. Pytania, na które już nigdy nie poznamy odpowiedzi. Myśli, którymi już się z tobą nie podzielimy. Teraz jednak, przede wszystkim, jesteśmy całym sercem z twoją żoną i najbliższymi” – napisało wydawnictwo na swoim profilu na Facebooku.
 
@@ -218,7 +218,8 @@ for entity in combined_entities:
         
         
 entities = [entity['word'] for entity in combined_entities_selected]  
-entities_list=entities
+entities = [(entity['word'],entity['type']) for entity in combined_entities_selected]  
+#entities_list=entities_type
 # Ładowanie spaCy
 nlp = spacy.load("pl_core_news_lg")
 
@@ -231,10 +232,17 @@ lemmatized_text = " ".join([token.lemma_ for token in doc])
 
 # Lematyzacja bytów
 lemmatized_entities = []
+entity_lemmatization_dict = {}
 for entity in entities:
-    doc_entity = nlp(entity.lower())
+    doc_entity = nlp(entity[0].lower())
     lemmatized_entity = " ".join([token.lemma_ for token in doc_entity])
     lemmatized_entities.append(lemmatized_entity)
+    if lemmatized_entity in entity_lemmatization_dict:
+        # Dodajemy oryginalną formę do set, aby zapewnić unikalność
+        entity_lemmatization_dict[lemmatized_entity].add(entity)
+    else:
+        # Tworzymy nowy set z oryginalną formą jako pierwszym elementem
+        entity_lemmatization_dict[lemmatized_entity] = {entity}
 
 
 
@@ -312,6 +320,18 @@ sorted_entity_counts = sorted(entity_counts.items(), key=lambda x: x[1], reverse
 print("Wystąpienia bytów z uwzględnieniem ważności tytułu:")
 for entity, count in sorted_entity_counts:
     print(f"{entity}: {count}")  
+choosen_ents=[]
+for ent in sorted_entity_counts:
+    if ent[1]>3:
+        choosen_ents.append(ent)
+        
+
+
+entity_lemmatization_dict
+
+
+
+
 
 
 
@@ -341,3 +361,60 @@ doc = nlp(updated_text)
 print("Kluczowe frazy:")
 for phrase in doc._.phrases:
     print(f"{phrase.text} (Rank: {phrase.rank}, Count: {phrase.count})")
+    
+#%%  
+    
+import morfeusz2
+
+# Utworzenie instancji Morfeusza
+morf = morfeusz2.Morfeusz()
+
+# Tekst do analizy
+text = "Jaś miał kota"
+
+# Analiza morfoskładniowa tekstu
+analysis = morf.analyse(text)
+
+# Wyświetlenie wyników analizy
+for interpretation in analysis:
+    print(interpretation)
+    
+    
+    
+text = "Jaś miał kota"
+
+# Dzielenie tekstu na słowa
+words = text.split()
+
+# Analiza każdego słowa
+for word in words:
+    analysis = morf.analyse(word)
+    for interpretation in analysis:
+        start_node, end_node, interp = interpretation
+        form, lemma, tag, _, _ = interp
+        print(f"Słowo: {form}, Lemat: {lemma}, Tag: {tag}")
+        
+        
+        
+lematy = []
+
+# Przykładowe wyniki analizy
+wyniki = [
+    ("Jaś", "Jasia", "subst:pl:gen:f"),
+    ("Jaś", "jaś", "subst:sg:nom:m2"),
+    ("Jaś", "Jaś:Sf", "subst:sg.pl:nom.gen.dat.acc.inst.loc.voc:f"),
+    ("Jaś", "Jaś:Sm1", "subst:sg:nom:m1"),
+    ("miał", "miał", "subst:sg:nom.acc:m3"),
+    ("miał", "mieć", "praet:sg:m1.m2.m3:imperf"),
+    ("kota", "kota", "subst:sg:nom:f"),
+    ("kota", "kot:Sm1", "subst:sg:gen.acc:m1"),
+    ("kota", "kot:Sm2", "subst:sg:gen.acc:m2")
+]
+
+for slowo, lemat, tag in wyniki:
+    if "praet" in tag or "subst" in tag:  # Filtrujemy interesujące nas tagi
+        if ":" in lemat:  # Usuwamy dodatkowe informacje z lematu
+            lemat = lemat.split(":")[0]
+        lematy.append((slowo, lemat))
+
+print(set(lematy))  # Usuwamy duplikaty
