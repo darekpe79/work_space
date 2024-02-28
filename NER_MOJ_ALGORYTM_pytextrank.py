@@ -331,10 +331,117 @@ entity_lemmatization_dict
 
 
 
+import requests
+import re
+
+def preprocess_text(text):
+    # Usuwanie dat z tekstu, np. "Emma Goldman, 1869-1940" staje się "Emma Goldman"
+    return re.sub(r',?\s*\d{4}(-\d{4})?', '', text)
+
+def check_viaf_with_fuzzy_match(entity_name, threshold=90):
+    base_url = "http://viaf.org/viaf/AutoSuggest"
+    query_params = {'query': entity_name}
+    best_match = None
+    best_score = 0
+    
+    try:
+        response = requests.get(base_url, params=query_params)
+        response.raise_for_status()
+        data = response.json()
+        if data and 'result' in data:
+            for result in data['result'][:10]:
+                # Sprawdzamy najpierw z oryginalnym terminem
+                original_term = result.get('term')
+                score_with_date = fuzz.token_sort_ratio(entity_name, original_term)
+                if score_with_date > best_score and score_with_date >= threshold:
+                    best_score = score_with_date
+                    best_match = result
+                
+                # Następnie sprawdzamy po usunięciu dat
+                term_without_date = preprocess_text(original_term)
+                score_without_date = fuzz.token_sort_ratio(entity_name, term_without_date)
+                if score_without_date > best_score and score_without_date >= threshold:
+                    best_score = score_without_date
+                    best_match = result
+    
+    except requests.RequestException as e:
+        print(f"Error querying VIAF: {e}")
+    
+    if best_match:
+        viaf_id = best_match.get('viafid')
+        return f"http://viaf.org/viaf/{viaf_id}", best_score
+    
+    return None, None
+# def check_viaf(entity_name):
+#     base_url = "http://viaf.org/viaf/AutoSuggest"
+#     query_params = {'query': entity_name}
+#     try:
+#         response = requests.get(base_url, params=query_params)
+#         response.raise_for_status()  # Sprawdza czy odpowiedź serwera jest błędem (np. 404, 500)
+#         data = response.json()
+#         if data and 'result' in data and data['result']:
+#             # Załóżmy, że interesuje nas pierwszy wynik
+#             first_result = data['result'][0]
+#             viaf_id = first_result.get('viafid')
+#             if viaf_id:
+#                 return f"http://viaf.org/viaf/{viaf_id}"
+#     except requests.RequestException as e:
+#         print(f"Error querying VIAF: {e}")
+#     return None
+
+
+for entity in choosen_ents:
+    if entity[0] in entity_lemmatization_dict:
+        for original_entity, entity_type in entity_lemmatization_dict[entity[0]]:
+            if entity_type == 'PER':
+                result = check_viaf_with_fuzzy_match(original_entity)
+                if result:
+                    print(f"{original_entity} found in VIAF: {result}")
+                else:
+                    
+                    print(f"{original_entity} not found in VIAF, checking alternative...")
+                    
+                    result = check_viaf_with_fuzzy_match(entity[0])
+                    
+            elif entity_type == 'ORG':
+                result = check_viaf_with_fuzzy_match(original_entity)
+                if result:
+                    print(f"{original_entity} found in VIAF: {result}")
+                else:
+                    
+                    print(f"{original_entity} not found in VIAF, checking alternative...")
+                    
+                    result = check_viaf_with_fuzzy_match(entity[0])
+                # Tutaj logika dla organizacji, może podobna do osób
+                pass
+            
+            
+            elif entity_type == 'LOC':
+                result = check_geonames(original_entity)
+                if result:
+                    print(f"{original_entity} found in GeoNames: {result}")
+                else:
+                    print(f"{original_entity} not found in GeoNames.")
+
+# Przykład użycia
+entity_name = "jan kowalski"
+viaf_url = check_viaf(entity_name)
+if viaf_url:
+    print(f"Found in VIAF: {viaf_url}")
+else:
+    print(f"{entity_name} not found in VIAF.")
 
 
 
 
+
+# Przykład użycia
+entity_name = "Emma Goldman"
+viaf_url, match_score = check_viaf_with_fuzzy_match(entity_name)
+if viaf_url:
+    print(f"Found in VIAF: {viaf_url} with score: {match_score}")
+else:
+    print(f"{entity_name} not found in VIAF or no match above threshold.")
 
 
 

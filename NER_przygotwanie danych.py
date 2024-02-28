@@ -114,11 +114,17 @@ df16 = load_and_merge_data(json_file_path16, excel_file_path16)
 df17 = load_and_merge_data(json_file_path17, excel_file_path17)
 df18 = load_and_merge_data(json_file_path18, excel_file_path18)
 df19= load_and_merge_data(json_file_path19, excel_file_path19)
+df20= load_and_merge_data(json_file_path20, excel_file_path20)
+df21= load_and_merge_data(json_file_path21, excel_file_path21)
+df22= load_and_merge_data(json_file_path22, excel_file_path22)
+df23= load_and_merge_data(json_file_path23, excel_file_path23)
+df24= load_and_merge_data(json_file_path24, excel_file_path24)
+df25= load_and_merge_data(json_file_path25, excel_file_path25)
 # ... wczytanie kolejnych par plików
 
 # Połączenie wszystkich DataFrame'ów
-df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15], ignore_index=True)
-filtered_df = df[df['byt 1'] == "książka"]
+df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df19,df20,df21,df22,df23,df24,df25], ignore_index=True)
+filtered_df = df[df['byt 1'] == "spektakl"].copy() 
 
 filtered_df['combined_text'] = filtered_df['Tytuł artykułu'] + "[/tytuł] " + filtered_df['Tekst artykułu']
 
@@ -129,7 +135,7 @@ import os
 # Załóżmy, że 'df' to Twój DataFrame i że ma kolumnę 'combined_text'
 
 # Określenie ścieżki katalogu, w którym będą zapisywane pliki TXT
-output_directory = "D:/Nowa_praca/dane_model_jezykowy/książka/"
+output_directory = "D:/Nowa_praca/dane_model_jezykowy/spektakl/"
 os.makedirs(output_directory, exist_ok=True)  # Tworzy katalog, jeśli nie istnieje
 
 # Iteracja przez DataFrame i zapisywanie każdego tekstu do oddzielnego pliku TXT
