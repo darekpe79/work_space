@@ -153,6 +153,67 @@ for json_file in json_files:
             tuples_list = [tuple(item) for item in item[1]['entities']]
             # Append to the existing dataset
             transformed_data.append((text, {'entities':tuples_list}))   
+transformed_data[:3]
+
+
+
+
+def adjust_data_for_ner(data, tokenizer, max_length=512):
+    adjusted_data = []
+
+    for text, annotation in data:
+        tokens = tokenizer.tokenize(text)
+        entities = annotation['entities']
+        current_chunk = []
+        current_entities = []
+        chunk_size = 0
+
+        for entity in entities:
+            start, end, label = entity
+            entity_tokens = tokenizer.tokenize(text[start:end])
+            entity_start = chunk_size + len(tokenizer.tokenize(text[:start]))
+            entity_end = entity_start + len(entity_tokens)
+
+            if entity_end <= max_length - 1:  # -1 to account for special tokens
+                current_entities.append((entity_start, entity_end, label))
+            else:
+                # If the entity doesn't fit, start a new chunk
+                if current_chunk:
+                    adjusted_data.append((' '.join(current_chunk), {'entities': current_entities}))
+                current_chunk = tokens[chunk_size:entity_start] + entity_tokens
+                current_entities = [(0, len(entity_tokens), label)]
+                chunk_size = entity_start
+
+        if current_chunk or (chunk_size < len(tokens)):
+            remaining_tokens = tokens[chunk_size:max_length - 1]
+            adjusted_data.append((' '.join(current_chunk + remaining_tokens), {'entities': current_entities}))
+
+    return adjusted_data
+adjusted_data=adjust_data_for_ner ([transformed_data[0]], tokenizer)
+
+def tag_tokens_with_ner_labels(data):
+    tagged_data = []
+    for text, annotations in data:
+        # Założenie: tokens to lista tokenów z tekstu, np. za pomocą tokenizer.tokenize(text)
+        tokens = text.split(' ')  # Przykład rozdzielenia na tokeny (uproszczony)
+        
+        # Inicjalizacja listy tagów jako 'O' dla każdego tokenu
+        ner_tags = ['O'] * len(tokens)
+        
+        for start, end, label in annotations['entities']:
+            if start == end:  # Przypadek dla jednotokenowych encji
+                ner_tags[start] = f'B-{label}'
+            else:
+                ner_tags[start] = f'B-{label}'
+                for i in range(start + 1, end):
+                    ner_tags[i] = f'I-{label}'
+        
+        tagged_data.append((tokens, ner_tags))
+    
+    return tagged_data
+
+tagged_data = tag_tokens_with_ner_labels([adjusted_data[0]])
+#%%
 # Function to convert spaCy entity format to token-level labels for BERT
 
 def find_nearest_acceptable_split_point(pos, text, total_length):
@@ -193,12 +254,12 @@ def split_text_around_entities_adjusted_for_four_parts(data_list):
     for text, annotation in data_list:
         entities = sorted(annotation['entities'], key=lambda e: e[0])
         total_length = len(text)
-        ideal_part_length = total_length // 4  # Adjusted for four parts
+        ideal_part_length = total_length // 5  # Adjusted for four parts
         
         split_points = [0]
         current_split = 0
         
-        for _ in range(3):  # Adjusted to perform three splits for four parts
+        for _ in range(4):  # Adjusted to perform three splits for four parts
             proposed_split = current_split + ideal_part_length
             if proposed_split >= total_length:
                 break
@@ -266,7 +327,68 @@ for sample in adjusted_data[:2]:  # Just showing the first two samples for brevi
 
 
 
+def measure_token_count(text, tokenizer):
+    tokens = tokenizer.tokenize(text)
+    return len(tokens)
 
+# Example usage with your TRAIN_DATA before converting to BERT format
+token_count_max=[]
+for text, _ in transformed_data:
+    token_count = measure_token_count(text, tokenizer)
+    if token_count>500:
+        token_count_max.append(token_count)
+    print(f"Token count: {token_count}")
+from transformers import BertTokenizerFast
+from torch.utils.data import Dataset, DataLoader
+import torch
+
+class NERDataset(Dataset):
+    def __init__(self, data, tokenizer, label_map, max_len=512):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.label_map = label_map
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        text, annotations = self.data[idx]
+        tokens = self.tokenizer.tokenize(text)
+        labels = [0] * len(tokens)  # Assuming 'O' (outside) is mapped to 0
+
+        entities = annotations['entities']
+        for start, end, label in entities:
+            for i in range(start, end):
+                if i < len(labels):
+                    labels[i] = self.label_map[label]
+
+        token_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+        attention_mask = [1] * len(token_ids)
+
+        # Padding
+        padding_length = self.max_len - len(token_ids)
+        token_ids += [0] * padding_length
+        attention_mask += [0] * padding_length
+        labels += [0] * padding_length  # Assuming 'O' (outside) is mapped to 0
+
+        return {
+            'input_ids': torch.tensor(token_ids, dtype=torch.long),
+            'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
+            'labels': torch.tensor(labels, dtype=torch.long)
+        }
+
+# Initialize your tokenizer
+
+
+# Assuming your label map is something like this:
+label_map = {'SPEKTAKL': 1, 'O': 0}  # Add all your labels here
+
+# Create the dataset
+dataset = NERDataset(adjusted_data, tokenizer, label_map)
+
+# Example DataLoader
+data_loader = DataLoader(dataset, batch_size=4, shuffle=True)
 
 
 
@@ -417,14 +539,7 @@ bert_ready_data[0]= spacy_to_bert(transformed_data[0], tokenizer)
 for tokens, labels in bert_ready_data:
     print(tokens, labels)
 
-def measure_token_count(text, tokenizer):
-    tokens = tokenizer.tokenize(text)
-    return len(tokens)
 
-# Example usage with your TRAIN_DATA before converting to BERT format
-for text, _ in transformed_data:
-    token_count = measure_token_count(text, tokenizer)
-    print(f"Token count: {token_count}")
 
 
 import torch
