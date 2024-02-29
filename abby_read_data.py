@@ -32,7 +32,7 @@ for block in text_blocks[:2]:
             print(text_line)
             
             
-            
+#lepsza wersja dla Czarka:         
             
 block_counter = 1
 for block in text_blocks[:4]:  # Przetwarzamy tylko dwa pierwsze bloki
