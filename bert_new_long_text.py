@@ -12,7 +12,17 @@ from transformers import HerbertTokenizerFast
 # Initialize the tokenizer with the Polish model
 tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-base-cased')
 
-
+transformed_data = [
+    ('Who is Nishanth?', {
+        'entities': [(7, 15, 'PERSON')]
+    }),
+     ('Who is Kamal Khumar?', {
+        'entities': [(7, 19, 'PERSON')]
+    }),
+    ('I like London and Berlin.', {
+        'entities': [(7, 13, 'LOC'), (18, 24, 'LOC')]
+    })
+]
 
 
 
@@ -189,7 +199,7 @@ def adjust_data_for_ner(data, tokenizer, max_length=512):
             adjusted_data.append((' '.join(current_chunk + remaining_tokens), {'entities': current_entities}))
 
     return adjusted_data
-adjusted_data=adjust_data_for_ner ([transformed_data[0]], tokenizer)
+adjusted_data=adjust_data_for_ner (transformed_data, tokenizer)
 
 def tag_tokens_with_ner_labels(data):
     tagged_data = []
@@ -212,7 +222,55 @@ def tag_tokens_with_ner_labels(data):
     
     return tagged_data
 
-tagged_data = tag_tokens_with_ner_labels([adjusted_data[0]])
+tagged_data = tag_tokens_with_ner_labels(adjusted_data)
+from transformers import AutoTokenizer, AutoModelForTokenClassification, TrainingArguments, Trainer
+import torch
+
+
+label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
+max_length = 128  # Przykładowa maksymalna długość sekwencji
+
+input_ids = []
+attention_masks = []
+label_ids = []
+
+for tokens, labels in tagged_data:
+    # Konwersja tokenów na identyfikatory tokenów z uwzględnieniem maksymalnej długości
+    encoded_dict = tokenizer(tokens,
+                              is_split_into_words=True,
+                              add_special_tokens=True,
+                              max_length=512,  # Maksymalna długość sekwencji
+                              padding='max_length',
+                              truncation=True,
+                              return_attention_mask=True,
+                              return_tensors='pt')
+    
+    input_ids.append(encoded_dict['input_ids'])
+    
+    attention_masks.append(encoded_dict['attention_mask'])
+    
+    # Konwersja etykiet na indeksy
+    label_index = [label_map[label] for label in labels] + [label_map['O']] * (max_length - len(labels))  # Dodajemy 'O' dla paddingu
+    label_ids.append(torch.tensor(label_index))
+
+# Konwersja list na tensor PyTorch
+input_ids = torch.cat(input_ids, dim=0)
+attention_masks = torch.cat(attention_masks, dim=0)
+label_ids = torch.stack(label_ids)
+
+example_index = 0  # Indeks przykładowych danych, które chcemy wyświetlić
+
+# Dekodowanie identyfikatorów tokenów z powrotem na tokeny
+tokens = tokenizer.convert_ids_to_tokens(input_ids[example_index])
+
+# Przygotowanie listy etykiet na podstawie indeksów
+inverse_label_map = {v: k for k, v in label_map.items()}  # Odwrócona mapa etykiet
+labels = [inverse_label_map[label_id.item()] for label_id in label_ids[example_index]]
+
+# Wyświetlenie danych
+print("Tokeny:", tokens)
+print("Maska uwagi:", attention_masks[example_index].tolist())
+print("Etykiety:", labels)
 #%%
 # Function to convert spaCy entity format to token-level labels for BERT
 
