@@ -124,7 +124,7 @@ df25= load_and_merge_data(json_file_path25, excel_file_path25)
 
 # Połączenie wszystkich DataFrame'ów
 df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df19,df20,df21,df22,df23,df24,df25], ignore_index=True)
-filtered_df = df[df['byt 1'] == "spektakl"].copy() 
+filtered_df = df[df['byt 1'] == "wydarzenie"].copy() 
 
 filtered_df['combined_text'] = filtered_df['Tytuł artykułu'] + "[/tytuł] " + filtered_df['Tekst artykułu']
 
@@ -135,7 +135,7 @@ import os
 # Załóżmy, że 'df' to Twój DataFrame i że ma kolumnę 'combined_text'
 
 # Określenie ścieżki katalogu, w którym będą zapisywane pliki TXT
-output_directory = "D:/Nowa_praca/dane_model_jezykowy/spektakl/"
+output_directory = "D:/Nowa_praca/dane_model_jezykowy/wydarzenie/"
 os.makedirs(output_directory, exist_ok=True)  # Tworzy katalog, jeśli nie istnieje
 
 # Iteracja przez DataFrame i zapisywanie każdego tekstu do oddzielnego pliku TXT
@@ -143,7 +143,7 @@ for index, row in filtered_df.iterrows():
     # Tworzenie nazwy pliku, np. tekst_1.txt, tekst_2.txt, itd.
     filename = f"tekst_{index + 1}.txt"
     filepath = os.path.join(output_directory, filename)
-    
+    cleaned_text = row['combined_text'].replace('\n', '')
     # Zapisywanie tekstu do pliku TXT
     with open(filepath, 'w', encoding='utf-8') as file:
-        file.write(row['combined_text'])
+        file.write(cleaned_text)
