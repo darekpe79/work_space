@@ -164,8 +164,12 @@ for json_file in json_files:
             # Append to the existing dataset
             transformed_data.append((text, {'entities':tuples_list}))   
 transformed_data[:3]
+from sklearn.model_selection import train_test_split
 
 
+
+
+transformed_data_train, transformed_data_eval = train_test_split(transformed_data, test_size=0.1, random_state=42)
 
 
 def adjust_data_for_ner(data, tokenizer, max_length=512):
@@ -199,8 +203,9 @@ def adjust_data_for_ner(data, tokenizer, max_length=512):
             adjusted_data.append((' '.join(current_chunk + remaining_tokens), {'entities': current_entities}))
 
     return adjusted_data
-adjusted_data=adjust_data_for_ner (transformed_data, tokenizer)
-
+adjusted_data_train = adjust_data_for_ner(transformed_data_train, tokenizer)
+adjusted_data_eval = adjust_data_for_ner(transformed_data_eval, tokenizer)
+label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
 def tag_tokens_with_ner_labels(data):
     tagged_data = []
     for text, annotations in data:
@@ -222,13 +227,160 @@ def tag_tokens_with_ner_labels(data):
     
     return tagged_data
 
-tagged_data = tag_tokens_with_ner_labels(adjusted_data)
+tagged_data_train = tag_tokens_with_ner_labels(adjusted_data_train)
+tagged_data_eval = tag_tokens_with_ner_labels(adjusted_data_eval)
+import torch
+
+
+def preprocess_for_model(tagged_data, tokenizer, label_map, max_length=512):
+    input_ids = []
+    attention_masks = []
+    label_ids = []
+
+    for tokens, labels in tagged_data:
+        # Zakoduj tokeny do input_ids, dodając specjalne tokeny
+        encoded = tokenizer.encode_plus(tokens, 
+                                        is_split_into_words=True,
+                                        add_special_tokens=True, 
+                                        max_length=max_length,
+                                        padding="max_length",
+                                        truncation=True,
+                                        return_attention_mask=True,
+                                        return_tensors="pt")
+        input_ids.append(encoded['input_ids'])
+        attention_masks.append(encoded['attention_mask'])
+
+        # Zakoduj etykiety
+        labels_encoded = [label_map[label] for label in labels]
+        # Uzupełnij etykiety dla specjalnych tokenów i paddingu
+        labels_padded = labels_encoded + [-100] * (max_length - len(labels_encoded))
+        label_ids.append(torch.tensor(labels_padded))
+
+    # Konwersja list na tensor
+    input_ids = torch.cat(input_ids, dim=0)
+    attention_masks = torch.cat(attention_masks, dim=0)
+    label_ids = torch.stack(label_ids)
+
+    return input_ids, attention_masks, label_ids
+
+
+input_ids_train, attention_masks_train, label_ids_train = preprocess_for_model(tagged_data_train, tokenizer, label_map)
+input_ids_eval, attention_masks_eval, label_ids_eval = preprocess_for_model(tagged_data_eval, tokenizer, label_map)
+
+sample_index = 0  # Możesz zmienić indeks, aby zobaczyć inne przykłady
+
+# Konwersja input_ids z powrotem na tokeny
+tokens = tokenizer.convert_ids_to_tokens(input_ids_train[sample_index])
+
+# Przygotowanie tekstu etykiet dla wydruku
+labels_text = [list(label_map.keys())[list(label_map.values()).index(label_id)] if label_id in label_map.values() else 'special_or_padding'
+               for label_id in label_ids_train[sample_index].tolist()]
+
+print("Tokeny:")
+print(tokens)
+print("\nMaski uwagi:")
+print(attention_masks_train[sample_index].tolist())
+print("\nIdentyfikatory etykiet:")
+print(label_ids_train[sample_index].tolist())
+print("\nTekst etykiet:")
+print(labels_text)
+
+
+
+
+from torch.utils.data import Dataset
+
+class NERDataset(Dataset):
+    def __init__(self, input_ids, attention_masks, labels):
+        self.input_ids = input_ids
+        self.attention_masks = attention_masks
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.input_ids)
+
+    def __getitem__(self, idx):
+        return {
+            'input_ids': self.input_ids[idx],
+            'attention_mask': self.attention_masks[idx],
+            'labels': self.labels[idx]
+        }
+
+from transformers import AutoModelForTokenClassification
+model = AutoModelForTokenClassification.from_pretrained(
+    'allegro/herbert-base-cased',
+    num_labels=len(label_map)  # liczba unikalnych etykiet w twoim zadaniu NER
+)
+train_dataset = NERDataset(input_ids_train, attention_masks_train, label_ids_train)
+eval_dataset = NERDataset(input_ids_eval, attention_masks_eval, label_ids_eval)
+from transformers import AutoModelForTokenClassification, TrainingArguments, Trainer
+from sklearn.metrics import f1_score, precision_score, recall_score
+
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+
+    # Ignoruj indeksy etykiet, które mają wartość -100 (specjalne tokeny i padding)
+    valid_indices = (labels != -100)
+
+    labels = labels[valid_indices]
+    preds = preds[valid_indices]
+
+    # Obliczanie metryk dla każdej etykiety
+    label_metrics = {}
+    for label in label_map.keys():
+        label_indices = (labels == label_map[label])
+        label_preds = preds[label_indices]
+        label_labels = labels[label_indices]
+
+        label_metrics[label + '_precision'] = precision_score(label_labels, label_preds, average='weighted', zero_division=1)
+        label_metrics[label + '_recall'] = recall_score(label_labels, label_preds, average='weighted', zero_division=1)
+        label_metrics[label + '_f1'] = f1_score(label_labels, label_preds, average='weighted')
+
+    # Obliczanie metryk dla wszystkich etykiet
+    macro_f1 = f1_score(labels, preds, average='macro')
+    micro_f1 = f1_score(labels, preds, average='micro')
+
+    return {
+        'macro_f1': macro_f1,
+        'micro_f1': micro_f1,
+        **label_metrics
+    }
+
+
+training_args = TrainingArguments(
+    output_dir='./results',
+    num_train_epochs=3,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=64,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir='./logs',
+    logging_steps=10,
+)
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    compute_metrics=compute_metrics
+)
+
+trainer.train()
+
+
+
+
+
+#%%
+
 from transformers import AutoTokenizer, AutoModelForTokenClassification, TrainingArguments, Trainer
 import torch
 
 
 label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
-max_length = 128  # Przykładowa maksymalna długość sekwencji
+max_length = 512  # Przykładowa maksymalna długość sekwencji
 
 input_ids = []
 attention_masks = []
