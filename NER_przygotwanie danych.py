@@ -147,3 +147,24 @@ for index, row in filtered_df.iterrows():
     # Zapisywanie tekstu do pliku TXT
     with open(filepath, 'w', encoding='utf-8') as file:
         file.write(cleaned_text)
+import os
+
+# Ścieżka do katalogu z plikami do zmiany nazw
+katalog = 'D:/Nowa_praca/dane_model_jezykowy/wydarzenie/'
+
+# Pobierz listę plików w katalogu
+pliki = os.listdir(katalog)
+
+# Filtruj tylko pliki .txt
+pliki_txt = [plik for plik in pliki if plik.endswith('.txt')]
+
+# Zmień nazwy plików
+for i, plik in enumerate(pliki_txt, start=1):
+    nowa_nazwa = f"wydarzenie{i}.txt"
+    pelna_stara_sciezka = os.path.join(katalog, plik)
+    pelna_nowa_sciezka = os.path.join(katalog, nowa_nazwa)
+    
+    # Zmiana nazwy pliku
+    os.rename(pelna_stara_sciezka, pelna_nowa_sciezka)
+
+print("Zakończono zmianę nazw plików.")
