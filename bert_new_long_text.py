@@ -12,20 +12,12 @@ from transformers import HerbertTokenizerFast
 # Initialize the tokenizer with the Polish model
 tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-base-cased')
 
-transformed_data = [
-    ('Who is Nishanth?', {
-        'entities': [(7, 15, 'PERSON')]
-    }),
-     ('Who is Kamal Khumar?', {
-        'entities': [(7, 19, 'PERSON')]
-    }),
-    ('I like London and Berlin.', {
-        'entities': [(7, 13, 'LOC'), (18, 24, 'LOC')]
-    })
-]
+transformed_data_train = [('Who is Nishanth ada ? asdasd awdas qwe Zresztą, co by nie mówić jest to przecież operetka sanatoryjna/fot. Monika Stolarska/Na sam dźwięk słowa sanatorium włosy stają dęba, a przed oczami pojawiają się mroczki. Coś wewnętrznie zaczyna się dziać, a my sami wolelibyśmy uciec niż podjąć dyskusję na temat wszelkiej maści uzdrowisk. Ale na naszej drodze pojawia się Cezary Tomaszewski, który tę drogę ucieczki odcina, a następnie sadza na teatralnej widowni i „zarządza” grupowe oglądanie sanatoryjnej operetki.', {
+        'entities': [(0, 20, 'PLAY'), (150, 175, 'PLAY')]})]
 
-
-
+transformed_data_train=[('"Turnus mija, a ja niczyja", reż. Cezary Tomaszewski Sam tytuł tego spektaklu wydaje się nieco podejrzany, bo cóż możemy sobie pomyśleć kiedy słyszymy: Turnus mija, a ja niczyja. Okazuje się jednak, że to o czym pomyśleliśmy chociaż przez krótką chwilę jest bardzo złudne, a Cezary Tomaszewski na scenie MOS Teatru Słowackiego w Krakowie tworzy dzieło zaskakujące i nietypowe. Zresztą, co by nie mówić jest to przecież operetka sanatoryjna/fot. Monika Stolarska/Na sam dźwięk słowa sanatorium włosy stają dęba, a przed oczami pojawiają się mroczki. Coś wewnętrznie zaczyna się dziać, a my sami wolelibyśmy uciec niż podjąć dyskusję na temat wszelkiej maści uzdrowisk. Ale na naszej drodze pojawia się Cezary Tomaszewski, który tę drogę ucieczki odcina, a następnie sadza na teatralnej widowni i „zarządza” grupowe oglądanie sanatoryjnej operetki.',
+  {'entities': [(1, 26, 'PLAY'), (150, 175, 'PLAY')]})]
+len("Turnus mija, a ja niczyja, reż. Cezary Tomaszewski Sam tytuł tego spektaklu wydaje się nieco podejrzany, bo cóż możemy sobie pomyśleć kiedy słyszymy: Turnus mija, a ja niczyja. Okazuje się jednak, że to o czym pomyśleliśmy chociaż przez krótką chwilę jest bardzo złudne, a Cezary Tomaszewski na scenie MOS Teatru Słowackiego w Krakowie tworzy dzieło zaskakujące i nietypowe. Zresztą, co by nie mówić jest to przecież operetka sanatoryjna/fot. Monika Stolarska/Na sam dźwięk słowa sanatorium włosy stają dęba, a przed oczami pojawiają się mroczki. Coś wewnętrznie zaczyna się dziać, a my sami wolelibyśmy uciec niż podjąć dyskusję na temat wszelkiej maści uzdrowisk. Ale na naszej drodze pojawia się Cezary Tomaszewski, który tę drogę ucieczki odcina, a następnie sadza na teatralnej widowni i „zarządza” grupowe oglądanie sanatoryjnej operetki.")
 import requests
 import json
 import pandas as pd
@@ -112,7 +104,7 @@ def mark_titles(text, title):
     # Escapowanie specjalnych znaków w tytule
     title_pattern = re.escape(title) + r"(?![\w-])"  # Aby uniknąć dopasowania w środku słowa, dodajemy negative lookahead
     # Oznaczanie tytułu w tekście znacznikami
-    marked_text = re.sub(title_pattern, r"[SPEKTAKL]\g<0>[/SPEKTAKL]", text, flags=re.IGNORECASE)
+    marked_text = re.sub(title_pattern, r"[PLAY]\g<0>[/PLAY]", text, flags=re.IGNORECASE)
     return marked_text
 
 df2.dropna(subset=['Tytuł spektaklu'], inplace=True)
@@ -120,7 +112,7 @@ df2.dropna(subset=['Tytuł spektaklu'], inplace=True)
 df2['Tytuł spektaklu'] = df2['Tytuł spektaklu'].fillna('')
 df2['marked_text'] = df2.apply(lambda row: mark_titles(row['combined_text'], row['Tytuł spektaklu']), axis=1)
 def prepare_data_for_ner(text):
-    pattern = r"\[SPEKTAKL\](.*?)\[/SPEKTAKL\]"
+    pattern = r"\[PLAY\](.*?)\[/PLAY\]"
     entities = []
     current_pos = 0
     clean_text = ""
@@ -133,7 +125,7 @@ def prepare_data_for_ner(text):
         entity_text = match.group(1)
         clean_text += entity_text  # Dodaj tekst encji bez znaczników
         end_entity = len(clean_text)
-        entities.append((start_entity, end_entity, "SPEKTAKL"))
+        entities.append((start_entity, end_entity, "PLAY"))
         last_end = end  # Zaktualizuj pozycję ostatniego znalezionego końca znacznika
 
     clean_text += text[last_end:]  # Dodaj pozostały tekst po ostatnim znaczniku
@@ -163,49 +155,503 @@ for json_file in json_files:
             tuples_list = [tuple(item) for item in item[1]['entities']]
             # Append to the existing dataset
             transformed_data.append((text, {'entities':tuples_list}))   
-transformed_data[:3]
+transformed_data
+def find_nearest_acceptable_split_point(pos, text, total_length):
+    """
+    Finds the nearest split point that does not split words or sentences,
+    preferring to split at punctuation followed by space or at natural sentence boundaries.
+    """
+    if pos <= 0:
+        return 0
+    if pos >= total_length:
+        return total_length
+    
+    for offset in range(1, min(50, pos, total_length - pos) + 1):
+        left = pos - offset
+        right = pos + offset
+
+        if left > 0 and text[left - 1] in '.?!' and text[left] == ' ':
+            return left + 1
+
+        if right < total_length and text[right - 1] in '.?!' and text[right] == ' ':
+            return right + 1
+    
+    for offset in range(1, min(50, pos, total_length - pos) + 1):
+        left = pos - offset
+        right = pos + offset
+
+        if left > 0 and text[left] == ' ':
+            return left + 1
+
+        if right < total_length and text[right] == ' ':
+            return right + 1
+
+    return pos
+
+def split_text_around_entities_adjusted_for_four_parts(data_list):
+    split_data = []
+    
+    for text, annotation in data_list:
+        entities = sorted(annotation['entities'], key=lambda e: e[0])
+        total_length = len(text)
+        ideal_part_length = total_length // 5  # Adjusted for four parts
+        
+        split_points = [0]
+        current_split = 0
+        
+        for _ in range(4):  # Adjusted to perform three splits for four parts
+            proposed_split = current_split + ideal_part_length
+            if proposed_split >= total_length:
+                break
+            
+            adjusted_split = find_nearest_acceptable_split_point(proposed_split, text, total_length)
+            
+            for start, end, _ in entities:
+                if adjusted_split > start and adjusted_split < end:
+                    adjusted_split = end
+                    break
+            
+            if adjusted_split != current_split:
+                split_points.append(adjusted_split)
+                current_split = adjusted_split
+        
+        split_points.append(total_length)
+        
+        last_split = 0
+        for split in split_points[1:]:
+            part_text = text[last_split:split].strip()
+            part_entities = [(start - last_split, end - last_split, label) for start, end, label in entities if start >= last_split and end <= split]
+            split_data.append((part_text, {'entities': part_entities}))
+            last_split = split
+
+    return split_data
+transformed_data = split_text_around_entities_adjusted_for_four_parts(transformed_data)
+
+transformed_data = [data for data in transformed_data if data[1]['entities']]
+
 from sklearn.model_selection import train_test_split
 
 
 
 
 transformed_data_train, transformed_data_eval = train_test_split(transformed_data, test_size=0.1, random_state=42)
+#transformed_data_train=[transformed_data_train[0]]
+
+# def adjust_data_for_ner(data, tokenizer, max_length=512):
+#     adjusted_data = []
+
+#     for text, annotation in data:
+#         tokens = tokenizer.tokenize(text)
+#         entities = annotation['entities']
+#         current_chunk = []
+#         current_entities = []
+#         chunk_size = 0
+
+#         for entity in entities:
+#             start, end, label = entity
+#             entity_tokens = tokenizer.tokenize(text[start:end])
+#             entity_start = chunk_size + len(tokenizer.tokenize(text[:start]))
+#             entity_end = entity_start + len(entity_tokens)
+
+#             if entity_end <= max_length - 1:  # -1 to account for special tokens
+#                 current_entities.append((entity_start, entity_end, label))
+#             else:
+#                 # If the entity doesn't fit, start a new chunk
+#                 if current_chunk:
+#                     adjusted_data.append((' '.join(current_chunk), {'entities': current_entities}))
+#                 current_chunk = tokens[chunk_size:entity_start] + entity_tokens
+#                 current_entities = [(0, len(entity_tokens), label)]
+#                 chunk_size = entity_start
+
+#         if current_chunk or (chunk_size < len(tokens)):
+#             remaining_tokens = tokens[chunk_size:max_length - 1]
+#             adjusted_data.append((' '.join(current_chunk + remaining_tokens), {'entities': current_entities}))
+
+#     return adjusted_data
+# adjusted_data_train = adjust_data_for_ner(transformed_data_train, tokenizer)
+# adjusted_data_eval = adjust_data_for_ner(transformed_data_eval, tokenizer)
+
+#TU Dam Nową funkcję?
+from transformers import BertTokenizerFast
+import torch
+
+# Przygotowanie tokenizera
+#tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-base-cased')
 
 
-def adjust_data_for_ner(data, tokenizer, max_length=512):
-    adjusted_data = []
 
+import torch
+
+import torch
+
+def prepare_data(data, tokenizer, tag2id, max_length=512):
+    input_ids = []
+    attention_masks = []
+    labels = []
+    
     for text, annotation in data:
-        tokens = tokenizer.tokenize(text)
-        entities = annotation['entities']
-        current_chunk = []
-        current_entities = []
-        chunk_size = 0
+        tokenized_input = tokenizer.encode_plus(
+            text,
+            max_length=max_length,
+            padding='max_length',
+            truncation=True,
+            return_offsets_mapping=True,
+            return_tensors="pt"
+        )
+        
+        offset_mapping = tokenized_input["offset_mapping"].squeeze().tolist()[1:-1]  # Usunięcie mapowania dla [CLS] i [SEP]
+        sequence_labels = ['O'] * len(offset_mapping)  # Inicjalizacja etykiet jako 'O' dla tokenów (bez [CLS] i [SEP])
+        
+        for start, end, label in annotation['entities']:
+            entity_start_index = None
+            entity_end_index = None
+            
+            for idx, (offset_start, offset_end) in enumerate(offset_mapping):
+                if start == offset_start or (start > offset_start and start < offset_end):
+                    entity_start_index = idx
+                if (end > offset_start and end <= offset_end):
+                    entity_end_index = idx
+                    break
 
-        for entity in entities:
-            start, end, label = entity
-            entity_tokens = tokenizer.tokenize(text[start:end])
-            entity_start = chunk_size + len(tokenizer.tokenize(text[:start]))
-            entity_end = entity_start + len(entity_tokens)
+            if entity_start_index is not None and entity_end_index is not None:
+                sequence_labels[entity_start_index] = f'B-{label}'  # Begin label
+                for i in range(entity_start_index + 1, entity_end_index + 1):
+                    sequence_labels[i] = f'I-{label}'  # Inside label
+        
+        # Dodajemy 'O' dla [CLS] i [SEP] oraz dopasowujemy długość etykiet do max_length
+        full_sequence_labels = ['O'] + sequence_labels + ['O'] * (max_length - len(sequence_labels) - 1)
+        label_ids = [tag2id.get(label, tag2id['O']) for label in full_sequence_labels]
+        
+        input_ids.append(tokenized_input['input_ids'].squeeze().tolist())
+        attention_masks.append(tokenized_input['attention_mask'].squeeze().tolist())
+        labels.append(label_ids)
+    
+    input_ids = torch.tensor(input_ids, dtype=torch.long)
+    attention_masks = torch.tensor(attention_masks, dtype=torch.long)
+    labels = torch.tensor(labels, dtype=torch.long)
+    
+    return input_ids, attention_masks, labels
 
-            if entity_end <= max_length - 1:  # -1 to account for special tokens
-                current_entities.append((entity_start, entity_end, label))
-            else:
-                # If the entity doesn't fit, start a new chunk
-                if current_chunk:
-                    adjusted_data.append((' '.join(current_chunk), {'entities': current_entities}))
-                current_chunk = tokens[chunk_size:entity_start] + entity_tokens
-                current_entities = [(0, len(entity_tokens), label)]
-                chunk_size = entity_start
 
-        if current_chunk or (chunk_size < len(tokens)):
-            remaining_tokens = tokens[chunk_size:max_length - 1]
-            adjusted_data.append((' '.join(current_chunk + remaining_tokens), {'entities': current_entities}))
 
-    return adjusted_data
-adjusted_data_train = adjust_data_for_ner(transformed_data_train, tokenizer)
-adjusted_data_eval = adjust_data_for_ner(transformed_data_eval, tokenizer)
-label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
+
+
+
+
+
+
+# Mapowanie etykiet
+tag2id = {'O': 0, 'B-PLAY': 1, 'I-PLAY': 2}
+
+# Przygotowanie danych
+input_ids, attention_masks, labels = prepare_data(transformed_data_train, tokenizer, tag2id)
+# Przygotowanie danych ewaluacyjnych
+input_ids_eval, attention_masks_eval, labels_eval = prepare_data(transformed_data_eval, tokenizer, tag2id)
+
+
+# Weryfikacja wyników
+print(input_ids.shape, attention_masks.shape, labels.shape)
+
+example_idx = 1  # indeks przykładu, który chcemy wydrukować
+
+# Konwersja input_ids do tokenów
+tokens = tokenizer.convert_ids_to_tokens(input_ids[example_idx])
+
+print(f"Tokens:\n{tokens}\n")
+print(f"Input IDs:\n{input_ids[example_idx]}\n")
+print(f"Attention Masks:\n{attention_masks[example_idx]}\n")
+print(f"Tag IDs:\n{labels[example_idx]}\n")
+
+# Wydrukuj skojarzone z tokenami etykiety (dla lepszej czytelności)
+tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id in tag2id.values() else 'PAD' for tag_id in labels[example_idx]]
+print(f"Tags:\n{tags}\n")
+
+# Przykład weryfikacji dla pojedynczego przykładu
+example_text, example_annotations = transformed_data[1]
+example_input_ids, example_attention_masks, example_labels = prepare_data([transformed_data[1]], tokenizer, tag2id)
+
+print("Tekst:", example_text)
+print("\nTokeny i ich etykiety:")
+tokens = tokenizer.convert_ids_to_tokens(example_input_ids[0])
+for token, label_id in zip(tokens, example_labels[0]):
+    label = list(tag2id.keys())[list(tag2id.values()).index(label_id)]
+    print(f"{token}: {label}")
+
+
+
+from transformers import AutoModelForTokenClassification
+
+model = AutoModelForTokenClassification.from_pretrained(
+    'allegro/herbert-base-cased',
+    num_labels=len(tag2id)
+)
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler
+eval_dataset = TensorDataset(input_ids_eval, attention_masks_eval, labels_eval)
+
+# DataLoader dla danych ewaluacyjnych
+eval_loader = DataLoader(
+    eval_dataset,
+    batch_size=16,  # Dostosuj zgodnie z potrzebami
+    shuffle=False  # Nie ma potrzeby mieszać danych ewaluacyjnych
+)
+# Przygotowanie TensorDataset
+train_dataset = TensorDataset(input_ids, attention_masks, labels)
+
+# DataLoader
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=16,  # Możesz dostosować w zależności od zasobów
+    sampler=RandomSampler(train_dataset)  # Mieszanie danych
+)
+from transformers import AdamW
+
+optimizer = AdamW(model.parameters(), lr=5e-5)
+
+# Przenieś model na odpowiednie urządzenie (GPU, jeśli dostępne)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# Pętla treningowa
+model.train()
+for epoch in range(3):  # Liczba epok
+    for batch in train_loader:
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_attention_mask, b_labels = batch
+        
+        # Reset gradientów
+        model.zero_grad()
+        
+        # Forward pass
+        outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
+        
+        # Backward pass i optymalizacja
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+        
+    print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+
+
+from sklearn.metrics import precision_score, recall_score, f1_score
+import numpy as np
+
+# Zakładając, że model został już wytrenowany i eval_loader jest gotowy
+
+# Przenieś model na odpowiednie urządzenie (GPU lub CPU)
+model.to(device)
+
+# Przygotuj listy do zbierania prawdziwych etykiet i predykcji
+true_labels = []
+pred_labels = []
+
+# Ustaw model w tryb ewaluacji
+model.eval()
+
+# Wyłącz obliczanie gradientów
+with torch.no_grad():
+    for batch in eval_loader:
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_attention_mask, b_labels = batch
+        
+        # Przeprowadź predykcję
+        outputs = model(b_input_ids, attention_mask=b_attention_mask)
+        
+        # Logits - wyniki przed funkcją aktywacji
+        logits = outputs.logits
+        logits = logits.detach().cpu().numpy()
+        label_ids = b_labels.to('cpu').numpy()
+        
+        # Dodaj predykcje i prawdziwe etykiety do list
+        pred_labels.extend([list(p) for p in np.argmax(logits, axis=2)])
+        true_labels.extend(label_ids)
+
+# Wyciąganie płaskich list prawdziwych etykiet i predykcji, pomijając padding
+flat_true_labels = [item for sublist in true_labels for item in sublist if item != tag2id['O']]
+flat_pred_labels = [item for sublist in pred_labels for item in sublist[:len(sublist)] if item != tag2id['O']]
+
+# Oblicz metryki
+precision = precision_score(flat_true_labels, flat_pred_labels, average='macro', zero_division=0)
+recall = recall_score(flat_true_labels, flat_pred_labels, average='macro', zero_division=0)
+f1 = f1_score(flat_true_labels, flat_pred_labels, average='macro', zero_division=0)
+
+print(f"Precision: {precision}")
+print(f"Recall: {recall}")
+print(f"F1 Score: {f1}")
+
+# Zapisz model
+model.save_pretrained('./saved_model')
+
+
+from transformers import AutoTokenizer, AutoModel
+
+tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-large-cased")
+model = AutoModel.from_pretrained("allegro/herbert-large-cased")
+
+output = model(
+    **tokenizer.batch_encode_plus(
+        [
+            (
+                "A potem szedł środkiem drogi w kurzawie, bo zamiatał nogami, ślepy dziad prowadzony przez tłustego kundla na sznurku.",
+                "A potem leciał od lasu chłopak z butelką, ale ten ujrzawszy księdza przy drodze okrążył go z dala i biegł na przełaj pól do karczmy."
+            )
+        ],
+    padding='longest',
+    add_special_tokens=True,
+    return_tensors='pt'
+    )
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import torch
+
+def encode_tags(tags, length, tag2id, default_tag='O', pad_tag=-100):
+    """Koduje tagi do formatu ID, dodając padding."""
+    tag_ids = [tag2id.get(tag, tag2id[default_tag]) for tag in tags]
+    tag_ids += [pad_tag] * (length - len(tag_ids))
+    return tag_ids
+
+def prepare_data_for_bert(adjusted_data, tokenizer, tag2id, max_length=512):
+    input_ids = []
+    attention_masks = []
+    tag_ids = []
+
+    for text, annotations in adjusted_data:
+        # Podział tekstu na tokeny
+        tokens = text.split(' ')
+        entity_tags = ['O'] * len(tokens)  # Domyślnie wszystkie tagi to 'O'
+
+        for start, end, label in annotations['entities']:
+            entity_tags[start] = f'B-{label}'  # Początkowy tag encji
+            for i in range(start + 1, end):
+                entity_tags[i] = f'I-{label}'  # Tagi wewnętrzne encji
+
+        # Dodanie specjalnych tokenów
+        tokens = ['[CLS]'] + tokens + ['[SEP]']
+        special_tokens_count = 2  # [CLS] i [SEP]
+        entity_tags = ['O'] + entity_tags + ['O']  # Tagi dla [CLS] i [SEP]
+
+        # Kodowanie tokenów i tagów
+        token_ids = tokenizer.convert_tokens_to_ids(tokens)
+        token_ids += [tokenizer.pad_token_id] * (max_length - len(token_ids))  # Padding do max_length
+        attention_mask = [1] * len(tokens) + [0] * (max_length - len(tokens))  # Maskowanie
+        tag_ids_sequence = encode_tags(entity_tags, max_length, tag2id, pad_tag=-100)
+
+        input_ids.append(token_ids)
+        attention_masks.append(attention_mask)
+        tag_ids.append(tag_ids_sequence)
+
+    # Konwersja na tensory
+    input_ids = torch.tensor(input_ids, dtype=torch.long)
+    attention_masks = torch.tensor(attention_masks, dtype=torch.long)
+    tag_ids = torch.tensor(tag_ids, dtype=torch.long)
+
+    return input_ids, attention_masks, tag_ids
+
+# Przykład użycia:
+tag2id = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3, 'I-LOC': 4}
+adjusted_data_train = [
+    ('W ho</w> is</w> Ka mal</w> K hu mar</w> ?', {'entities': [(3, 8, 'PERSON')]}),
+    ('I</w> li ke</w> London</w> and</w> Berlin</w> .', {'entities': [(3, 4, 'LOC'), (5, 6, 'LOC')]})
+]
+# Użycie fikcyjnego tokenizer do przykładu; w praktyce należy użyć tokenizera z modelu BERT
+tokenizer = tokenizer # Załóżmy, że tokenizer jest już zdefiniowany
+
+input_ids, attention_masks, tag_ids = prepare_data_for_bert(adjusted_data_train, tokenizer, tag2id, max_length=512)
+
+example_idx = 0  # indeks przykładu, który chcemy wydrukować
+
+# Konwersja input_ids do tokenów
+tokens = tokenizer.convert_ids_to_tokens(input_ids[example_idx])
+
+print(f"Tokens:\n{tokens}\n")
+print(f"Input IDs:\n{input_ids[example_idx]}\n")
+print(f"Attention Masks:\n{attention_masks[example_idx]}\n")
+print(f"Tag IDs:\n{tag_ids[example_idx]}\n")
+
+# Wydrukuj skojarzone z tokenami etykiety (dla lepszej czytelności)
+tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id != -100 else 'PAD' for tag_id in tag_ids[example_idx]]
+print(f"Tags:\n{tags}\n")
+
+
+
+
+from transformers import AutoModelForTokenClassification
+
+model = AutoModelForTokenClassification.from_pretrained(
+    'allegro/herbert-base-cased',
+    num_labels=len(tag2id)
+)
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler
+
+# Przygotowanie TensorDataset
+train_dataset = TensorDataset(input_ids, attention_masks, tag_ids)
+
+# DataLoader
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=16,  # Możesz dostosować w zależności od zasobów
+    sampler=RandomSampler(train_dataset)  # Mieszanie danych
+)
+from transformers import AdamW
+
+optimizer = AdamW(model.parameters(), lr=5e-5)
+
+# Przenieś model na odpowiednie urządzenie (GPU, jeśli dostępne)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# Pętla treningowa
+model.train()
+for epoch in range(3):  # Liczba epok
+    for batch in train_loader:
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_attention_mask, b_labels = batch
+        
+        # Reset gradientów
+        model.zero_grad()
+        
+        # Forward pass
+        outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
+        
+        # Backward pass i optymalizacja
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+        
+    print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+
+
+
+
+# Zapisz model
+model.save_pretrained('./saved_model')
+
+
+
+
+
+
+
+
+
+#%%
 def tag_tokens_with_ner_labels(data):
     tagged_data = []
     for text, annotations in data:
@@ -369,62 +815,7 @@ trainer = Trainer(
 
 trainer.train()
 
-
-
-
-
-#%%
-
-from transformers import AutoTokenizer, AutoModelForTokenClassification, TrainingArguments, Trainer
-import torch
-
-
-label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
-max_length = 512  # Przykładowa maksymalna długość sekwencji
-
-input_ids = []
-attention_masks = []
-label_ids = []
-
-for tokens, labels in tagged_data:
-    # Konwersja tokenów na identyfikatory tokenów z uwzględnieniem maksymalnej długości
-    encoded_dict = tokenizer(tokens,
-                              is_split_into_words=True,
-                              add_special_tokens=True,
-                              max_length=512,  # Maksymalna długość sekwencji
-                              padding='max_length',
-                              truncation=True,
-                              return_attention_mask=True,
-                              return_tensors='pt')
-    
-    input_ids.append(encoded_dict['input_ids'])
-    
-    attention_masks.append(encoded_dict['attention_mask'])
-    
-    # Konwersja etykiet na indeksy
-    label_index = [label_map[label] for label in labels] + [label_map['O']] * (max_length - len(labels))  # Dodajemy 'O' dla paddingu
-    label_ids.append(torch.tensor(label_index))
-
-# Konwersja list na tensor PyTorch
-input_ids = torch.cat(input_ids, dim=0)
-attention_masks = torch.cat(attention_masks, dim=0)
-label_ids = torch.stack(label_ids)
-
-example_index = 0  # Indeks przykładowych danych, które chcemy wyświetlić
-
-# Dekodowanie identyfikatorów tokenów z powrotem na tokeny
-tokens = tokenizer.convert_ids_to_tokens(input_ids[example_index])
-
-# Przygotowanie listy etykiet na podstawie indeksów
-inverse_label_map = {v: k for k, v in label_map.items()}  # Odwrócona mapa etykiet
-labels = [inverse_label_map[label_id.item()] for label_id in label_ids[example_index]]
-
-# Wyświetlenie danych
-print("Tokeny:", tokens)
-print("Maska uwagi:", attention_masks[example_index].tolist())
-print("Etykiety:", labels)
-#%%
-# Function to convert spaCy entity format to token-level labels for BERT
+# funkcja do skracania danych
 
 def find_nearest_acceptable_split_point(pos, text, total_length):
     """
@@ -496,6 +887,61 @@ def split_text_around_entities_adjusted_for_four_parts(data_list):
 
     return split_data
 transformed_data = split_text_around_entities_adjusted_for_four_parts(transformed_data)
+
+
+
+#%%
+
+from transformers import AutoTokenizer, AutoModelForTokenClassification, TrainingArguments, Trainer
+import torch
+
+
+label_map = {'O': 0, 'B-PERSON': 1, 'I-PERSON': 2, 'B-LOC': 3}
+max_length = 512  # Przykładowa maksymalna długość sekwencji
+
+input_ids = []
+attention_masks = []
+label_ids = []
+
+for tokens, labels in tagged_data:
+    # Konwersja tokenów na identyfikatory tokenów z uwzględnieniem maksymalnej długości
+    encoded_dict = tokenizer(tokens,
+                              is_split_into_words=True,
+                              add_special_tokens=True,
+                              max_length=512,  # Maksymalna długość sekwencji
+                              padding='max_length',
+                              truncation=True,
+                              return_attention_mask=True,
+                              return_tensors='pt')
+    
+    input_ids.append(encoded_dict['input_ids'])
+    
+    attention_masks.append(encoded_dict['attention_mask'])
+    
+    # Konwersja etykiet na indeksy
+    label_index = [label_map[label] for label in labels] + [label_map['O']] * (max_length - len(labels))  # Dodajemy 'O' dla paddingu
+    label_ids.append(torch.tensor(label_index))
+
+# Konwersja list na tensor PyTorch
+input_ids = torch.cat(input_ids, dim=0)
+attention_masks = torch.cat(attention_masks, dim=0)
+label_ids = torch.stack(label_ids)
+
+example_index = 0  # Indeks przykładowych danych, które chcemy wyświetlić
+
+# Dekodowanie identyfikatorów tokenów z powrotem na tokeny
+tokens = tokenizer.convert_ids_to_tokens(input_ids[example_index])
+
+# Przygotowanie listy etykiet na podstawie indeksów
+inverse_label_map = {v: k for k, v in label_map.items()}  # Odwrócona mapa etykiet
+labels = [inverse_label_map[label_id.item()] for label_id in label_ids[example_index]]
+
+# Wyświetlenie danych
+print("Tokeny:", tokens)
+print("Maska uwagi:", attention_masks[example_index].tolist())
+print("Etykiety:", labels)
+#%%
+
 def adjust_data_for_ner(data, tokenizer, max_length=512):
     adjusted_data = []
 
