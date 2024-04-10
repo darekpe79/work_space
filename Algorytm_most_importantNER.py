@@ -29,51 +29,50 @@ model = AutoModelForTokenClassification.from_pretrained(model_checkpoint)
 # Utworzenie pipeline NER
 nlp1 = pipeline("ner", model=model, tokenizer=tokenizer)
 
-text = """Zmarł Feliks W. Kres, autor „Księgi Całości”, prekursor polskiej fantasy </tytuł> Jeden z najważniejszych polskich autorów fantasty, autor popularnego cyklu „Księga Całości”, Feliks W. Kres nie żyje. Pisarz zmarł w wieku 56 lat po walce z chorobą. Wiadomość o jego śmierci przekazało wydawnictwo Fabryka Słów.
+text ="""CO JEST ZA ZAKRĘTEM? (WOJCIECH CHMIELARZ: 'WYRWA') </tytuł>„Rzecz nazwawszy po imieniu, wszystko swój posiada cennik, nie podołasz zamówieniu to załatwi je twój zmiennik”. Pamiętacie piosenkę Gintrowskiego do serialu „Zmiennicy”? Bohater nowej powieści Wojciecha Chmielarza boleśnie przekona się, że za wszystko trzeba będzie jednak zapłacić, nawet jeśli ma się skromne oczekiwania wobec życia.Istnieją pisarze, na których książki czekam z utęsknieniem, ich zapowiedź odnotowuję notatką w telefonie, a po zakupie odcinam się od całego świata, żeby pochłaniać litery i z każdą stroną odczuwać żal, że już niedługo koniec. Tak właśnie jest z powieściami Wojciecha Chmielarza, nawet jeśli lekko mnie rozczarowują (jak ubiegłoroczna „Rana”), to i tak autor ma u mnie duży kredyt zaufania. Nie byłam fanką wolty, którą uczynił Chmielarz, przechodząc od kryminałów do thrillerów, a właściwie i to określenie gatunkowe w stosunku do „Wyrwy”, zważywszy na królującą w księgarniach produkcję literacką, nie jest do końca odpowiednie. Czytałam ostatnio wystarczająco dużo powieści, które udawały, że są oryginalne, brutalne, a były w istocie kolejną wariacją domestic noir ze straumatyzowaną bohaterka, lękającą się wyjścia z domu, listonosza i sąsiadów. Wyhodowałam więc w sobie apetyt na odmianę.Bohater „Wyrwy” – Maciej Tomski, przynależy do warszawskiej klasy średniej, jak sam o sobie mówi, przy czym ta średniość jest rozumiana nie tylko socjologicznie, ale najzupełniej dosłownie – średnia droga zawodowa (bo trudno nazwać ją karierą), mieszkanie, wakacje all inclusive, samochód i ambicje. Takiego everymanowi przydarza się coś, czego się lękamy – tajemnica. Otrzymuje wiadomość o śmierci żony, ale dlaczego zamiast w drodze spod Krakowa znajdowała się na Mazurach? Co ukrywała i dlaczego bohater tak długo dawał się zwodzić? Czy miała powody, by obawiać się o swoje życie? Jeśli gdzieś już słyszeliście taki wstęp, nie mylicie się – to ulubiony schemat Harlana Cobena lub Michela Bussi, znany nie tylko z książek, ale i seriali czy filmów. Na szczęście dla czytelników łatwy do opisania schemat schodzi na dalszy plan i tak, jak to było w „Ranie”, przestaje być ważne, kto i jak zamordował. Typowe dla kryminału pytanie o motyw zastąpi opowieść, w jaki sposób niezwiązane wydarzenia nakładają się i eksplodują w postaci tragedii oraz płynące z niej rozważania, kto jest winien, czy możliwe było inne zakończenie. Na swój użytek podobny wątek nazywam determinizmem przestępstwa – to rozważania, co wpłynęło na bieg wydarzeń – jak w klasycznej powieści Patricii Highsmith „Znajomi z pociągu”. Maciej szuka odpowiedzi na pytanie, co ukrywała Beata – dziennikarka prasy kobiecej, niespełniona pisarka, i rekonstruuje moment, w którym ich drogi zaczęły się rozchodzić, a małżeństwo zamieniło w rutynę pytań, kto odbierze dzieci ze szkoły. Czytelnikowi w pewnym wieku, z kredytem w banku i problemami szkolno-przedszkolnymi potomstwa łatwo się utożsamić z Maciejem lub przynajmniej odnaleźć znajomego, więc kibicuje mu w szukaniu odpowiedzi. Ale Maciej zaskoczy czytelnika, w jaki sposób – tego już nie odważę się napisać.W serialu „Fosse/Verdon” jeden z producentów tłumaczy Bobowi Fosse, że jego pomysły się nie sprawdzą, bo główny bohater „Całego tego zgiełku” nie przechodzi wewnętrznej przemiany, pozostaje taki sam, a ludzie tego nie lubią, bo oczekują, że bohater coś zrozumie i się zmieni. Ten łopatologiczny wywód w istocie ujmuje sedno – oczekujemy od bohatera przemiany, a nie unoszenia się na powierzchni wydarzeń, liczymy, że wraz ze zmianą przestrzeni nastąpi zmiana postaci. I Chmielarz nam, czytelnikom, daje taką przemianę – Maciej jest zmuszony zrezygnować z bierności, a może zrzucić maskę. Autor czyni z Macieja narratora o ograniczonej wiedzy, musi więc dodać protagonistę, który będzie w stanie uzupełnić luki w fabule. Niestety, ta druga postać – nie chcę zdradzać płci ani roli – nie jest już skonstruowana w tak udany sposób, szeleści papierem. Można ją w sumie polubić, ale brak jej wiarygodności. O ile jako czytelnik poczuję się jak pocący się w garniturze Maciej, o tyle z tą drugą postacią nie mam na to szans. Podejrzewam, że jej rola miała być pierwotnie mniejsza, ale z przyczyn formalnych rozrosła się do funkcji drugiego narratora.Niezaprzeczalną zaletą książki jest jej nieodkładalność, raczej nie warto planować chwilowej lektury, po której wraca się do pracy. Otóż, nie da się odłożyć „Wyrwy” ot, tak. „Coś być musi do cholery za zakrętem” – ponownie zacytuję Gintrowskiego. To, co mnie drażniło podczas lektury, to nadużywanie frazy „zamordowałem żonę, on/ona zamordował mi żonę” itd. itp. Drogi autorze – to, co intryguje za pierwszym razem, za drugim, trzecim, za kolejnym już irytuje. Efekciarskie. Bo czy to morderstwo w Orient Expressie, że mamy wielu morderców? Może było to pisane z myślą o scenariuszu – nasz bohater, o twarzy podobnej jakby do nikogo (Maciej Stuhr?) zaciska zęby i cedzi – „Aż dotrze do niego, że zamordował mi żonę”. Cięcie. I potem kolejna postać wchodzi do gry i kolejna kwestia o zamordowaniu żony.Chmielarz będzie czytany i będzie zdobywał nowych czytelników, bo to po prostu solidna firma. Czy jednak przejście od klasycznych, ponurych, mocnych powieści z cyklu jest udane? „Żmijowisko” powaliło mnie na ziemię zakończeniem, „Rana” rozczarowała przejściem w stronę thrillera psychologicznego, po lekturze „Wyrwy” ośmielę się zauważyć – król wrócił. """
+text="CO JEST ZA ZAKRĘTEM? (WOJCIECH CHMIELARZ: 'WYRWA') </tytuł>„Rzecz nazwawszy po imieniu, wszystko swój posiada cennik, nie podołasz zamówieniu to załatwi je twój zmiennik”. Pamiętacie piosenkę Gintrowskiego do serialu „Zmiennicy”? Bohater nowej powieści Wojciecha Chmielarza boleśnie przekona się, że za wszystko trzeba będzie jednak zapłacić, nawet jeśli ma się skromne oczekiwania wobec życia.Istnieją pisarze, na których książki czekam z utęsknieniem, ich zapowiedź odnotowuję notatką w telefonie, a po zakupie"
 
-„Nie ma słów właściwych, by przekazać taką informację. Po zaciętej walce z chorobą odszedł od nas Feliks W. Kres. Kresie, pozostawiłeś po sobie pustkę, której jeszcze nie umiemy ogarnąć. Pytania, na które już nigdy nie poznamy odpowiedzi. Myśli, którymi już się z tobą nie podzielimy. Teraz jednak, przede wszystkim, jesteśmy całym sercem z twoją żoną i najbliższymi” – napisało wydawnictwo na swoim profilu na Facebooku.
+# max_length = 2000  # Maksymalna długość fragmentu tekstu, dostosuj w zależności od modelu i ograniczeń pamięci
+# fragments = textwrap.wrap(text, max_length, break_long_words=False, replace_whitespace=False)
+proba=nlp1(text)
 
-Urodzony 1 czerwca 1966 roku Feliks W. Kres (właściwie nazywał się Witold Chmielecki) był prekursorem polskiej fantasy. Zadebiutował już 1983 roku utworem „Mag” nadesłanym na konkurs w „Fantastyce”. Było to pierwsze w Polsce opowiadanie napisane w tym gatunku, które ukazało się na łamach profesjonalnego czasopisma. Trzy lata później miał już złożoną do druku swoją książkę. Na księgarskich półkach zobaczył ją dopiero na początku lat 90.
+tokens = tokenizer.tokenize(text)
 
-„Dla krajowego twórcy to był najgorszy czas z możliwych. Nadrabialiśmy półwiecze zaległości – my, Polacy. Drukowano wtedy wszystko, co tylko było opatrzone anglosaskim nazwiskiem. Jako czytelnik byłem wniebowzięty, wreszcie miałem pełne półki i wybór. Natomiast jako autor – bo jeszcze nie pisarz – nosiłem maszynopisy od wydawcy do wydawcy. Radzono mi – to dzisiaj brzmi anegdotycznie – bym sygnował książki Felix V. Craes albo w ogóle – bo ja wiem… – John Brown. Byle nie rodzimo brzmiącym nazwiskiem” – wspominał w książce „Galeria dla dorosłych”, dodając, że wolał jednak pozostać przy swoim polsko brzmiącym pseudonimie.
+# Dzielenie tokenów na fragmenty o maksymalnej długości 'max_tokens'
+max_tokens = 512  # Przykładowe ograniczenie modelu
+token_fragments = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
 
-W latach 1991-1996 Kres co roku wydawał książkę. Jak sam przyznawał, chyba żaden inny polski autor-fantasta nie mógł tego o sobie powiedzieć. „Nie jestem dziś szczególnie dumny z nagród, które wówczas zebrałem, bo też jaka była konkurencja?… Raz i drugi, pamiętam, napotkano poważne trudności ze znalezieniem pięciu dzieł rodzimej produkcji, niezbędnych do tego, by w ogóle przeprowadzić konkurs – mówiąc inaczej: cokolwiek napisano, a otarło się o fantastykę, automatycznie dostawało nominację do nagrody, choćby nawet autor nie znał gramatyki i ortografii” – pisał z wrodzonym dystansem.
-
-Bez względu na to, jaki poziom prezentowała konkurencja, Feliks W. Kres nie przeszedł do historii polskiej fantasy tylko dlatego, że był jej prekursorem. W przypadku autora nie było mowy o literackiej nieporadności. Stworzony przez niego cykl „Księga Całości”, rozgrywający się w świecie Szereru, gdzie żyją tylko trzy rozumne gatunki – ludzie, koty i sępy – uchodzi za prawdziwą klasykę gatunku i jedno z najważniejszych dzieł polskiej fantasy. Pozycji tej nie zagroził nawet trochę młodszy i znacznie popularniejszy „Wiedźmin” Andrzeja Sapkowskiego.
-
-W 2011 roku Kres oświadczył, że rezygnuje z dalszego pisania. Jego powrót po blisko dekadzie, ogłoszony przez wydawnictwo Fabryka Słów, był w polskim świecie fantastyki dużym wydarzeniem. Najpierw wznowiono w poprawionej wersji tomy „Księgi Całości”, które ukazały się przed laty. Pierwszy nowy tom, „Najstarsza z Potęg”, zapowiedziany jest na listopad. Autor nie dożył jego publikacji."""
-
-max_length = 512  # Maksymalna długość fragmentu tekstu, dostosuj w zależności od modelu i ograniczeń pamięci
-fragments = textwrap.wrap(text, max_length, break_long_words=False, replace_whitespace=False)
+# Przekształcenie fragmentów tokenów z powrotem na listę tekstów
+text_fragments = [tokenizer.convert_tokens_to_string(fragment) for fragment in token_fragments]
 
 # Analiza każdego fragmentu osobno
 ner_results = []
-for fragment in fragments:
+for fragment in text_fragments:
     ner_results.extend(nlp1(fragment))
-    
-    
+    break
 def combine_tokens(ner_results):
     combined_entities = []
     current_entity = {"word": "", "type": None, "score_sum": 0, "token_count": 0, "start": None, "end": None}
-    previous_end_of_word = False
+    previous_index = None  # Zmienna do przechowywania indeksu poprzedniego tokenu
 
     for token in ner_results:
         # Sprawdzamy, czy bieżący token jest końcem słowa
         end_of_word = "</w>" in token['word']
         cleaned_word = token['word'].replace("</w>", "")
 
+        # Sprawdzamy różnicę indeksów, jeśli poprzedni indeks jest ustawiony
+        index_difference = token['index'] - previous_index if previous_index is not None else 0
+
         # Rozpoczęcie nowej jednostki
-        if token['entity'].startswith('B-'):
+        if token['entity'].startswith('B-') or index_difference > 5:  # Dodatkowy warunek na różnicę indeksów
             if current_entity['word']:
                 # Obliczamy średnią ocenę dla skompletowanej jednostki
                 current_entity['score'] = current_entity['score_sum'] / current_entity['token_count']
                 combined_entities.append(current_entity)
             current_entity = {"word": cleaned_word, "type": token['entity'][2:], "score_sum": token['score'],
                               "token_count": 1, "start": token['start'], "end": token['end']}
-            previous_end_of_word = end_of_word
         # Kontynuacja obecnej jednostki
         elif token['entity'].startswith('I-') and current_entity['type'] == token['entity'][2:]:
-            # Dodajemy spację przed bieżącym tokenem, jeśli poprzedni token był końcem słowa
             if previous_end_of_word:
                 current_entity['word'] += " " + cleaned_word
             else:
@@ -81,14 +80,55 @@ def combine_tokens(ner_results):
             current_entity['end'] = token['end']
             current_entity['score_sum'] += token['score']
             current_entity['token_count'] += 1
-            previous_end_of_word = end_of_word
+
+        previous_end_of_word = end_of_word
+        previous_index = token['index']  # Aktualizacja indeksu poprzedniego tokenu
 
     # Dodajemy ostatnią jednostkę, jeśli istnieje
     if current_entity['word']:
         current_entity['score'] = current_entity['score_sum'] / current_entity['token_count']
         combined_entities.append(current_entity)
 
-    return combined_entities
+    return combined_entities    
+    
+    
+# def combine_tokens(ner_results):
+#     combined_entities = []
+#     current_entity = {"word": "", "type": None, "score_sum": 0, "token_count": 0, "start": None, "end": None}
+#     previous_end_of_word = False
+
+#     for token in ner_results:
+#         # Sprawdzamy, czy bieżący token jest końcem słowa
+#         end_of_word = "</w>" in token['word']
+#         cleaned_word = token['word'].replace("</w>", "")
+
+#         # Rozpoczęcie nowej jednostki
+#         if token['entity'].startswith('B-'):
+#             if current_entity['word']:
+#                 # Obliczamy średnią ocenę dla skompletowanej jednostki
+#                 current_entity['score'] = current_entity['score_sum'] / current_entity['token_count']
+#                 combined_entities.append(current_entity)
+#             current_entity = {"word": cleaned_word, "type": token['entity'][2:], "score_sum": token['score'],
+#                               "token_count": 1, "start": token['start'], "end": token['end']}
+#             previous_end_of_word = end_of_word
+#         # Kontynuacja obecnej jednostki
+#         elif token['entity'].startswith('I-') and current_entity['type'] == token['entity'][2:]:
+#             # Dodajemy spację przed bieżącym tokenem, jeśli poprzedni token był końcem słowa
+#             if previous_end_of_word:
+#                 current_entity['word'] += " " + cleaned_word
+#             else:
+#                 current_entity['word'] += cleaned_word
+#             current_entity['end'] = token['end']
+#             current_entity['score_sum'] += token['score']
+#             current_entity['token_count'] += 1
+#             previous_end_of_word = end_of_word
+
+#     # Dodajemy ostatnią jednostkę, jeśli istnieje
+#     if current_entity['word']:
+#         current_entity['score'] = current_entity['score_sum'] / current_entity['token_count']
+#         combined_entities.append(current_entity)
+
+#     return combined_entities
 
 
 
@@ -102,7 +142,7 @@ for entity in combined_entities:
         
         
         
-entities = [entity['word'] for entity in combined_entities_selected]  
+#entities = [entity['word'] for entity in combined_entities_selected]  
 entities = [(entity['word'],entity['type']) for entity in combined_entities_selected]  
 #entities_list=entities_type
 # Ładowanie spaCy
@@ -157,7 +197,7 @@ representatives = [sorted(group, key=lambda x: len(x))[0] for group in entity_gr
 
 entity_to_representative_map = {}
 for group in entity_groups:
-    representative = sorted(group, key=lambda x: len(x))[0]
+    representative = sorted(group, key=lambda x: (len(x), x))[0]
     for entity in group:
         entity_to_representative_map[entity] = representative
 
@@ -195,7 +235,7 @@ for entity in list_of_new_entities:
     
     # Sprawdzenie, czy byt występuje w tytule i dodanie dodatkowego punktu
     if updated_text.find(entity) < title_end_pos:
-        entity_counts[entity] += 1
+        entity_counts[entity] += 50
 
 # Sortowanie i wyświetlanie wyników
 sorted_entity_counts = sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)
@@ -252,22 +292,7 @@ def check_viaf_with_fuzzy_match(entity_name, threshold=90):
         return f"http://viaf.org/viaf/{viaf_id}", best_score
     
     return None, None
-# def check_viaf(entity_name):
-#     base_url = "http://viaf.org/viaf/AutoSuggest"
-#     query_params = {'query': entity_name}
-#     try:
-#         response = requests.get(base_url, params=query_params)
-#         response.raise_for_status()  # Sprawdza czy odpowiedź serwera jest błędem (np. 404, 500)
-#         data = response.json()
-#         if data and 'result' in data and data['result']:
-#             # Załóżmy, że interesuje nas pierwszy wynik
-#             first_result = data['result'][0]
-#             viaf_id = first_result.get('viafid')
-#             if viaf_id:
-#                 return f"http://viaf.org/viaf/{viaf_id}"
-#     except requests.RequestException as e:
-#         print(f"Error querying VIAF: {e}")
-#     return None
+
 
 
 for entity in choosen_ents:
@@ -322,3 +347,22 @@ if viaf_url:
     print(f"Found in VIAF: {viaf_url} with score: {match_score}")
 else:
     print(f"{entity_name} not found in VIAF or no match above threshold.")
+    
+    
+    
+# def check_viaf(entity_name):
+#     base_url = "http://viaf.org/viaf/AutoSuggest"
+#     query_params = {'query': entity_name}
+#     try:
+#         response = requests.get(base_url, params=query_params)
+#         response.raise_for_status()  # Sprawdza czy odpowiedź serwera jest błędem (np. 404, 500)
+#         data = response.json()
+#         if data and 'result' in data and data['result']:
+#             # Załóżmy, że interesuje nas pierwszy wynik
+#             first_result = data['result'][0]
+#             viaf_id = first_result.get('viafid')
+#             if viaf_id:
+#                 return f"http://viaf.org/viaf/{viaf_id}"
+#     except requests.RequestException as e:
+#         print(f"Error querying VIAF: {e}")
+#     return None
