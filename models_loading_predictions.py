@@ -106,7 +106,7 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
 
     # Filtracja DataFrame, aby zwrócić wiersze, które następują po ostatnim True, używając 'index_copy'
     final_df = merged_df[merged_df['index_copy'] > last_true_index_copy][['Tytuł artykułu', 'Tekst artykułu', 'Link']]
-
+    #final_df = merged_df[merged_df['index_copy'] > last_true_index_copy]
     return final_df
 json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/booklips_posts_2022-11-22.json'
 excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/booklips_2022-11-22.xlsx'
@@ -213,7 +213,7 @@ tokenizer_t_f = AutoTokenizer.from_pretrained(model_path)
 
 label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch/label_encoder_true_false4epoch.joblib')
 
-model_path_hasla = "model_hasla_6epoch"
+model_path_hasla = "model_hasla_8epoch"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
 tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
 
@@ -221,7 +221,7 @@ tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
 
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
-label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_6epoch/label_encoder_hasla.joblib')
+label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch/label_encoder_hasla.joblib')
 df5['combined_text'] = df5['Tytuł artykułu'].astype(str) + " </tytuł>" + df5['Tekst artykułu'].astype(str)
 
 def predict_categories(df, text_column):
@@ -317,7 +317,7 @@ def predict_categories(df, text_column):
 
 
 # Przykład użycia funkcji:
-result_df = predict_categories(df5.head(50), 'combined_text')
+result_df = predict_categories(df5.head(25), 'combined_text')
 
 
 result_df.to_excel('results.xlsx', index=False, engine='openpyxl')
@@ -453,7 +453,7 @@ def preprocess_text(text):
     # Usuwanie dat z tekstu, np. "Emma Goldman, 1869-1940" staje się "Emma Goldman"
     return re.sub(r',?\s*\d{4}(-\d{4})?', '', text)
 
-def check_viaf_with_fuzzy_match(entity_name, threshold=90):
+def check_viaf_with_fuzzy_match(entity_name, threshold=87):
     base_url = "http://viaf.org/viaf/AutoSuggest"
     query_params = {'query': entity_name}
     best_match = None
@@ -487,12 +487,14 @@ def check_viaf_with_fuzzy_match(entity_name, threshold=90):
         return f"http://viaf.org/viaf/{viaf_id}", best_score
     
     return None, None
+from tqdm import tqdm
+
 nlp = spacy.load("pl_core_news_lg")
 result_df['Chosen_Entity'] = pd.NA
 result_df['VIAF_URL'] = pd.NA
 result_df['Entity_Type'] = pd.NA
 
-for index, row in result_df[result_df['True/False'] == "True"].iterrows():
+for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
     text = row['combined_text']
     tokens = tokenizer.tokenize(text)
     max_tokens = 512  # Przykładowe ograniczenie modelu
@@ -561,7 +563,7 @@ for index, row in result_df[result_df['True/False'] == "True"].iterrows():
         viaf_url, entity_type = None, "Not found"
         if original_entities:
             viaf_url, _ = check_viaf_with_fuzzy_match(next(iter(original_entities))[0])  # Pobieranie pierwszego elementu z setu
-            entity_type = list(original_entities)[0][1]
+            entity_type = next(iter(original_entities))[1]
         
         result_df.at[index, 'VIAF_URL'] = viaf_url if viaf_url else "Not found"
         result_df.at[index, 'Entity_Type'] = entity_type

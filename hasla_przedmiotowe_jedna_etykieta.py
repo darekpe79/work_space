@@ -38,14 +38,18 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', s
     # Konwersja wartości w kolumnach 'Tytuł artykułu' i 'Tekst artykułu' na stringi w połączonym DataFrame
     merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
     merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
-
-    # Ograniczenie do wybranych kolumn i usunięcie wierszy z pustymi wartościami w 'hasła przedmiotowe'
-    if 'hasła przedmiotowe' in merged_df.columns:
+    if 'do PBL' in merged_df.columns and 'hasła przedmiotowe' in merged_df.columns:
+        # Filtracja rekordów, gdzie 'do PBL' jest True
+        merged_df = merged_df[merged_df['do PBL'] == True]
+        
+        # Ograniczenie do wybranych kolumn i usunięcie wierszy z pustymi wartościami w 'hasła przedmiotowe'
         selected_columns = merged_df[selected_columns_list]
         selected_columns = selected_columns.dropna(subset=['hasła przedmiotowe'])
+        
         return selected_columns
     else:
-        return pd.DataFrame(columns=selected_columns_list)
+        # Jeśli wymagane kolumny nie istnieją, zwróć None lub pusty DataFrame
+        return None  # Lub: return pd.DataFrame(columns=selected_columns_list)
 
 
 # Ścieżki do plików
