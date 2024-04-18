@@ -7,7 +7,7 @@ Created on Mon Dec 11 09:20:57 2023
 import pandas as pd
 import json
 
-def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "forma/gatunek"]):
+def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', 'forma/gatunek', 'do PBL']):
     # Wczytanie danych z pliku JSON
     with open(json_file_path, 'r', encoding='utf-8') as file:
         json_data = json.load(file)
@@ -29,11 +29,17 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', s
     merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
     merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
 
-    # Ograniczenie do wybranych kolumn i usunięcie wierszy z pustymi wartościami w 'forma/gatunek'
-    if 'forma/gatunek' in merged_df.columns:
-        selected_columns = merged_df[selected_columns_list]
-        selected_columns = selected_columns.dropna(subset=['forma/gatunek'])
-        return selected_columns
+    # Filtracja tylko wierszy, gdzie 'do PBL' jest True
+    if 'do PBL' in merged_df.columns:
+        filtered_df = merged_df[merged_df['do PBL'] == True]
+
+        # Ograniczenie do wybranych kolumn i usunięcie wierszy z pustymi wartościami w 'forma/gatunek'
+        if 'forma/gatunek' in filtered_df.columns:
+            selected_columns = filtered_df[selected_columns_list]
+            selected_columns = selected_columns.dropna(subset=['forma/gatunek'])
+            return selected_columns
+        else:
+            return pd.DataFrame(columns=selected_columns_list)
     else:
         return pd.DataFrame(columns=selected_columns_list)
 
