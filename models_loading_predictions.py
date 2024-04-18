@@ -213,7 +213,7 @@ tokenizer_t_f = AutoTokenizer.from_pretrained(model_path)
 
 label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch/label_encoder_true_false4epoch.joblib')
 
-model_path_hasla = "model_hasla_8epoch"
+model_path_hasla = "model_hasla_8epoch_base"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
 tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
 
@@ -221,7 +221,7 @@ tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
 
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
-label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch/label_encoder_hasla.joblib')
+label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
 df5['combined_text'] = df5['Tytuł artykułu'].astype(str) + " </tytuł>" + df5['Tekst artykułu'].astype(str)
 
 def predict_categories(df, text_column):
@@ -317,10 +317,13 @@ def predict_categories(df, text_column):
 
 
 # Przykład użycia funkcji:
-result_df = predict_categories(df5.head(25), 'combined_text')
+result_df = predict_categories(df5.head(200), 'combined_text')
 
+result_df.to_csv('results.csv', sep='|', index=False)
 
-result_df.to_excel('results.xlsx', index=False, engine='openpyxl')
+df5.to_excel('results.xlsx', index=False, engine='openpyxl')
+writer = pd.ExcelWriter('results.xlsx', engine='xlsxwriter')
+result_df.to_excel(writer, sheet_name='Sheet1', index=False)
 model_checkpoint = "pietruszkowiec/herbert-base-ner"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 model = AutoModelForTokenClassification.from_pretrained(model_checkpoint)
