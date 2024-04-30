@@ -1,63 +1,52 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr 17 10:44:51 2024
+Created on Mon Apr 22 12:26:08 2024
 
 @author: dariu
 """
 import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
-from datasets import Dataset, DatasetDict
-import logging
-import pandas as pd
 import json
-import torch
-import numpy as np
-from sklearn.preprocessing import LabelEncoder
-from transformers import AutoConfig
 
-# Załaduj konfigurację modelu Herbert
-config = AutoConfig.from_pretrained("allegro/herbert-base-cased")
-
-# Wyświetl maksymalną liczbę tokenów
-print("Maksymalna liczba tokenów dla modelu Herbert:", config.max_position_embeddings)
-
-def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "hasła przedmiotowe"]):
-    # Wczytanie danych z pliku JSON
+def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "do PBL", "hasła przedmiotowe"]):
+    # Load data from JSON file
     with open(json_file_path, 'r', encoding='utf-8') as file:
         json_data = json.load(file)
     df_json = pd.DataFrame(json_data)
 
-    # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
+    # Limit JSON DataFrame to 'Link' and 'Tekst artykułu' columns
     df_json = df_json[['Link', 'Tekst artykułu']]
-
-    # Konwersja wartości w kolumnie 'Tekst artykułu' na stringi
     df_json['Tekst artykułu'] = df_json['Tekst artykułu'].astype(str)
 
-    # Wczytanie danych z pliku Excel
+    # Load data from Excel file
     df_excel = pd.read_excel(excel_file_path)
+    df_excel['original_order'] = df_excel.index
 
-    # Połączenie DataFrame'ów
+    # Merge DataFrames
     merged_df = pd.merge(df_json, df_excel, on=common_column, how="inner")
-
-    # Konwersja wartości w kolumnach 'Tytuł artykułu' i 'Tekst artykułu' na stringi w połączonym DataFrame
+    merged_df = merged_df.sort_values(by='original_order')
     merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
     merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
-    if 'do PBL' in merged_df.columns and 'hasła przedmiotowe' in merged_df.columns:
-        # Filtracja rekordów, gdzie 'do PBL' jest True
-        merged_df = merged_df[merged_df['do PBL'] == True]
-        
-        # Ograniczenie do wybranych kolumn i usunięcie wierszy z pustymi wartościami w 'hasła przedmiotowe'
-        selected_columns = merged_df[selected_columns_list]
-        selected_columns = selected_columns.dropna(subset=['hasła przedmiotowe'])
+
+    # Find index of last 'True' in 'do PBL' where 'hasła przedmiotowe' is filled
+    filtered_df = merged_df[(merged_df['do PBL'] == True) & (merged_df['hasła przedmiotowe'].notna())]
     
-        return selected_columns
+    if not filtered_df.empty:
+        last_true_filled_index = filtered_df.index[-1]
+        # Limit DataFrame to rows up to the last 'True' inclusively where 'hasła przedmiotowe' is filled
+        merged_df = merged_df.loc[:last_true_filled_index]
     else:
-        # Jeśli wymagane kolumny nie istnieją, zwróć None lub pusty DataFrame
-        return None  # Lub: return pd.DataFrame(columns=selected_columns_list)
+        # If the conditions are not met, return an empty DataFrame
+        return pd.DataFrame(columns=selected_columns_list)
 
+    merged_df = merged_df.reset_index(drop=True)
+    merged_df = merged_df[merged_df['do PBL'].isin([True, False])]
+    # Limit to selected columns
+    selected_columns = merged_df[selected_columns_list]
+    
 
+    return selected_columns
+
+# -*- coding: utf-8 -*-
 json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/booklips_posts_2022-11-22.json'
 excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/booklips_2022-11-22.xlsx'
 json_file_path2 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/afisz_teatralny_2022-09-08.json'
@@ -141,38 +130,38 @@ df25= load_and_merge_data(json_file_path25, excel_file_path25)
 # Połączenie wszystkich DataFrame'ów
 df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df19,df20,df21,df22,df23,df24,df25], ignore_index=True)
 
+from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
+from datasets import Dataset, DatasetDict
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+import torch
+import logging
+from transformers import AutoTokenizer, AutoModel
+
+# Załaduj dane z wcześniej przygotowanego DataFrame (df)
+
+#df=df.head(300)
 logger = logging.getLogger("transformers")
 logger.setLevel(logging.INFO)
 
 datasets_logger = logging.getLogger("datasets")
 datasets_logger.setLevel(logging.INFO)
-df_excel = pd.read_excel('C:/Users/dariu/Downloads/Mapowanie działów.xlsx')
-df_excel['połączony dział'] = df_excel['nr działu'].astype(str) + " " + df_excel['nazwa działu']
+# Usunięcie wierszy gdzie 'forma/gatunek' jest pusty
+df = df.dropna(subset=['do PBL'])
 
-mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['połączony dział']).to_dict()
-
-# Użycie mapowania do stworzenia nowej kolumny w df
-df['rozwiniete_haslo'] = df['hasła przedmiotowe'].map(mapowanie)
-
-df = df.dropna(subset=['rozwiniete_haslo'])
+# Połącz tytuł i tekst artykułu w jednym polu
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
-
+df['do PBL'] = df['do PBL'].astype(str)
 # Kodowanie etykiet
 label_encoder = LabelEncoder()
-df['labels'] = label_encoder.fit_transform(df['rozwiniete_haslo'])
+df['labels'] = label_encoder.fit_transform(df['do PBL'])
 
-# Przygotuj tokenizator i model
-# tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-# model = BertForSequenceClassification.from_pretrained(
-#     "bert-base-uncased",
-#     num_labels=len(label_encoder.classes_),
-#     problem_type="single_label_classification"
-# )
+
 
 tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-base-cased")
 model = AutoModelForSequenceClassification.from_pretrained(
     "allegro/herbert-base-cased",
-    num_labels=len(label_encoder.classes_),
+    num_labels=len(label_encoder.classes_), #unikatowe etykiety
     problem_type="single_label_classification"
 )
 
@@ -195,18 +184,27 @@ dataset_dict = DatasetDict({
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
     output_dir="./results",
-    num_train_epochs=8,              # liczba epok
-    per_device_train_batch_size=7,   # rozmiar batcha
-    per_device_eval_batch_size=7,
-    warmup_steps=500,                # kroki rozgrzewki
-    weight_decay=0.01,               # waga decay
+    num_train_epochs=4,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
+    warmup_steps=500,
+    weight_decay=0.01,  # Zmieniono wartość
     logging_dir='./logs',
-    evaluation_strategy="epoch",
+    evaluation_strategy="epoch",  # Zapewnia, że ewaluacja jest wykonywana co epokę
     save_strategy="no",
-    no_cuda=True  # Używanie CPU
+    #learning_rate=5e-5,  # Dodano szybkość uczenia
+    #load_best_model_at_end=True,  # Wczytuje najlepszy model po zakończeniu treningu
+    #metric_for_best_model="accuracy",  # Używa dokładności jako metryki do early stopping
+    no_cuda=True
 )
 
-
+# Inicjalizacja trenera
+# trainer = Trainer(
+#     model=model,
+#     args=training_args,
+#     train_dataset=dataset_dict['train'],
+#     eval_dataset=dataset_dict['test']
+# )
 from sklearn.metrics import accuracy_score
 
 def compute_metrics(pred):
@@ -231,10 +229,4 @@ results = trainer.evaluate()
 
 # Wyniki
 print(results)
-model_path = "model_hasla_8epoch_base_spyder"
-model.save_pretrained(model_path)
-tokenizer.save_pretrained(model_path)
-import joblib
 
-# Zapisanie LabelEncoder
-joblib.dump(label_encoder, 'label_encoder_hasla_base_spyder.joblib')

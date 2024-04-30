@@ -207,11 +207,11 @@ import joblib
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder = joblib.load('label_encoder.joblib')
 # TRUE FALSE
-model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch/"
+model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer_t_f = AutoTokenizer.from_pretrained(model_path)
 
-label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch/label_encoder_true_false4epoch.joblib')
+label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
 
 model_path_hasla = "model_hasla_8epoch_base"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
@@ -319,7 +319,7 @@ def predict_categories(df, text_column):
 # Przykład użycia funkcji:
 result_df = predict_categories(df5.head(200), 'combined_text')
 
-result_df.to_csv('results.csv', sep='|', index=False)
+result_df.to_csv('nowe_514.csv', sep='|', index=False)
 
 df5.to_excel('results.xlsx', index=False, engine='openpyxl')
 writer = pd.ExcelWriter('results.xlsx', engine='xlsxwriter')
