@@ -235,7 +235,7 @@ import torch
 # Przygotowanie tokenizera
 #tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-base-cased')
 
-def prepare_data(data, tokenizer, tag2id, max_length=512):
+def prepare_data(data, tokenizer, tag2id, max_length=514):
     input_ids = []
     attention_masks = []
     labels = []

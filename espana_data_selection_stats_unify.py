@@ -163,18 +163,13 @@ y = json.loads(v)
 #subject predicate object
 words={} 
 for word in tqdm(words655):
-    
     objects=Literal(word, lang='es')
    # subject = URIRef("http://id.sgcb.mcu.es/Autoridades/LEM201014730/concept")
    # predicate=URIRef("http://www.w3.org/2004/02/skos/core#prefLabel")
     
-    
     close_matches=[]
     loc_library=[]
     for sub, pred, obj in g.triples((None, None, objects)):  
-        #print(sub,pred,obj)
-        
-        
         for s,p,o in g.triples(((sub, SKOS.closeMatch, None))):
             my_close_matches=str(o)
             if my_close_matches:#.startswith("http://id.loc.gov"):
