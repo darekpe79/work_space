@@ -190,6 +190,14 @@ df25= load_and_merge_data(json_file_path25, excel_file_path25)
 
 # Połączenie wszystkich DataFrame'ów
 df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df19,df20,df21,df22,df23,df24,df25], ignore_index=True)
+sampled_df = df.sample(n=100, random_state=42)
+dfs = [df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, 
+       df11, df12, df13, df14, df15, df16, df17, df18, df19, 
+       df20, df21, df22, df23, df24, df25]
+
+# Wybieranie 5 pierwszych wierszy z każdego DataFrame'u
+first_five_each = [df.head(5) for df in dfs]
+sampled_df =pd.concat(first_five_each, ignore_index=True)
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
@@ -197,7 +205,7 @@ import pandas as pd
 import torch
 import logging
 from transformers import AutoTokenizer, AutoModel
-model_path = "model_4epoch"
+model_path = "C:/Users/dariu/model_5epoch_gatunek"
 model_genre = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 import joblib
@@ -205,7 +213,7 @@ import joblib
 
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
-label_encoder = joblib.load('label_encoder.joblib')
+label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek/label_encoder_gatunek5.joblib')
 # TRUE FALSE
 model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
@@ -222,7 +230,7 @@ tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
-df5['combined_text'] = df5['Tytuł artykułu'].astype(str) + " </tytuł>" + df5['Tekst artykułu'].astype(str)
+sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
 
 def predict_categories(df, text_column):
     # Lista na przewidywane dane
@@ -317,9 +325,9 @@ def predict_categories(df, text_column):
 
 
 # Przykład użycia funkcji:
-result_df = predict_categories(df5.head(200), 'combined_text')
+result_df = predict_categories(sampled_df, 'combined_text')
 
-result_df.to_csv('nowe_514.csv', sep='|', index=False)
+result_df.to_csv('nowe_514_08_05_first_five.csv', sep='|', index=False)
 
 df5.to_excel('results.xlsx', index=False, engine='openpyxl')
 writer = pd.ExcelWriter('results.xlsx', engine='xlsxwriter')
