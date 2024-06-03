@@ -78,7 +78,7 @@ model = AutoModel.from_pretrained("allegro/herbert-base-cased").to(device)
 
 # Funkcja do przekształcania tekstów w wektory
 def embed_text(text):
-    encoded_input = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').to(device)
+    encoded_input = tokenizer(text, padding=True, truncation=True, max_length=514, return_tensors='pt').to(device)
     with torch.no_grad():
         model_output = model(**encoded_input)
     return model_output.pooler_output

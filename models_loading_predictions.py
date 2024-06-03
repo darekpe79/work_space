@@ -198,32 +198,57 @@ dfs = [df1, df2, df3, df4, df5, df6, df7, df8, df9, df10,
 # Wybieranie 5 pierwszych wierszy z każdego DataFrame'u
 first_five_each = [df.head(5) for df in dfs]
 sampled_df =pd.concat(first_five_each, ignore_index=True)
+
+#%%DF bez dodatkowych warunków:
+
+
+def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
+    # Wczytanie danych z pliku JSON
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        json_data = json.load(file)
+    df_json = pd.DataFrame(json_data)
+
+    # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
+    df_json = df_json[['Link', 'Tekst artykułu']].astype(str)
+
+    # Wczytanie danych z pliku Excel
+    df_excel = pd.read_excel(excel_file_path)
+
+    # Połączenie DataFrame'ów, zachowując wszystkie wiersze i kolumny z pliku Excel oraz pełny tekst z JSONa
+    merged_df = pd.merge(df_excel, df_json, on=common_column, how="left")
+
+    return merged_df
+
+# Przykładowe użycie
+# final_df = load_and_merge_data('path/to/json_file.json', 'path/to/excel_file.xlsx')
+# print(final_df)
+
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import torch
 import logging
-from transformers import AutoTokenizer, AutoModel
-model_path = "C:/Users/dariu/model_5epoch_gatunek"
+from transformers import AutoTokenizer, AutoModel, HerbertTokenizerFast
+model_path = "C:/Users/dariu/model_5epoch_gatunek_large"
 model_genre = AutoModelForSequenceClassification.from_pretrained(model_path)
-tokenizer = AutoTokenizer.from_pretrained(model_path)
+tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
 import joblib
 
 
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
-label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek/label_encoder_gatunek5.joblib')
+label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek_large/label_encoder_gatunek5.joblib')
 # TRUE FALSE
 model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
-tokenizer_t_f = AutoTokenizer.from_pretrained(model_path)
+tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
 
 label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
 
 model_path_hasla = "model_hasla_8epoch_base"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
-tokenizer_hasla = AutoTokenizer.from_pretrained(model_path_hasla)
+tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 
 
 
