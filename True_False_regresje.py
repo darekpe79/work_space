@@ -169,7 +169,7 @@ df['combined_text'] = df['combined_text'].apply(clean_text)
 df['do PBL'] = df['do PBL'].astype(str)
 label_encoder = LabelEncoder()
 df['do PBL'] = label_encoder.fit_transform(df['do PBL'])
-X_train, X_test, y_train, y_test = train_test_split(df['combined_text'], df['do PBL'], test_size=0.1, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(df['combined_text'], df['do PBL'], test_size=0.2, random_state=42)
 
 vectorizer = TfidfVectorizer(max_features=70000)
 X_train_tfidf = vectorizer.fit_transform(X_train)

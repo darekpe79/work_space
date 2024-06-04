@@ -50,42 +50,41 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', s
     return selected_columns
 
 def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "do PBL", "hasła przedmiotowe"]):
-    # Wczytanie danych z pliku JSON
+    # Load data from JSON file
     with open(json_file_path, 'r', encoding='utf-8') as file:
         json_data = json.load(file)
     df_json = pd.DataFrame(json_data)
 
-    # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
+    # Limit JSON DataFrame to 'Link' and 'Tekst artykułu' columns
     df_json = df_json[['Link', 'Tekst artykułu']]
-
-    # Konwersja wartości w kolumnie 'Tekst artykułu' na stringi
     df_json['Tekst artykułu'] = df_json['Tekst artykułu'].astype(str)
 
-    # Wczytanie danych z pliku Excel
+    # Load data from Excel file
     df_excel = pd.read_excel(excel_file_path)
-
-    # Dodanie kolumny indeksowej do DataFrame'a z Excela
     df_excel['original_order'] = df_excel.index
 
-    # Połączenie DataFrame'ów
+    # Merge DataFrames
     merged_df = pd.merge(df_json, df_excel, on=common_column, how="inner")
-
-    # Sortowanie połączonego DataFrame według kolumny 'original_order'
     merged_df = merged_df.sort_values(by='original_order')
-
-    # Konwersja wartości w kolumnach 'Tytuł artykułu' i 'Tekst artykułu' na stringi w połączonym DataFrame
     merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
     merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
 
-    # Znalezienie indeksu ostatniego 'True' w kolumnie 'do PBL', gdzie 'hasła przedmiotowe' jest wypełnione
-    last_true_filled_index = merged_df[(merged_df['do PBL'] == True) & (merged_df['hasła przedmiotowe'].notna())].index[-1]
+    # Find index of last 'True' in 'do PBL' where 'hasła przedmiotowe' is filled
+    filtered_df = merged_df[(merged_df['do PBL'] == True) & (merged_df['hasła przedmiotowe'].notna())]
+    
+    if not filtered_df.empty:
+        last_true_filled_index = filtered_df.index[-1]
+        # Limit DataFrame to rows up to the last 'True' inclusively where 'hasła przedmiotowe' is filled
+        merged_df = merged_df.loc[:last_true_filled_index]
+    else:
+        # If the conditions are not met, return an empty DataFrame
+        return pd.DataFrame(columns=selected_columns_list)
 
-    # Ograniczenie DataFrame do wierszy do ostatniego 'True' włącznie, gdzie 'hasła przedmiotowe' jest wypełnione
-    merged_df = merged_df.loc[:last_true_filled_index]
     merged_df = merged_df.reset_index(drop=True)
-
-    # Ograniczenie do wybranych kolumn
+    merged_df = merged_df[merged_df['do PBL'].isin([True, False])]
+    # Limit to selected columns
     selected_columns = merged_df[selected_columns_list]
+    
 
     return selected_columns
 
@@ -200,7 +199,7 @@ dataset_dict = DatasetDict({
 
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
-    output_dir="C:/Users/User/Desktop/materiał_do_treningu/",
+    output_dir="C:/Users/dariu/model_NOWY_TRUEFALSE",
     num_train_epochs=4,              # liczba epok
     per_device_train_batch_size=4,   # rozmiar batcha
     per_device_eval_batch_size=4,
@@ -208,7 +207,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,               # waga decay
     logging_dir='./logs',
     evaluation_strategy="epoch",
-    save_steps=100,
+    save_strategy="no",
     no_cuda=True  # Używanie CPU
 )
 
