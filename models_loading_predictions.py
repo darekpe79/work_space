@@ -222,7 +222,7 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
 # Przykładowe użycie
 # final_df = load_and_merge_data('path/to/json_file.json', 'path/to/excel_file.xlsx')
 # print(final_df)
-
+df1 = load_and_merge_data(json_file_path, excel_file_path)
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
@@ -240,11 +240,11 @@ import joblib
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek_large/label_encoder_gatunek5.joblib')
 # TRUE FALSE
-model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
+model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
 
-label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
+label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch/label_encoder_true_false4epoch_514_tokens.joblib')
 
 model_path_hasla = "model_hasla_8epoch_base"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
@@ -255,8 +255,9 @@ tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
-sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
-
+#sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
+df1['combined_text'] =df1['Tytuł artykułu'].astype(str) + " </tytuł>" + df1['Tekst artykułu'].astype(str)
+sampled_df=df1[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link']][:50]
 def predict_categories(df, text_column):
     # Lista na przewidywane dane
     predictions_list = []
@@ -265,7 +266,7 @@ def predict_categories(df, text_column):
         text = row[text_column]
         
         # Tokenizacja i przewidywanie dla modelu True/False
-        inputs_t_f = tokenizer_t_f(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs_t_f = tokenizer_t_f(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
         outputs_t_f = model_t_f(**inputs_t_f)
         predictions_t_f = torch.softmax(outputs_t_f.logits, dim=1)
         predicted_index_t_f = predictions_t_f.argmax().item()
@@ -278,14 +279,14 @@ def predict_categories(df, text_column):
         # Jeśli wynik True, przeprowadź dalsze przewidywania
         if predicted_label_t_f == 'True':
             # Przewidywanie gatunku
-            inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
             outputs_genre = model_genre(**inputs_genre)
             predictions_genre = torch.softmax(outputs_genre.logits, dim=1)
             predicted_index_genre = predictions_genre.argmax().item()
             genre = label_encoder.inverse_transform([predicted_index_genre])[0]
             
             # Przewidywanie hasła
-            inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
             outputs_hasla = model_hasla(**inputs_hasla)
             predictions_hasla = torch.softmax(outputs_hasla.logits, dim=1)
             predicted_index_hasla = predictions_hasla.argmax().item()
@@ -351,12 +352,15 @@ def predict_categories(df, text_column):
 
 # Przykład użycia funkcji:
 result_df = predict_categories(sampled_df, 'combined_text')
+sampled_df.head()
 
 result_df.to_csv('nowe_514_08_05_first_five.csv', sep='|', index=False)
 
 df5.to_excel('results.xlsx', index=False, engine='openpyxl')
 writer = pd.ExcelWriter('results.xlsx', engine='xlsxwriter')
 result_df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+
 model_checkpoint = "pietruszkowiec/herbert-base-ner"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 model = AutoModelForTokenClassification.from_pretrained(model_checkpoint)
@@ -533,7 +537,7 @@ result_df['Entity_Type'] = pd.NA
 for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
     text = row['combined_text']
     tokens = tokenizer.tokenize(text)
-    max_tokens = 512  # Przykładowe ograniczenie modelu
+    max_tokens = 514  # Przykładowe ograniczenie modelu
     token_fragments = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
     fragments = [tokenizer.convert_tokens_to_string(fragment) for fragment in token_fragments]
     # Analiza każdego fragmentu osobno
@@ -542,7 +546,7 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
         ner_results.extend(nlp1(fragment))
     combined_entities = combine_tokens(ner_results)
     
-    combined_entities_selected = [entity for entity in combined_entities if entity['score'] >= 0.90]
+    combined_entities_selected = [entity for entity in combined_entities if entity['score'] >= 0.92]
     entities = [(entity['word'], entity['type']) for entity in combined_entities_selected]
     
     
