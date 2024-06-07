@@ -147,7 +147,7 @@ df15 = load_and_merge_data(json_file_path15, excel_file_path15)
 combined_df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15], ignore_index=True)
 a = combined_df['do PBL'].unique()
 print(sorted(a))
-from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
+from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification,HerbertTokenizerFast
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
@@ -199,7 +199,7 @@ print(f"Label mapping: {dict(zip(label_encoder.classes_, label_encoder.transform
 
 
 
-tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-base-cased")
+tokenizer = HerbertTokenizerFast.from_pretrained("allegro/herbert-base-cased")
 model = AutoModelForSequenceClassification.from_pretrained(
     "allegro/herbert-base-cased",
     num_labels=len(label_encoder.classes_), #unikatowe etykiety
@@ -224,16 +224,19 @@ dataset_dict = DatasetDict({
 
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
-    output_dir="C:/Users/dariu/model_NOWY_TRUEFALSE",
-    num_train_epochs=4,              # liczba epok
-    per_device_train_batch_size=4,   # rozmiar batcha
+    output_dir="./results",
+    num_train_epochs=5,
+    per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
-    warmup_steps=500,                # kroki rozgrzewki
-    weight_decay=0.01,               # waga decay
+    warmup_steps=500,
+    weight_decay=0.02,  # Zmieniono wartość
     logging_dir='./logs',
-    evaluation_strategy="epoch",
+    evaluation_strategy="epoch",  # Zapewnia, że ewaluacja jest wykonywana co epokę
     save_strategy="no",
-    no_cuda=True  # Używanie CPU
+    learning_rate=5e-5,  # Dodano szybkość uczenia
+    #load_best_model_at_end=True,  # Wczytuje najlepszy model po zakończeniu treningu
+    #metric_for_best_model="accuracy",  # Używa dokładności jako metryki do early stopping
+    no_cuda=True
 )
 
 # Inicjalizacja trenera

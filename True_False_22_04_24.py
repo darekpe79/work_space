@@ -182,7 +182,7 @@ print(f"Label mapping: {dict(zip(label_encoder.classes_, label_encoder.transform
 
 
 
-tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-base-cased")
+tokenizer = HerbertTokenizerFast.from_pretrained("allegro/herbert-base-cased")
 model = AutoModelForSequenceClassification.from_pretrained(
     "allegro/herbert-base-cased",
     num_labels=len(label_encoder.classes_), #unikatowe etykiety

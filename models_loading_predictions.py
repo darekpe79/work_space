@@ -203,26 +203,49 @@ sampled_df =pd.concat(first_five_each, ignore_index=True)
 
 
 def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
-    # Wczytanie danych z pliku JSON
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        json_data = json.load(file)
+    # Spróbuj wczytać dane z pliku JSON z kodowaniem UTF-8, a jeśli się nie uda, użyj kodowania 'latin-1'
+    try:
+        with open(json_file_path, 'r', encoding='utf-8') as file:
+            json_content = file.read()
+            if not json_content.strip():
+                raise ValueError("Plik JSON jest pusty.")
+            json_data = json.loads(json_content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        try:
+            with open(json_file_path, 'r', encoding='latin-1') as file:
+                json_content = file.read()
+                if not json_content.strip():
+                    raise ValueError("Plik JSON jest pusty.")
+                json_data = json.loads(json_content)
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            raise ValueError(f"Nie udało się odczytać pliku JSON: {e}")
+    
     df_json = pd.DataFrame(json_data)
-
+    
+    # Sprawdzenie, czy kolumny 'Link' i 'Tekst artykułu' istnieją w pliku JSON
+    if 'Link' not in df_json.columns or 'Tekst artykułu' not in df_json.columns:
+        raise ValueError("Brak wymaganych kolumn w pliku JSON.")
+    
     # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
     df_json = df_json[['Link', 'Tekst artykułu']].astype(str)
-
+    
     # Wczytanie danych z pliku Excel
     df_excel = pd.read_excel(excel_file_path)
-
+    
     # Połączenie DataFrame'ów, zachowując wszystkie wiersze i kolumny z pliku Excel oraz pełny tekst z JSONa
     merged_df = pd.merge(df_excel, df_json, on=common_column, how="left")
-
+    
+    # Usunięcie pustych wierszy
+    merged_df.dropna(subset=['Link', 'Tekst artykułu'], inplace=True)
+    
     return merged_df
 
 # Przykładowe użycie
-# final_df = load_and_merge_data('path/to/json_file.json', 'path/to/excel_file.xlsx')
-# print(final_df)
-df1 = load_and_merge_data(json_file_path, excel_file_path)
+json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/domagala2024-02-08.json'
+excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/domagala_2024-02-08.xlsx'
+df = load_and_merge_data(json_file_path, excel_file_path)
+df = df[df['Tytuł artykułu'].apply(lambda x: isinstance(x, str))]
+df = df[df['Tekst artykułu'].apply(lambda x: isinstance(x, str))]
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
@@ -240,11 +263,11 @@ import joblib
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek_large/label_encoder_gatunek5.joblib')
 # TRUE FALSE
-model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch/"
+model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
 
-label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch/label_encoder_true_false4epoch_514_tokens.joblib')
+label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
 
 model_path_hasla = "model_hasla_8epoch_base"
 model_hasla = AutoModelForSequenceClassification.from_pretrained(model_path_hasla)
@@ -256,8 +279,8 @@ tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
 #sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
-df1['combined_text'] =df1['Tytuł artykułu'].astype(str) + " </tytuł>" + df1['Tekst artykułu'].astype(str)
-sampled_df=df1[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link']][:50]
+df['combined_text'] =df['Tytuł artykułu'].astype(str) + " </tytuł>" + df['Tekst artykułu'].astype(str)
+sampled_df=df[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']][:50]
 def predict_categories(df, text_column):
     # Lista na przewidywane dane
     predictions_list = []
