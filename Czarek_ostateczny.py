@@ -156,7 +156,7 @@ result_df = predict_categories(sampled_df, 'combined_text')
 
 result_df['comparison'] = np.where(result_df['do PBL'] == result_df['True/False'], 'Match', 'Mismatch')
 result_df['comparison_gatunek'] = np.where(result_df['forma/gatunek'] == result_df['Gatunek'], 'Match', 'Mismatch')
-result_df.to_excel('nowe_przewidywania06-06.xlsx', index=False)
+result_df.to_excel('nowe_przewidywania10-06.xlsx', index=False)
 
 
 # ADD BYTY
