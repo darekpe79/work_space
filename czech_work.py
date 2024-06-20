@@ -74,6 +74,8 @@ def parse_marcxml(file_path):
 # Example usage
 file_path = 'D:/Nowa_praca/czech_works/aut_ph.xml/aut_ph.xml'
 df = parse_marcxml(file_path)
+# filter_df=df
+# filter_literature_080 = set(filter_df[filter_df['080'].str.startswith('821', na=False)]['150'].dropna().unique())
 output_file = 'Aaut_ph_selected.xlsx'
 df.to_excel(output_file, index=False)
 
@@ -606,8 +608,9 @@ def filter_marcxml(file_path, filter_df, writer_marc, writer_mrk):
                 field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
                 field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
                 field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
                 field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
-                field_245_values = [subfield for field in record.get_fields('245') for subfield in field.get_subfields()]
+                field_245_values = ' '.join(subfield for field in record.get_fields('245') for subfield in field.get_subfields())
                 field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
                 field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
 
@@ -620,19 +623,20 @@ def filter_marcxml(file_path, filter_df, writer_marc, writer_mrk):
                                       (any(val.startswith('82') and not val.startswith('821') for val in field_080_values) or \
                                        any(val in filter_literary_science_080 for val in field_650_values))
                 
-                if is_literature:
-                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literature')]))
-                    for id_ in field_100_7_values:
-                        literature_ids.add(id_)
+                if is_literature or is_literary_science:
+                    literature_ids.add(record_id)
                     for author, id_ in zip(field_100_values, field_100_7_values):
                         literature_authors.append({'Author': author, 'ID': id_})
+
+                if is_literature:
+                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literature')]))
 
                 if is_literary_science:
                     record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literary Science')]))
 
                 # CRITERION B: 690
                 is_czech_literature = any(val.startswith('821.162.3') for val in field_080_values) or \
-                                      any('česk' in val for val in field_650_values)
+                                      any('česk' in val for val in field_655_values)
                 
                 is_world_literature = any(val.startswith('821') and not val.startswith('821.162.3') for val in field_080_values)
                 
@@ -657,8 +661,9 @@ def filter_marcxml(file_path, filter_df, writer_marc, writer_mrk):
                         '072': ', '.join(field_072_values),
                         '080': ', '.join(field_080_values),
                         '650': ', '.join(field_650_values),
+                        '655': ', '.join(field_655_values),
                         '100': ', '.join(field_100_values),
-                        '245': ', '.join(field_245_values),
+                        '245': field_245_values,
                         '695': ', '.join(filter(None, ['Literature' if is_literature else '', 'Literary Science' if is_literary_science else ''])).strip(', '),
                         '690': ', '.join(filter(None, ['Czech Literature' if is_czech_literature else '', 'World Literature' if is_world_literature else ''])).strip(', '),
                         '691': 'Printed' if ldr_8 in ['m', 'a', 'b', 's'] else 'Other forms'
@@ -707,14 +712,18 @@ def process_chunks(chunk_files, filter_df, output_marc21_file, output_mrk_file):
                 for record in tqdm(reader, desc="Reprocessing records"):
                     try:
                         record_id = record['001'].value() if record['001'] else None
+                        if record_id in all_literature_ids:
+                            continue  # Pomijanie rekordów literackich i literatury naukowej
+                        
                         link = record['998'].value() if record['998'] else None
                         
                         field_015_values = [subfield for field in record.get_fields('015') for subfield in field.get_subfields('a')]
                         field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
                         field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
                         field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                        field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
                         field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
-                        field_245_values = [subfield for field in record.get_fields('245') for subfield in field.get_subfields()]
+                        field_245_values = ' '.join(subfield for field in record.get_fields('245') for subfield in field.get_subfields())
                         field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
                         field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
 
@@ -728,8 +737,9 @@ def process_chunks(chunk_files, filter_df, output_marc21_file, output_mrk_file):
                                 '072': ', '.join(field_072_values),
                                 '080': ', '.join(field_080_values),
                                 '650': ', '.join(field_650_values),
+                                '655': ', '.join(field_655_values),
                                 '100': ', '.join(field_100_values),
-                                '245': ', '.join(field_245_values),
+                                '245': field_245_values,
                                 '695': 'Non-Literary',
                                 '690': '',  # Not applicable in reprocessing
                                 '691': ''   # Not applicable in reprocessing
@@ -758,3 +768,459 @@ with pd.ExcelWriter('filtered_combined_12-06.xlsx', engine='xlsxwriter') as writ
     workbook.strings_to_urls = False  # Wyłącz konwersję ciągów znaków na URL
     combined_df.to_excel(writer, index=False)
 
+
+
+import os
+from pymarc import MARCReader, TextWriter, MARCWriter, Field, Subfield
+from tqdm import tqdm
+import pandas as pd
+
+def filter_marcxml(file_path, filter_df, writer_marc, writer_mrk):
+    records = []
+    processed_count = 0
+    matching_count = 0
+    literary_author_ids = set()
+    literature_record_ids = set()  # Dodana kolekcja do zbierania ID rekordów literackich
+    literature_authors = []  # Lista do przechowywania autorów literatury
+    
+    # Filtracja wartości z pola 150 na podstawie wartości w polu 080
+    filter_literature_080 = set(filter_df[filter_df['080'].str.startswith('821', na=False)]['150'].dropna().unique())
+    filter_literary_science_080 = set(filter_df[filter_df['080'].str.startswith('82', na=False) & ~filter_df['080'].str.startswith('821', na=False)]['150'].dropna().unique())
+    
+    with open(file_path, 'rb') as fh:
+        reader = MARCReader(fh)
+        for record in tqdm(reader, desc="Processing records"):
+            try:
+                if any(field.get_subfields('a')[0] == '0/9-053.2' or 'Literatura pro děti a mládež (naučná)' in field.get_subfields('x') for field in record.get_fields('072')):
+                    continue  # Pomijanie rekordów spełniających warunek wykluczenia
+
+                processed_count += 1
+                record_id = record['001'].value() if record['001'] else None
+                link = record['998'].value() if record['998'] else None
+                
+                field_015_values = [subfield for field in record.get_fields('015') for subfield in field.get_subfields('a')]
+                field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
+                field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
+                field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
+                field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
+                field_245_values = ' '.join(subfield for field in record.get_fields('245') for subfield in field.get_subfields())
+                field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
+                field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
+
+                # CRITERION A: 695
+                is_literature = any(val in ['25', '26'] for val in field_072_values) or \
+                                any(val.startswith('821') for val in field_080_values) or \
+                                any(val in filter_literature_080 for val in field_650_values)
+                
+                is_literary_science = '11' in field_072_values and \
+                                      (any(val.startswith('82') and not val.startswith('821') for val in field_080_values) or \
+                                       any(val in filter_literary_science_080 for val in field_650_values))
+                
+                if is_literature or is_literary_science:
+                    literature_record_ids.add(record_id)
+                    for id_ in field_100_7_values:
+                        literary_author_ids.add(id_)
+                    for author, id_ in zip(field_100_values, field_100_7_values):
+                        literature_authors.append({'Author': author, 'ID': id_})
+
+                if is_literature:
+                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literature')]))
+
+                if is_literary_science:
+                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literary Science')]))
+
+                # CRITERION B: 690
+                is_czech_literature = any(val.startswith('821.162.3') for val in field_080_values) or \
+                                      any('česk' in val for val in field_655_values)
+                
+                is_world_literature = any(val.startswith('821') and not val.startswith('821.162.3') for val in field_080_values)
+                
+                if is_czech_literature:
+                    record.add_field(Field(tag='690', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Czech Literature')]))
+                if is_world_literature:
+                    record.add_field(Field(tag='690', indicators=[' ', ' '], subfields=[Subfield(code='a', value='World Literature')]))
+
+                # CRITERION D: 691
+                ldr_8 = record.leader[7]
+                if ldr_8 in ['m', 'a', 'b', 's']:
+                    record.add_field(Field(tag='691', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Printed')]))
+                else:
+                    record.add_field(Field(tag='691', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Other forms')]))
+
+                if is_literature or is_literary_science or is_czech_literature or is_world_literature:
+                    matching_count += 1
+                    records.append({
+                        'Record ID': record_id,
+                        'Link': link,
+                        '015': ', '.join(field_015_values),
+                        '072': ', '.join(field_072_values),
+                        '080': ', '.join(field_080_values),
+                        '650': ', '.join(field_650_values),
+                        '655': ', '.join(field_655_values),
+                        '100': ', '.join(field_100_values),
+                        '245': field_245_values,
+                        '695': ', '.join(filter(None, ['Literature' if is_literature else '', 'Literary Science' if is_literary_science else ''])).strip(', '),
+                        '690': ', '.join(filter(None, ['Czech Literature' if is_czech_literature else '', 'World Literature' if is_world_literature else ''])).strip(', '),
+                        '691': 'Printed' if ldr_8 in ['m', 'a', 'b', 's'] else 'Other forms'
+                    })
+                    writer_marc.write(record)
+                    writer_mrk.write(record)
+            
+            except Exception as e:
+                print(f"Error processing record ID {record_id}: {e}")
+    
+    literature_authors_df = pd.DataFrame(literature_authors).drop_duplicates()
+    return pd.DataFrame(records), literary_author_ids, literature_authors_df, literature_record_ids
+
+def process_chunks(chunk_files, filter_df, output_marc21_file, output_mrk_file):
+    all_records = []
+    all_literary_author_ids = set()
+    all_literature_record_ids = set()  # Dodana kolekcja do zbierania ID rekordów literackich
+    all_literature_authors = []  # Lista do przechowywania autorów literatury
+    
+    with open(output_marc21_file, 'wb') as marc_fh, open(output_mrk_file, 'wt', encoding='utf-8') as mrk_fh:
+        writer_marc = MARCWriter(marc_fh)
+        writer_mrk = TextWriter(mrk_fh)
+        
+        for i, chunk_file_mrc in enumerate(chunk_files):
+            print(f"Przetwarzanie części {i+1} z {len(chunk_files)}")
+            chunk_df, literary_author_ids, literature_authors_df, literature_record_ids = filter_marcxml(chunk_file_mrc, filter_df, writer_marc, writer_mrk)
+            all_records.append(chunk_df)
+            all_literary_author_ids.update(literary_author_ids)
+            all_literature_record_ids.update(literature_record_ids)
+            all_literature_authors.append(literature_authors_df)
+        
+        writer_marc.close()
+        writer_mrk.close()
+    
+    combined_df = pd.concat(all_records, ignore_index=True)
+    combined_literature_authors_df = pd.concat(all_literature_authors, ignore_index=True).drop_duplicates()
+    
+    # Reprocess the chunks to find non-literary works of literary authors
+    reprocess_records = []
+    with open(output_marc21_file, 'ab') as marc_fh, open(output_mrk_file, 'at', encoding='utf-8') as mrk_fh:
+        writer_marc = MARCWriter(marc_fh)
+        writer_mrk = TextWriter(mrk_fh)
+        
+        for i, chunk_file_mrc in enumerate(chunk_files):
+            print(f"Reprocessing części {i+1} z {len(chunk_files)}")
+            with open(chunk_file_mrc, 'rb') as fh:
+                reader = MARCReader(fh)
+                for record in tqdm(reader, desc="Reprocessing records"):
+                    try:
+                        record_id = record['001'].value() if record['001'] else None
+                        if record_id in all_literature_record_ids:
+                            continue  # Pomijanie rekordów literackich i literatury naukowej
+                        
+                        link = record['998'].value() if record['998'] else None
+                        
+                        field_015_values = [subfield for field in record.get_fields('015') for subfield in field.get_subfields('a')]
+                        field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
+                        field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
+                        field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                        field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
+                        field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
+                        field_245_values = ' '.join(subfield for field in record.get_fields('245') for subfield in field.get_subfields())
+                        field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
+                        field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
+
+                        # Check if the record belongs to non-literary production of literary authors
+                        if any(author_id in all_literary_author_ids for author_id in field_100_7_values + field_700_7_values):
+                            record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Non-Literary')]))
+                            reprocess_records.append({
+                                'Record ID': record_id,
+                                'Link': link,
+                                '015': ', '.join(field_015_values),
+                                '072': ', '.join(field_072_values),
+                                '080': ', '.join(field_080_values),
+                                '650': ', '.join(field_650_values),
+                                '655': ', '.join(field_655_values),
+                                '100': ', '.join(field_100_values),
+                                '245': field_245_values,
+                                '695': 'Non-Literary',
+                                '690': '',  # Not applicable in reprocessing
+                                '691': ''   # Not applicable in reprocessing
+                            })
+                            writer_marc.write(record)
+                            writer_mrk.write(record)
+            
+                    except Exception as e:
+                        print(f"Error reprocessing record ID {record_id}: {e}")
+    
+    final_df = pd.DataFrame(reprocess_records)
+    combined_df = pd.concat([combined_df, final_df], ignore_index=True)
+    return combined_df, combined_literature_authors_df
+
+# Przykładowe użycie
+
+chunk_files_path = 'D:/Nowa_praca/czech_works/chunks_NKC'
+chunk_files = [os.path.join(chunk_files_path, f'chunk_{i+1}.mrc') for i in range(6)]
+
+# Przetwarzanie plików chunków i zapisanie wyników do jednego zbiorczego pliku mrc i mrk
+combined_df, combined_literature_authors_df = process_chunks(chunk_files, df, 'filtered_combined.mrc', 'filtered_combined.mrk')
+combined_df.to_excel('filtered_combined_12-06.xlsx', index=False)
+combined_literature_authors_df.to_excel('literature_authors.xlsx', index=False)
+
+with pd.ExcelWriter('filtered_combined_16-06.xlsx', engine='xlsxwriter') as writer:
+    workbook = writer.book
+    workbook.strings_to_urls = False  # Wyłącz konwersję ciągów znaków na URL
+    combined_df.to_excel(writer, index=False)
+    
+    
+#%% 
+criteria_description = """
+CRITERION A: 695 - Literature/Literary Science/Non-Literary
+NKC - only
+
+Literature 
+anything containing 25 or 26 in 072-9 OR 
+anything containing value starting with 821 in 080 field (UDC) OR
+anything containing literal values adequate to aforementioned values 080 in 650 field
+
+Literary Science
+anything containing 11 in 072-9 AND 
+anything containing value starting with 82, but not with 821 in 080 field 
+OR anything containing literal values adequate to aforementioned 080 in 650 field
+
+Non-Literary Production of Literary Authors (only from 1) literature)
+create a list of ID-s from 100-7 subfield from records from category “Literature” -> search for any other record in the data containing this ID in 100-7 or 700-7 subfield
+
+CRITERION B: 690 - Czech Literature/World Literature
+
+Czech Literature
+Anything containing field starting with 821.162.3 in 080 or with “česk*” in 655a
+
+World Literature
+anything containing any other value starting with 821 in 080 field (UDC)
+
+CRITERION C: NOT NEEDED AT THE MOMENT
+
+CRITERION D: 691 Printed (m,a,b,s) / Other forms (always 1 per each record)
+
+Printed (Books, Magazines, Articles)
+-> LDR-8 is m, a, b or s
+Other forms 
+-> LDR-8 is containing else
+
+Add to excel author 100 (a) title (all subfields) 245
+"""
+print(criteria_description)
+   
+import os
+from pymarc import MARCReader, TextWriter, MARCWriter, Field, Subfield
+from tqdm import tqdm
+import pandas as pd
+
+def filter_marcxml(file_path, filter_df, writer_marc, writer_mrk):
+    records = []
+    processed_count = 0
+    matching_count = 0
+    literary_author_ids = set()
+    literature_record_ids = set()  # Dodana kolekcja do zbierania ID rekordów literackich
+    literature_authors = []  # Lista do przechowywania autorów literatury
+    
+    # Filtracja wartości z pola 150 na podstawie wartości w polu 080
+    filter_literature_080 = set(filter_df[filter_df['080'].str.startswith('821', na=False)]['150'].dropna().unique())
+    filter_literary_science_080 = set(filter_df[filter_df['080'].str.startswith('82', na=False) & ~filter_df['080'].str.startswith('821', na=False)]['150'].dropna().unique())
+    
+    with open(file_path, 'rb') as fh:
+        reader = MARCReader(fh)
+        for record in tqdm(reader, desc="Processing records"):
+            try:
+                if any(field.get_subfields('a')[0] == '0/9-053.2' or 'Literatura pro děti a mládež (naučná)' in field.get_subfields('x') for field in record.get_fields('072')):
+                    continue  # Pomijanie rekordów spełniających warunek wykluczenia
+
+                processed_count += 1
+                record_id = record['001'].value() if record['001'] else None
+                link = record['998'].value() if record['998'] else None
+                
+                field_015_values = [subfield for field in record.get_fields('015') for subfield in field.get_subfields('a')]
+                field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
+                field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
+                field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
+                field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
+                field_245_values = ' '.join(field.value() for field in record.get_fields('245'))
+                field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
+                field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
+
+                # CRITERION A: 695
+                is_literature = any(val in ['25', '26'] for val in field_072_values) or \
+                                any(val.startswith('821') for val in field_080_values) or \
+                                any(val in filter_literature_080 for val in field_650_values)
+                
+                is_literary_science = ('11' in field_072_values and (
+                    any(val.startswith('82') and not val.startswith('821') for val in field_080_values)
+                )) or any(val in filter_literary_science_080 for val in field_650_values)
+                
+                if is_literature or is_literary_science:
+                    literature_record_ids.add(record_id)
+                    if is_literature:
+                        for id_ in field_100_7_values:
+                            literary_author_ids.add(id_)
+                        for author, id_ in zip(field_100_values, field_100_7_values):
+                            literature_authors.append({'Author': author, 'ID': id_})
+
+                if is_literature:
+                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literature')]))
+
+                if is_literary_science:
+                    record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Literary Science')]))
+
+                # CRITERION B: 690
+                is_czech_literature = any(val.startswith('821.162.3') for val in field_080_values) or \
+                                      any('česk' in val for val in field_655_values)
+                
+                is_world_literature = any(val.startswith('821') and not val.startswith('821.162.3') for val in field_080_values)
+                
+                if is_czech_literature:
+                    record.add_field(Field(tag='690', indicators=[' ', ' '], subfields=[Subfield(code='a', value='česká literatura')]))
+                if is_world_literature:
+                    record.add_field(Field(tag='690', indicators=[' ', ' '], subfields=[Subfield(code='a', value='světová literatura')]))
+
+                # CRITERION D: 691
+                ldr_8 = record.leader[7]
+                if ldr_8 in ['m', 'a', 'b', 's']:
+                    record.add_field(Field(tag='691', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Printed')]))
+                else:
+                    record.add_field(Field(tag='691', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Other forms')]))
+
+                if is_literature or is_literary_science or is_czech_literature or is_world_literature:
+                    matching_count += 1
+                    records.append({
+                        'Record ID': record_id,
+                        'Link': link,
+                        '015': ', '.join(field_015_values),
+                        '072': ', '.join(field_072_values),
+                        '080': ', '.join(field_080_values),
+                        '650': ', '.join(field_650_values),
+                        '655': ', '.join(field_655_values),
+                        '100': ', '.join(field_100_values),
+                        '245': field_245_values,
+                        '695': ', '.join(filter(None, ['Literature' if is_literature else '', 'Literary Science' if is_literary_science else ''])).strip(', '),
+                        '690': ', '.join(filter(None, ['Czech Literature' if is_czech_literature else '', 'World Literature' if is_world_literature else ''])).strip(', '),
+                        '691': 'Printed' if ldr_8 in ['m', 'a', 'b', 's'] else 'Other forms'
+                    })
+                    writer_marc.write(record)
+                    writer_mrk.write(record)
+            
+            except Exception as e:
+                print(f"Error processing record ID {record_id}: {e}")
+    
+    literature_authors_df = pd.DataFrame(literature_authors).drop_duplicates()
+    return pd.DataFrame(records), literary_author_ids, literature_authors_df, literature_record_ids
+
+def process_chunks(chunk_files, filter_df, output_marc21_file, output_mrk_file):
+    all_records = []
+    all_literary_author_ids = set()
+    all_literature_record_ids = set()  # Dodana kolekcja do zbierania ID rekordów literackich
+    all_literature_authors = []  # Lista do przechowywania autorów literatury
+    
+    with open(output_marc21_file, 'wb') as marc_fh, open(output_mrk_file, 'wt', encoding='utf-8') as mrk_fh:
+        writer_marc = MARCWriter(marc_fh)
+        writer_mrk = TextWriter(mrk_fh)
+        
+        for i, chunk_file_mrc in enumerate(chunk_files):
+            print(f"Przetwarzanie części {i+1} z {len(chunk_files)}")
+            chunk_df, literary_author_ids, literature_authors_df, literature_record_ids = filter_marcxml(chunk_file_mrc, filter_df, writer_marc, writer_mrk)
+            all_records.append(chunk_df)
+            all_literary_author_ids.update(literary_author_ids)
+            all_literature_record_ids.update(literature_record_ids)
+            all_literature_authors.append(literature_authors_df)
+        
+        writer_marc.close()
+        writer_mrk.close()
+    
+    combined_df = pd.concat(all_records, ignore_index=True)
+    combined_literature_authors_df = pd.concat(all_literature_authors, ignore_index=True).drop_duplicates()
+    
+    # Reprocess the chunks to find non-literary works of literary authors
+    reprocess_records = []
+    with open(output_marc21_file, 'ab') as marc_fh, open(output_mrk_file, 'at', encoding='utf-8') as mrk_fh:
+        writer_marc = MARCWriter(marc_fh)
+        writer_mrk = TextWriter(mrk_fh)
+        
+        for i, chunk_file_mrc in enumerate(chunk_files):
+            print(f"Reprocessing części {i+1} z {len(chunk_files)}")
+            with open(chunk_file_mrc, 'rb') as fh:
+                reader = MARCReader(fh)
+                for record in tqdm(reader, desc="Reprocessing records"):
+                    try:
+                        record_id = record['001'].value() if record['001'] else None
+                        if record_id in all_literature_record_ids:
+                            continue  # Pomijanie rekordów literackich i literatury naukowej
+                        
+                        link = record['998'].value() if record['998'] else None
+                        
+                        field_015_values = [subfield for field in record.get_fields('015') for subfield in field.get_subfields('a')]
+                        field_072_values = [subfield for field in record.get_fields('072') for subfield in field.get_subfields('9')]
+                        field_080_values = [subfield for field in record.get_fields('080') for subfield in field.get_subfields('a')]
+                        field_650_values = [subfield for field in record.get_fields('650') for subfield in field.get_subfields('a')]
+                        field_655_values = [subfield for field in record.get_fields('655') for subfield in field.get_subfields('a')]
+                        field_100_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('a')]
+                        field_245_values = ' '.join(field.value() for field in record.get_fields('245'))
+                        field_100_7_values = [subfield for field in record.get_fields('100') for subfield in field.get_subfields('7')]
+                        field_700_7_values = [subfield for field in record.get_fields('700') for subfield in field.get_subfields('7')]
+
+                        # Check if the record belongs to non-literary production of literary authors
+                        if any(author_id in all_literary_author_ids for author_id in field_100_7_values + field_700_7_values):
+                            record.add_field(Field(tag='695', indicators=[' ', ' '], subfields=[Subfield(code='a', value='Non-Literary')]))
+                            ldr_8 = record.leader[7]
+                            reprocess_records.append({
+                                'Record ID': record_id,
+                                'Link': link,
+                                '015': ', '.join(field_015_values),
+                                '072': ', '.join(field_072_values),
+                                '080': ', '.join(field_080_values),
+                                '650': ', '.join(field_650_values),
+                                '655': ', '.join(field_655_values),
+                                '100': ', '.join(field_100_values),
+                                '245': field_245_values,
+                                '695': 'Non-Literary',
+                                '690': '',  # Not applicable in reprocessing
+                                '691': 'Printed' if ldr_8 in ['m', 'a', 'b', 's'] else 'Other forms'  # Dodanie pola 691
+                            })
+                            writer_marc.write(record)
+                            writer_mrk.write(record)
+            
+                    except Exception as e:
+                        print(f"Error reprocessing record ID {record_id}: {e}")
+    
+    final_df = pd.DataFrame(reprocess_records)
+    combined_df = pd.concat([combined_df, final_df], ignore_index=True)
+    return combined_df, combined_literature_authors_df
+
+# Przykładowe użycie
+
+chunk_files_path = 'D:/Nowa_praca/czech_works/chunks_NKC'
+chunk_files = [os.path.join(chunk_files_path, f'chunk_{i+1}.mrc') for i in range(6)]
+
+# Przetwarzanie plików chunków i zapisanie wyników do jednego zbiorczego pliku mrc i mrk
+combined_df, combined_literature_authors_df = process_chunks(chunk_files, df, 'filtered_combined.mrc', 'filtered_combined.mrk')
+combined_df.to_excel('filtered_combined_12-06.xlsx', index=False)
+combined_literature_authors_df.to_excel('literature_authors.xlsx', index=False)
+with pd.ExcelWriter('filtered_combined_19-06.xlsx', engine='xlsxwriter') as writer:
+    workbook = writer.book
+    workbook.strings_to_urls = False  # Wyłącz konwersję ciągów znaków na URL
+    combined_df.to_excel(writer, index=False)
+    
+from pymarc import Record, Field, Subfield
+
+record = Record()
+record.add_field(
+    Field(
+        tag = '245',
+        indicators = ['0','1'],
+        subfields = [
+            Subfield(code='a', value='The pragmatic programmer : '),
+            Subfield(code='b', value='from journeyman to master /'),
+            Subfield(code='c', value='Andrew Hunt, David Thomas.')
+        ]))
+field_245_values = ' '.join(field.value() for field in record.get_fields('245'))
+f=[]
+for field in record.get_fields('245'):
+    
+    print(field.value())
+field_100_values = [subfield for field in record.get_fields('245') for subfield in field.get_subfields('a')]
+is_literature = any(val in ['The pragmatic programmer : ','lala'] for val in field_100_values)    
