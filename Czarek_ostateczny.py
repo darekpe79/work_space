@@ -110,7 +110,7 @@ def predict_categories(df, text_column):
         text = row[text_column]
         
         # Tokenizacja i przewidywanie dla modelu True/False
-        inputs_t_f = tokenizer_t_f(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs_t_f = tokenizer_t_f(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
         outputs_t_f = model_t_f(**inputs_t_f)
         predictions_t_f = torch.softmax(outputs_t_f.logits, dim=1)
         predicted_index_t_f = predictions_t_f.argmax().item()
@@ -124,7 +124,7 @@ def predict_categories(df, text_column):
         
         #if predicted_label_t_f == 'True':
             # Przewidywanie gatunku
-        inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
         outputs_genre = model_genre(**inputs_genre)
         predictions_genre = torch.softmax(outputs_genre.logits, dim=1)
         predicted_index_genre = predictions_genre.argmax().item()
@@ -132,7 +132,7 @@ def predict_categories(df, text_column):
         confidence_genre = predictions_genre.max().item() * 100  # Procent pewności
         
         # Przewidywanie hasła
-        inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
         outputs_hasla = model_hasla(**inputs_hasla)
         predictions_hasla = torch.softmax(outputs_hasla.logits, dim=1)
         predicted_index_hasla = predictions_hasla.argmax().item()
@@ -156,7 +156,7 @@ result_df = predict_categories(sampled_df, 'combined_text')
 
 result_df['comparison'] = np.where(result_df['do PBL'] == result_df['True/False'], 'Match', 'Mismatch')
 result_df['comparison_gatunek'] = np.where(result_df['forma/gatunek'] == result_df['Gatunek'], 'Match', 'Mismatch')
-result_df.to_excel('nowe_przewidywania10-06.xlsx', index=False)
+result_df.to_excel('nowe_przewidywania21-06.xlsx', index=False)
 
 
 # ADD BYTY
