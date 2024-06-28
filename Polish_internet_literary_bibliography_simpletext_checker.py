@@ -51,6 +51,7 @@ model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
 
+max_length = tokenizer_t_f.model_max_length
 label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
 
 model_path_hasla = "model_hasla_8epoch_base"
@@ -190,8 +191,21 @@ import requests
 import re
 
 def preprocess_text(text):
-    # Usuwanie dat z tekstu, np. "Emma Goldman, 1869-1940" staje się "Emma Goldman"
-    return re.sub(r',?\s*\d{4}(-\d{4})?', '', text)
+    # Usuwanie dat w formacie YYYY-YYYY lub YYYY
+    text = re.sub(r'\b\d{4}-\d{4}\b', '', text)
+    text = re.sub(r'\b\d{4}\b', '', text)
+    
+    # Usuwanie dat w formacie (YYYY-YYYY) lub (YYYY)
+    text = re.sub(r'\(\d{4}-\d{4}\)', '', text)
+    text = re.sub(r'\(\d{4}\)', '', text)
+    
+    # Usuwanie nawiasów, które mogą pozostać po usunięciu dat
+    text = re.sub(r'\(\)', '', text)
+    
+    # Usuwanie nadmiarowych spacji, które mogłyby się pojawić po usunięciu dat i nawiasów
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
 
 def check_viaf_with_fuzzy_match(entity_name, threshold=87):
     base_url = "http://viaf.org/viaf/AutoSuggest"
