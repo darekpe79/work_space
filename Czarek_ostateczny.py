@@ -28,6 +28,7 @@ from transformers import AutoTokenizer, AutoModel, HerbertTokenizerFast
 import joblib
 from tqdm import tqdm
 import numpy as np
+from urllib.parse import urlencode
 
 
 def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
@@ -99,7 +100,7 @@ tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
 #sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
 df['combined_text'] =df['Tytuł artykułu'].astype(str) + " </tytuł>" + df['Tekst artykułu'].astype(str)
-sampled_df=df[:400]#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
+sampled_df=df[:100]#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
 
 sampled_df['do PBL']=sampled_df['do PBL'].astype(str)
 
@@ -156,7 +157,7 @@ result_df = predict_categories(sampled_df, 'combined_text')
 
 result_df['comparison'] = np.where(result_df['do PBL'] == result_df['True/False'], 'Match', 'Mismatch')
 result_df['comparison_gatunek'] = np.where(result_df['forma/gatunek'] == result_df['Gatunek'], 'Match', 'Mismatch')
-result_df.to_excel('nowe_przewidywania21-06.xlsx', index=False)
+result_df.to_excel('nowe_przewidywania28-06.xlsx', index=False)
 
 
 # ADD BYTY
@@ -254,8 +255,21 @@ import requests
 import re
 
 def preprocess_text(text):
-    # Usuwanie dat z tekstu, np. "Emma Goldman, 1869-1940" staje się "Emma Goldman"
-    return re.sub(r',?\s*\d{4}(-\d{4})?', '', text)
+    # Usuwanie dat w formacie YYYY-YYYY lub YYYY
+    text = re.sub(r'\b\d{4}-\d{4}\b', '', text)
+    text = re.sub(r'\b\d{4}\b', '', text)
+    
+    # Usuwanie dat w formacie (YYYY-YYYY) lub (YYYY)
+    text = re.sub(r'\(\d{4}-\d{4}\)', '', text)
+    text = re.sub(r'\(\d{4}\)', '', text)
+    
+    # Usuwanie nawiasów, które mogą pozostać po usunięciu dat
+    text = re.sub(r'\(\)', '', text)
+    
+    # Usuwanie nadmiarowych spacji, które mogłyby się pojawić po usunięciu dat i nawiasów
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
 
 def check_viaf_with_fuzzy_match(entity_name, threshold=87):
     base_url = "http://viaf.org/viaf/AutoSuggest"
@@ -292,16 +306,80 @@ def check_viaf_with_fuzzy_match(entity_name, threshold=87):
     
     return None, None
 
+def extract_text_from_main_headings(main_headings):
+    if isinstance(main_headings, list):
+        return [heading.get('text') for heading in main_headings if heading.get('text')]
+    if isinstance(main_headings, dict):
+        return [main_headings.get('text')]
+    return []
 
+def check_viaf_with_fuzzy_match2(entity_name, threshold=87, max_pages=10, entity_type='personalNames'):
+    base_url = "https://viaf.org/viaf/search"
+    matches = []
+    
+    try:
+        for page in range(1, max_pages + 1):
+            query = f'local.{entity_type} all "{entity_name}"'
+            query_params = {
+                'query': query,
+                'maximumRecords': 10,
+                'startRecord': (page - 1) * 10 + 1,
+                'httpAccept': 'application/json'
+            }
+            url = f"{base_url}?{urlencode(query_params)}"
+            print(f"Query URL: {url}")
+            
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'searchRetrieveResponse' in data and 'records' in data['searchRetrieveResponse']:
+                for record in data['searchRetrieveResponse']['records']:
+                    record_data = record['record'].get('recordData', {})
+                    viaf_id = record_data.get('viafID')
+                    main_headings = record_data.get('mainHeadings', {})
+                    main_headings_texts = extract_text_from_main_headings(main_headings.get('data', []))
+
+                    for main_heading in main_headings_texts:
+                        score_with_date = fuzz.token_sort_ratio(entity_name, main_heading)
+                        if score_with_date >= threshold:
+                            matches.append((viaf_id, score_with_date))
+                        
+                        term_without_date = preprocess_text(main_heading)
+                        score_without_date = fuzz.token_sort_ratio(entity_name, term_without_date)
+                        if score_without_date >= threshold:
+                            matches.append((viaf_id, score_without_date))
+            else:
+                break
+    
+    except requests.RequestException as e:
+        print(f"Error querying VIAF: {e}")
+    
+    # Usuwanie duplikatów
+    unique_matches = list(set(matches))
+    
+    filtered_matches = [match for match in unique_matches if match[1] == 100]
+    
+    if filtered_matches:
+        result_urls = [(f"https://viaf.org/viaf/{match[0]}", match[1]) for match in filtered_matches]
+    elif unique_matches:
+        best_match = max(unique_matches, key=lambda x: x[1])
+        result_urls = [(f"https://viaf.org/viaf/{best_match[0]}", best_match[1])]
+    else:
+        result_urls = []
+
+    return result_urls if result_urls else None
 nlp = spacy.load("pl_core_news_lg")
 result_df['Chosen_Entity'] = pd.NA
 result_df['VIAF_URL'] = pd.NA
 result_df['Entity_Type'] = pd.NA
-
+result_df['Viaf_AUTHOR'] = pd.NA
 for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
     text = row['combined_text']
+    autor=row['Autor']
+    viaf_autor=check_viaf_with_fuzzy_match2(autor)
     tokens = tokenizer.tokenize(text)
-    max_tokens = 514  # Przykładowe ograniczenie modelu
+    max_tokens = 514 # Przykładowe ograniczenie modelu
     token_fragments = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
     fragments = [tokenizer.convert_tokens_to_string(fragment) for fragment in token_fragments]
     # Analiza każdego fragmentu osobno
@@ -377,5 +455,11 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
         result_df.at[index, 'Chosen_Entity'] = pd.NA
         result_df.at[index, 'VIAF_URL'] = "Not found"
         result_df.at[index, 'Entity_Type'] = pd.NA
+        
+    if viaf_autor:
+        result_df.at[index, 'Viaf_AUTHOR'] =  ', '.join([ent[0] for ent in viaf_autor])
+    else:
+        result_df.at[index, 'Viaf_AUTHOR'] = "Not found"
+        
         
 result_df.to_excel('nowe_przewidywania_with_byty.xlsx', index=False)
