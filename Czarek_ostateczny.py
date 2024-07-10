@@ -100,7 +100,7 @@ tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
 #sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
 df['combined_text'] =df['Tytuł artykułu'].astype(str) + " </tytuł>" + df['Tekst artykułu'].astype(str)
-sampled_df=df[:100]#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
+sampled_df=df[:50]#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
 
 sampled_df['do PBL']=sampled_df['do PBL'].astype(str)
 
@@ -313,7 +313,7 @@ def extract_text_from_main_headings(main_headings):
         return [main_headings.get('text')]
     return []
 
-def check_viaf_with_fuzzy_match2(entity_name, threshold=87, max_pages=10, entity_type='personalNames'):
+def check_viaf_with_fuzzy_match2(entity_name, threshold=84, max_pages=10, entity_type='personalNames'):
     base_url = "https://viaf.org/viaf/search"
     matches = []
     
@@ -374,6 +374,107 @@ result_df['Chosen_Entity'] = pd.NA
 result_df['VIAF_URL'] = pd.NA
 result_df['Entity_Type'] = pd.NA
 result_df['Viaf_AUTHOR'] = pd.NA
+for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
+    text = row['combined_text']
+    autor = row['Autor']
+    viaf_autor = check_viaf_with_fuzzy_match2(autor)
+    tokens = tokenizer.tokenize(text)
+    max_tokens = 514  # Przykładowe ograniczenie modelu
+    token_fragments = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
+    fragments = [tokenizer.convert_tokens_to_string(fragment) for fragment in token_fragments]
+    
+    # Analiza każdego fragmentu osobno
+    ner_results = []
+    for fragment in fragments:
+        ner_results.extend(nlp1(fragment))
+    combined_entities = combine_tokens(ner_results)
+    
+    combined_entities_selected = [entity for entity in combined_entities if entity['score'] >= 0.92]
+    entities = [(entity['word'], entity['type']) for entity in combined_entities_selected]
+    
+    doc = nlp(text.lower())
+    lemmatized_text = " ".join([token.lemma_ for token in doc])
+    
+    # Lematyzacja bytów i grupowanie
+    lemmatized_entities = []
+    entity_lemmatization_dict = {}
+    for entity in entities:
+        doc_entity = nlp(entity[0].lower())
+        lemmatized_entity = " ".join([token.lemma_ for token in doc_entity])
+        lemmatized_entities.append(lemmatized_entity)
+        if lemmatized_entity not in entity_lemmatization_dict:
+            entity_lemmatization_dict[lemmatized_entity] = {entity}
+        else:
+            entity_lemmatization_dict[lemmatized_entity].add(entity)
+    
+    entity_groups = group_similar_entities(lemmatized_entities, threshold)
+    representatives = [sorted(group, key=lambda x: len(x))[0] for group in entity_groups]
+
+    entity_to_representative_map = {}
+    for group in entity_groups:
+        representative = sorted(group, key=lambda x: (len(x), x))[0]
+        for entity in group:
+            entity_to_representative_map[entity] = representative
+    
+    updated_text = replace_entities_with_representatives(lemmatized_text, entity_to_representative_map)
+    list_of_new_entities = list(set(entity_to_representative_map.values()))
+    
+    entity_counts = {entity: 0 for entity in list_of_new_entities}
+    title_end_pos = updated_text.find("< /tytuł >")
+    if title_end_pos == -1:
+        title_end_pos = updated_text.find("< /tytuł>")
+    
+    for entity in list_of_new_entities:
+        total_occurrences = updated_text.count(entity)
+        entity_counts[entity] += total_occurrences
+        if updated_text.find(entity) < title_end_pos:
+            entity_counts[entity] += 50
+    
+    sorted_entity_counts = sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)
+    choosen_ents = [ent for ent in sorted_entity_counts if ent[1] > 5]
+    
+    # Dodawanie informacji o wybranym bycie do list
+    if choosen_ents:
+        first_entity_info = choosen_ents[0]
+        
+        original_entities = entity_lemmatization_dict.get(first_entity_info[0], [])
+        
+        result_df.at[index, 'Chosen_Entity'] = next(iter(original_entities))[0]
+        viaf_url, entity_type = None, "Not found"
+        if original_entities:
+            chosen_entity = next(iter(original_entities))
+            entity_name = chosen_entity[0]
+            entity_type_code = chosen_entity[1]
+            
+            if entity_type_code == "PER":
+                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='personalNames')
+            elif entity_type_code == "LOC":
+                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='geographicNames')
+            elif entity_type_code == "ORG":
+                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='corporateNames')
+            else:
+                viaf_url = check_viaf_with_fuzzy_match2(entity_name)
+            
+            entity_type = entity_type_code
+        
+        result_df.at[index, 'VIAF_URL'] = viaf_url[0][0] if viaf_url else "Not found"
+        result_df.at[index, 'Entity_Type'] = entity_type
+    else:
+        result_df.at[index, 'Chosen_Entity'] = pd.NA
+        result_df.at[index, 'VIAF_URL'] = "Not found"
+        result_df.at[index, 'Entity_Type'] = pd.NA
+        
+    if viaf_autor:
+        result_df.at[index, 'Viaf_AUTHOR'] = ', '.join([ent[0] for ent in viaf_autor])
+    else:
+        result_df.at[index, 'Viaf_AUTHOR'] = "Not found"
+
+result_df.to_excel('nowe_przewidywania_with_byty.xlsx', index=False)
+
+
+
+#%% DRUGA WERSJA Z AUTOSUGGEST
+
 for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
     text = row['combined_text']
     autor=row['Autor']
@@ -462,4 +563,4 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows()):
         result_df.at[index, 'Viaf_AUTHOR'] = "Not found"
         
         
-result_df.to_excel('nowe_przewidywania_with_byty.xlsx', index=False)
+result_df.to_excel('nowe_przewidywania_with_byty2.xlsx', index=False)
