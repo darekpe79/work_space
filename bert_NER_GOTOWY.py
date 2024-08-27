@@ -126,14 +126,15 @@ def prepare_data_for_ner(text):
 df2['spacy_marked'] = df2['marked_text'].apply(prepare_data_for_ner)
 import json
 import os
-transformed_data=df2['spacy_marked'].to_list()
+#transformed_data=df2['spacy_marked'].to_list()
 
 
 ##LADOWANIE danych JSON
-json_files_dir = 'D:/Nowa_praca/dane_model_jezykowy/jsony_spektakl/'
+json_files_dir = 'D:/Nowa_praca/dane_model_jezykowy/dokumenty po anotacji-20240827T065324Z-001/dokumenty po anotacji/'
 json_files = [f for f in os.listdir(json_files_dir) if f.endswith('.json')]
 
 # Iterate over each JSON file
+transformed_data=[]
 for json_file in json_files:
     file_path = os.path.join(json_files_dir, json_file)
     
@@ -149,6 +150,22 @@ for json_file in json_files:
             tuples_list = [tuple(item) for item in item[1]['entities']]
             # Append to the existing dataset
             transformed_data.append((text, {'entities':tuples_list}))   
+            
+from collections import defaultdict
+
+# Initialize a dictionary to hold the count of each entity type
+entity_counts = defaultdict(int)
+
+# Iterate over the transformed data
+for text, annotation in transformed_data:
+    entities = annotation['entities']
+    
+    # Count each entity label
+    for start, end, label in entities:
+        
+        entity_counts[label] += 1     
+entity_stats = sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)
+
 def find_nearest_acceptable_split_point(pos, text, total_length):
     """
     Finds the nearest split point that does not split words or sentences,
@@ -286,7 +303,17 @@ def prepare_data(data, tokenizer, tag2id, max_length=514):
 
 
 # Mapowanie etykiet
-tag2id = {'O': 0, 'B-PLAY': 1, 'I-PLAY': 2}
+# Existing tag2id mapping
+tag2id = {
+    'O': 0, 
+    'B-PLAY': 1, 
+    'I-PLAY': 2,
+    'B-EVENT': 3,  # New label for the beginning of an EVENT entity
+    'I-EVENT': 4,  # New label for the inside of an EVENT entity
+    'B-BOOK': 5,   # New label for the beginning of a BOOK entity
+    'I-BOOK': 6    # New label for the inside of a BOOK entity
+}
+
 
 # Przygotowanie danych
 input_ids, attention_masks, labels = prepare_data(transformed_data_train, tokenizer, tag2id)
