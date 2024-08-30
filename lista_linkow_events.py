@@ -1,170 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug 22 12:51:02 2024
 
-@author: dariu
-"""
-
-import requests
-from bs4 import BeautifulSoup
-import time
-
-def google_search(query):
-    # Przygotuj zapytanie do wyszukiwarki Google
-    search_url = f"https://www.google.com/search?q={query}&num=100"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    response = requests.get(search_url, headers=headers)
-    
-    # Debug: Sprawdź status odpowiedzi
-    if response.status_code != 200:
-        print(f"Request failed with status code: {response.status_code}")
-        return None
-    
-    return response.text
-
-def extract_links(html):
-    # Sprawdź, czy HTML nie jest pusty
-    if html is None:
-        return []
-    
-    # Przetwarzanie HTML i wyciąganie linków
-    soup = BeautifulSoup(html, 'html.parser')
-    links = []
-    keywords = ["program", "agenda", "schedule", "timetable", "harmonogram", "rozkład", "grafik"]
-    for item in soup.find_all('a'):
-        href = item.get('href')
-        if href and 'http' in href:
-            # Zapisz linki zawierające słowa kluczowe
-            if any(keyword in href.lower() for keyword in keywords):
-                links.append(href)
-    
-    # Debug: Wydrukuj znalezione linki dla danego HTML
-    if not links:
-        print("No links found in the current HTML.")
-    else:
-        print(f"Found {len(links)} links.")
-    
-    return links
-
-def main():
-    search_queries = [  # Angielskie wersje
-        "conference 2024 program",
-        "conference 2024 agenda",
-        "conference 2024 schedule",
-        "conference 2024 timetable",
-        "festival 2024 program",
-        "festival 2024 agenda",
-        "festival 2024 schedule",
-        "festival 2024 timetable",
-        "webinar 2024 program",
-        "webinar 2024 agenda",
-        "webinar 2024 schedule",
-        "webinar 2024 timetable",
-        "concert 2024 program",
-        "concert 2024 agenda",
-        "concert 2024 schedule",
-        "concert 2024 timetable",
-        "summit 2024 program",
-        "summit 2024 agenda",
-        "summit 2024 schedule",
-        "summit 2024 timetable",
-        "workshop 2024 program",
-        "workshop 2024 agenda",
-        "workshop 2024 schedule",
-        "workshop 2024 timetable",
-        "symposium 2024 program",
-        "symposium 2024 agenda",
-        "symposium 2024 schedule",
-        "symposium 2024 timetable",
-        "expo 2024 program",
-        "expo 2024 agenda",
-        "expo 2024 schedule",
-        "expo 2024 timetable",
-        "forum 2024 program",
-        "forum 2024 agenda",
-        "forum 2024 schedule",
-        "forum 2024 timetable",
-
-        # Polskie wersje
-        "konferencja 2024 program",
-        "konferencja 2024 agenda",
-        "konferencja 2024 harmonogram",
-        "konferencja 2024 rozkład",
-        "konferencja 2024 grafik",
-        "festiwal 2024 program",
-        "festiwal 2024 agenda",
-        "festiwal 2024 harmonogram",
-        "festiwal 2024 rozkład",
-        "festiwal 2024 grafik",
-        "webinar 2024 program",
-        "webinar 2024 agenda",
-        "webinar 2024 harmonogram",
-        "webinar 2024 rozkład",
-        "webinar 2024 grafik",
-        "koncert 2024 program",
-        "koncert 2024 agenda",
-        "koncert 2024 harmonogram",
-        "koncert 2024 rozkład",
-        "koncert 2024 grafik",
-        "szczyt 2024 program",
-        "szczyt 2024 agenda",
-        "szczyt 2024 harmonogram",
-        "szczyt 2024 rozkład",
-        "szczyt 2024 grafik",
-        "warsztat 2024 program",
-        "warsztat 2024 agenda",
-        "warsztat 2024 harmonogram",
-        "warsztat 2024 rozkład",
-        "warsztat 2024 grafik",
-        "sympozjum 2024 program",
-        "sympozjum 2024 agenda",
-        "sympozjum 2024 harmonogram",
-        "sympozjum 2024 rozkład",
-        "sympozjum 2024 grafik",
-        "expo 2024 program",
-        "expo 2024 agenda",
-        "expo 2024 harmonogram",
-        "expo 2024 rozkład",
-        "expo 2024 grafik",
-        "forum 2024 program",
-        "forum 2024 agenda",
-        "forum 2024 harmonogram",
-        "forum 2024 rozkład",
-        "forum 2024 grafik"
-    ]
-
-    all_links = []
-    for query in search_queries:
-        print(f"Searching for: {query}")
-        html = google_search(query)
-        
-        # Debug: Wydrukuj część HTML, jeśli jest pusty
-        if html:
-            print("HTML content retrieved, length:", len(html))
-        else:
-            print("Failed to retrieve HTML content.")
-        
-        links = extract_links(html)
-        all_links.extend(links)
-        time.sleep(60)  # Aby uniknąć blokady IP
-
-    # Usuń duplikaty
-    unique_links = list(set(all_links))
-
-    # Zapisz linki do pliku
-    with open("event_program_links.txt", "w") as file:
-        for link in unique_links:
-            file.write(f"{link}\n")
-
-    print(f"Found {len(unique_links)} unique links.")
-
-    return unique_links
-
-if __name__ == "__main__":
-    links = main()
-    print("Found links:", links)
     
     
 import requests
@@ -215,23 +49,7 @@ def extract_links(html):
     
     return links
 
-def download_pdf(link, save_directory):
-    # Sprawdź, czy link prowadzi do pliku PDF
-    if link.endswith('.pdf'):
-        try:
-            response = requests.get(link)
-            response.raise_for_status()
-            filename = os.path.join(save_directory, os.path.basename(link))
-            
-            # Zapisz plik PDF
-            with open(filename, 'wb') as pdf_file:
-                pdf_file.write(response.content)
-            
-            print(f"Downloaded PDF: {filename}")
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to download {link}: {e}")
-    else:
-        print(f"Link is not a PDF: {link}")
+
 
 def main():
     years = range(2020, 2025)  # Lata od 2020 do 2024
@@ -354,9 +172,7 @@ def main():
 
     print(f"Found {len(unique_links)} unique links.")
     
-    # Pobierz wszystkie pliki PDF
-    for link in unique_links:
-        download_pdf(link, save_directory)
+
 
     return unique_links
 
@@ -365,5 +181,65 @@ if __name__ == "__main__":
     print("Found links:", links)
 
 
+
+import os
+import requests
+import re
+
+def sanitize_filename(filename):
+    # Usunięcie niepoprawnych znaków z nazwy pliku
+    return re.sub(r'[<>:"/\\|?*\%]', '_', filename)
+
+def download_pdf(link, save_directory, retries=3):
+    # Sprawdź, czy link prowadzi do pliku PDF
+    if link.endswith('.pdf'):
+        for attempt in range(retries):
+            try:
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                }
+                response = requests.get(link, headers=headers, timeout=10)
+                response.raise_for_status()
+
+                # Usuń niepoprawne znaki z nazwy pliku
+                filename = os.path.basename(link)
+                filename = sanitize_filename(filename)
+                filepath = os.path.join(save_directory, filename)
+
+                # Próbuj zapisać plik PDF
+                try:
+                    with open(filepath, 'wb') as pdf_file:
+                        pdf_file.write(response.content)
+                    print(f"Downloaded PDF: {filepath}")
+                    break  # Jeśli sukces, przerwij pętlę prób
+                except OSError as e:
+                    print(f"Failed to save the PDF {filepath}: {e}")
+                    break  # Jeśli wystąpił błąd zapisu, nie próbuj ponownie
+
+            except requests.exceptions.RequestException as e:
+                print(f"Attempt {attempt + 1} failed for {link}: {e}")
+                if attempt + 1 == retries:
+                    print(f"All {retries} attempts failed for {link}. Skipping...")
+    else:
+        print(f"Link is not a PDF: {link}")
+
+def process_links_from_file(file_path, save_directory):
+    if not os.path.exists(save_directory):
+        os.makedirs(save_directory)
+
+    with open(file_path, 'r') as file:
+        links = file.readlines()
+
+    for link in links:
+        link = link.strip()  # Usuń białe znaki na początku i końcu linku
+        download_pdf(link, save_directory)
+
+# Ścieżka do pliku z linkami
+file_path = "event_program_links.txt"
+# Ścieżka do katalogu, w którym mają być zapisane pliki PDF
+save_directory = "downloaded_pdfs"
+
+# Przetwarzanie linków z pliku
+process_links_from_file(file_path, save_directory)
 
 
