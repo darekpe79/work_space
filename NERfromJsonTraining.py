@@ -1,82 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar  7 10:46:33 2024
+Created on Tue Oct  1 09:33:30 2024
 
 @author: dariu
 """
+
+
 from transformers import BertTokenizer
 import numpy as np
 from transformers import HerbertTokenizerFast
-
-# Initialize the tokenizer with the Polish model
-tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
 import requests
 import json
-import pandas as pd
-import json
-
-def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "byt 1", "zewnętrzny identyfikator bytu 1", "Tytuł spektaklu"]):
-    # Wczytanie danych z pliku JSON
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        json_data = json.load(file)
-    df_json = pd.DataFrame(json_data)
-
-    # Ograniczenie DataFrame JSON do kolumn 'Link' i 'Tekst artykułu'
-    df_json = df_json[['Link', 'Tekst artykułu']]
-
-    # Konwersja wartości w kolumnie 'Tekst artykułu' na stringi
-    df_json['Tekst artykułu'] = df_json['Tekst artykułu'].astype(str)
-
-    # Wczytanie danych z pliku Excel
-    df_excel = pd.read_excel(excel_file_path)
-
-    # Dodanie kolumny indeksowej do DataFrame'a z Excela
-    df_excel['original_order'] = df_excel.index
-
-    # Połączenie DataFrame'ów
-    merged_df = pd.merge(df_json, df_excel, on=common_column, how="inner")
-
-    # Sortowanie połączonego DataFrame według kolumny 'original_order'
-    merged_df = merged_df.sort_values(by='original_order')
-
-    # Konwersja wartości w kolumnach 'Tytuł artykułu' i 'Tekst artykułu' na stringi w połączonym DataFrame
-    merged_df['Tytuł artykułu'] = merged_df['Tytuł artykułu'].astype(str)
-    merged_df['Tekst artykułu'] = merged_df['Tekst artykułu'].astype(str)
-
-    # Znalezienie indeksu ostatniego wystąpienia 'zewnętrzny identyfikator bytu 1'
-    if 'zewnętrzny identyfikator bytu 1' in merged_df.columns:
-        last_id_index = merged_df[merged_df['zewnętrzny identyfikator bytu 1'].notna()].index[-1]
-        merged_df = merged_df.loc[:last_id_index]
-    else:
-        print("Brak kolumny 'zewnętrzny identyfikator bytu 1' w DataFrame.")
-
-    merged_df = merged_df.reset_index(drop=True)
-
-    # Ograniczenie do wybranych kolumn
-    if set(selected_columns_list).issubset(merged_df.columns):
-        selected_columns = merged_df[selected_columns_list]
-    else:
-        print("Nie wszystkie wybrane kolumny są dostępne w DataFrame.")
-        selected_columns = merged_df
-
-    return selected_columns
-
-
-json_file_path2 = 'C:/Users/User/Desktop/materiał_do_treningu/drive-download-20240125T115916Z-001/jsony/afisz_teatralny_2022-09-08.json'
-                
-excel_file_path2 = 'C:/Users/User/Desktop/materiał_do_treningu/drive-download-20240125T115916Z-001/afisz_teatralny_2022-09-08.xlsx'
-# ... więcej plików w razie potrzeby
-
-# Użycie funkcji
-
-df2 = load_and_merge_data(json_file_path2, excel_file_path2)
 import random
 import os
 import json
 from spacy.util import minibatch, compounding
 from spacy.training.example import Example
-
-df2['combined_text'] = df2['Tytuł artykułu'] + " " + df2['Tekst artykułu']
 import pandas as pd
 import spacy
 import re
@@ -86,48 +25,8 @@ from spacy.training import Example
 from spacy.scorer import Scorer
 
 from spacy.tokens import Span
-
-
-
-
-# Funkcja do oznaczania słów z tytułów spektakli w tekście
-def mark_titles(text, title):
-    # Escapowanie specjalnych znaków w tytule
-    title_pattern = re.escape(title) + r"(?![\w-])"  # Aby uniknąć dopasowania w środku słowa, dodajemy negative lookahead
-    # Oznaczanie tytułu w tekście znacznikami
-    marked_text = re.sub(title_pattern, r"[PLAY]\g<0>[/PLAY]", text, flags=re.IGNORECASE)
-    return marked_text
-
-df2.dropna(subset=['Tytuł spektaklu'], inplace=True)
-
-df2['Tytuł spektaklu'] = df2['Tytuł spektaklu'].fillna('')
-df2['marked_text'] = df2.apply(lambda row: mark_titles(row['combined_text'], row['Tytuł spektaklu']), axis=1)
-def prepare_data_for_ner(text):
-    pattern = r"\[PLAY\](.*?)\[/PLAY\]"
-    entities = []
-    current_pos = 0
-    clean_text = ""
-    last_end = 0
-
-    for match in re.finditer(pattern, text):
-        start, end = match.span()
-        clean_text += text[last_end:start]  # Dodaj tekst przed znacznikiem
-        start_entity = len(clean_text)
-        entity_text = match.group(1)
-        clean_text += entity_text  # Dodaj tekst encji bez znaczników
-        end_entity = len(clean_text)
-        entities.append((start_entity, end_entity, "PLAY"))
-        last_end = end  # Zaktualizuj pozycję ostatniego znalezionego końca znacznika
-
-    clean_text += text[last_end:]  # Dodaj pozostały tekst po ostatnim znaczniku
-
-    return clean_text, {"entities": entities}
-
-df2['spacy_marked'] = df2['marked_text'].apply(prepare_data_for_ner)
-
-#transformed_data=df2['spacy_marked'].to_list()
-
-
+# Initialize the tokenizer with the Polish model
+tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
 ##LADOWANIE danych JSON
 json_files_dir = 'D:/Nowa_praca/dane_model_jezykowy/dokumenty po anotacji-20240930T120225Z-001/dokumenty po anotacji/'
 json_files = [f for f in os.listdir(json_files_dir) if f.endswith('.json')]
@@ -144,7 +43,7 @@ for json_file in json_files:
         # Extract annotations from the JSON data
         for item in json_data['annotations']:
             text = item[0]  # Extract text
-            text = text.replace("[/tytuł]", "")
+            #text = text.replace("[/tytuł]", "")
             entities = item[1]['entities']  # Assuming this directly gives a list of tuples [(start, end, label), ...]
             tuples_list = [tuple(item) for item in item[1]['entities']]
             # Append to the existing dataset
@@ -301,6 +200,7 @@ def prepare_data(data, tokenizer, tag2id, max_length=514):
 
 
 
+
 # Mapowanie etykiet
 # Existing tag2id mapping
 tag2id = {
@@ -323,11 +223,12 @@ input_ids_eval, attention_masks_eval, labels_eval = prepare_data(transformed_dat
 # Weryfikacja wyników
 print(input_ids.shape, attention_masks.shape, labels.shape)
 
-example_idx = 0  # indeks przykładu, który chcemy wydrukować
-
+example_idx = 10  # indeks przykładu, który chcemy wydrukować
+text, annotation = transformed_data_train[example_idx]
 # Konwersja input_ids do tokenów
 tokens = tokenizer.convert_ids_to_tokens(input_ids[example_idx])
-
+tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id in tag2id.values() else 'O' for tag_id in labels[example_idx]]
+print(f"Tags:\n{tags}\n")
 print(f"Tokens:\n{tokens}\n")
 print(f"Input IDs:\n{input_ids[example_idx]}\n")
 print(f"Attention Masks:\n{attention_masks[example_idx]}\n")
@@ -336,6 +237,9 @@ print(f"Tag IDs:\n{labels[example_idx]}\n")
 # Wydrukuj skojarzone z tokenami etykiety (dla lepszej czytelności)
 tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id in tag2id.values() else 'PAD' for tag_id in labels[example_idx]]
 print(f"Tags:\n{tags}\n")
+for token, label in zip(tokens, tags):
+    print(f"{token}\t{label}")
+
 from transformers import AutoModelForTokenClassification
 
 model = AutoModelForTokenClassification.from_pretrained(
@@ -360,6 +264,7 @@ train_loader = DataLoader(
     batch_size=4,  # Możesz dostosować w zależności od zasobów
     sampler=RandomSampler(train_dataset)  # Mieszanie danych
 )
+#%% Pierwsze podejscie
 from transformers import AdamW
 
 optimizer = AdamW(model.parameters(), lr=5e-5)
@@ -375,7 +280,7 @@ logging.set_verbosity_info()
 print_loss_every = 20  # Drukuj loss co 50 kroków
 step = 0
 
-for epoch in range(3):  # Liczba epok
+for epoch in range(5):  # Liczba epok
     total_loss = 0
     for batch in train_loader:
         batch = tuple(t.to(device) for t in batch)
@@ -395,103 +300,167 @@ for epoch in range(3):  # Liczba epok
         
         step += 1
         
-        
-save_directory = "C:/Users/User/Desktop/model_NER2"
+#%%druga petla
+from seqeval.metrics import classification_report, f1_score
+from seqeval.metrics import precision_score, recall_score
+from transformers import AdamW, get_linear_schedule_with_warmup
+import torch
+import json
+from tqdm import tqdm
+# Funkcja ewaluacyjna
+def evaluate_model(model, data_loader, tag2id, id2tag, tokenizer, device):
+    model.eval()
+    true_labels = []
+    pred_labels = []
+    total_loss = 0  # Zmienna do sumowania strat
 
-# Zapisanie modelu
+    special_token_ids = tokenizer.convert_tokens_to_ids([
+        tokenizer.cls_token, tokenizer.sep_token, tokenizer.pad_token])
+    special_token_ids = [tid for tid in special_token_ids if tid is not None]
+
+    with torch.no_grad():
+        for batch in data_loader:
+            b_input_ids, b_attention_mask, b_labels = tuple(
+                t.to(device) for t in batch)
+
+            # Przekazanie etykiet do modelu
+            outputs = model(b_input_ids, attention_mask=b_attention_mask,
+                            labels=b_labels)
+            loss = outputs.loss  # Pobranie straty
+            total_loss += loss.item()  # Sumowanie straty
+            logits = outputs.logits
+
+            logits = logits.detach().cpu().numpy()
+            label_ids = b_labels.cpu().numpy()
+            input_ids = b_input_ids.cpu().numpy()
+            attention_masks = b_attention_mask.cpu().numpy()
+
+            for i in range(len(label_ids)):
+                true_labels_seq = []
+                pred_labels_seq = []
+                for j in range(len(label_ids[i])):
+                    if attention_masks[i][j] == 0:
+                        continue
+                    if input_ids[i][j] in special_token_ids:
+                        continue
+
+                    true_label_id = label_ids[i][j]
+                    pred_label_id = logits[i][j].argmax()
+
+                    true_label = id2tag[true_label_id]
+                    pred_label = id2tag[pred_label_id]
+
+                    true_labels_seq.append(true_label)
+                    pred_labels_seq.append(pred_label)
+
+                if true_labels_seq:
+                    true_labels.append(true_labels_seq)
+                    pred_labels.append(pred_labels_seq)
+
+    # Obliczenie średniej straty walidacyjnej
+    avg_val_loss = total_loss / len(data_loader)
+
+    # Obliczanie metryk
+    precision = precision_score(true_labels, pred_labels)
+    recall = recall_score(true_labels, pred_labels)
+    f1 = f1_score(true_labels, pred_labels)
+
+    print(f"\nValidation Loss: {avg_val_loss:.4f}")
+    print(f"Validation Precision: {precision:.4f}")
+    print(f"Validation Recall: {recall:.4f}")
+    print(f"Validation F1-score: {f1:.4f}")
+    print("\nClassification Report:")
+    print(classification_report(true_labels, pred_labels))
+
+    return avg_val_loss  # Zwracamy średnią stratę walidacyjną
+
+# Definicja liczby epok przed obliczeniem total_steps
+num_epochs = 5  # Liczba epok
+
+optimizer = AdamW(model.parameters(), lr=1e-5, weight_decay=1e-2)
+
+total_steps = len(train_loader) * num_epochs
+
+scheduler = get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=0,
+    num_training_steps=total_steps
+)
+
+# Przeniesienie modelu na odpowiednie urządzenie
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# Inicjalizacja wczesnego zatrzymania
+best_val_loss = float('inf')
+patience = 2
+epochs_no_improve = 0
+
+print_loss_every = 20  # Drukuj stratę co 20 kroków
+id2tag = {v: k for k, v in tag2id.items()}
+for epoch in range(num_epochs):
+    total_loss = 0
+    total_train_loss = 0
+    step = 0
+    model.train()
+
+    print(f"\nEpoch {epoch + 1}/{num_epochs}")
+
+    for batch in tqdm(train_loader, desc="Training", unit="batch"):
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_attention_mask, b_labels = batch
+
+        optimizer.zero_grad()
+        outputs = model(b_input_ids, attention_mask=b_attention_mask,
+                        labels=b_labels)
+
+        loss = outputs.loss
+        total_loss += loss.item()
+        total_train_loss += loss.item()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+
+        if (step + 1) % print_loss_every == 0:
+            avg_loss = total_loss / print_loss_every
+            print(f"  Step {step + 1}, Loss: {avg_loss:.4f}")
+            total_loss = 0
+
+        step += 1
+
+    avg_train_loss = total_train_loss / len(train_loader)
+    print(f"Average training loss: {avg_train_loss:.4f}")
+
+    # Ewaluacja po każdej epoce
+    print(f"\nEvaluating after epoch {epoch + 1}...")
+    avg_val_loss = evaluate_model(model, eval_loader, tag2id, id2tag,
+                                  tokenizer, device)
+
+    # Sprawdzenie wczesnego zatrzymania
+    if avg_val_loss < best_val_loss:
+        best_val_loss = avg_val_loss
+        epochs_no_improve = 0
+        # Zapisz najlepszy model
+        torch.save(model.state_dict(), 'best_model.pt')
+    else:
+        epochs_no_improve += 1
+        if epochs_no_improve >= patience:
+            print("Early stopping")
+            break
+
+# Po treningu wczytaj najlepszy model
+model.load_state_dict(torch.load('best_model.pt'))
+
+# Zapisanie modelu i tokenizera
+save_directory = 'C:/Users/dariu/model_NER2/'
+
 model.save_pretrained(save_directory)
-
-# Zapisanie tokennizera
 tokenizer.save_pretrained(save_directory)
 
-
-# Ścieżka, gdzie chcesz zapisać mapowanie tag2id
-tag2id_path = "C:/Users/User/Desktop/model_NER/tag2id.json"
+# Ścieżka do zapisu mapowania tag2id
+tag2id_path = "C:/Users/dariu/model_NER2/tag2id.json"
 
 # Zapisanie tag2id do pliku JSON
 with open(tag2id_path, 'w') as f:
     json.dump(tag2id, f)
-    
-    
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-import numpy as np
-
-# Ustawienie modelu w tryb ewaluacji
-model.eval()
-
-eval_loss = 0
-predictions , true_labels = [], []
-
-# Iteracja przez DataLoader danych ewaluacyjnych
-for batch in eval_loader:
-    batch = tuple(t.to(device) for t in batch)
-    b_input_ids, b_attention_mask, b_labels = batch
-    
-    # Wyłączenie obliczania gradientów
-    with torch.no_grad():
-        # Przewidywanie etykiet przez model
-        outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
-    
-    # Akumulacja straty
-    eval_loss += outputs.loss.item()
-    
-    # Przechwytywanie przewidywań i prawdziwych etykiet
-    logits = outputs.logits.detach().cpu().numpy()
-    label_ids = b_labels.to('cpu').numpy()
-    
-    predictions.append(logits)
-    true_labels.append(label_ids)
-
-# Obliczenie średniej straty
-eval_loss = eval_loss / len(eval_loader)
-print(f"Evaluation loss: {eval_loss}")
-
-# Obliczenie metryk, np. dokładności, precyzji, pełności i miary F1
-predictions = np.argmax(np.concatenate(predictions, axis=0), axis=2)
-true_labels = np.concatenate(true_labels, axis=0)
-
-# Dla uproszczenia: obliczanie dokładności
-accuracy = accuracy_score(true_labels.flatten(), predictions.flatten())
-print(f"Accuracy: {accuracy}")
-
-# Dla bardziej zaawansowanych metryk, możesz dostosować poniższe linijki
-precision, recall, f1, _ = precision_recall_fscore_support(true_labels.flatten(), predictions.flatten(), average='weighted')
-print(f"Precision: {precision}\nRecall: {recall}\nF1: {f1}")
-
-
-
-def predict_ner(text, model, tokenizer, tag2id):
-    # Tokenizacja tekstu
-    tokenized_sentence = tokenizer.encode(text, return_tensors="pt")
-    
-    # Predykcja modelu
-    model.eval()  # Ustawienie modelu w tryb ewaluacji
-    with torch.no_grad():
-        output = model(tokenized_sentence)
-    
-    # Dekodowanie etykiet
-    label_indices = np.argmax(output.logits.to('cpu').numpy(), axis=2)
-    
-    # Pobranie tokenów i odpowiadających im etykiet
-    tokens = tokenizer.convert_ids_to_tokens(tokenized_sentence.to('cpu').numpy()[0])
-    new_tokens, new_labels = [], []
-    for token, label_idx in zip(tokens, label_indices[0]):
-        if token.startswith("##"):
-            new_tokens[-1] = new_tokens[-1] + token[2:]
-        else:
-            new_labels.append(list(tag2id.keys())[list(tag2id.values()).index(label_idx)])
-            new_tokens.append(token)
-    
-    # Wyświetlenie tokenów z przewidzianymi etykietami
-    for token, label in zip(new_tokens, new_labels):
-        print(f"{token}: {label}")
-
-# Przykładowy tekst
-text = '''23 października klasa 7 wybrała się do Teatru Cracovia na spektakl „Balladyna”. Czy warto obejrzeć tę sztukę? Przeczytajcie opinie siódmoklasistów:
-
-Spektakl Balladyna
-
-Dnia 23 października 2019 roku w Teatrze Cracovia na terenie Centrum Kultury Solvay odbył się spektakl pod tytułem Balladyna na podstawie dramatu Juliusz Słowackiego o takim samym tytule. Jest on prezentowany od 2008 roku. Ma obecną formę dzięki reżyserii i scenografii Annę Kasprzyk.'''
-
-# Użycie funkcji
-predict_ner(text, model, tokenizer, tag2id)    
+    json.dump(tag2id, f)
