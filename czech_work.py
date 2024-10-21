@@ -2571,6 +2571,61 @@ with pd.ExcelWriter('authors_with_errors.xlsx', engine='xlsxwriter') as writer:
     workbook = writer.book
     workbook.strings_to_urls = False  # Wyłączenie konwersji ciągów na URL-e
     authors_df.to_excel(writer, index=False)
+
+
+
+
+
+
+
+#Łaczenie plikow mrc i mrk\
+from pymarc import MARCReader, MARCWriter, TextWriter
+
+# Ścieżki do dwóch plików MARC, które chcemy połączyć
+input_file_1 = 'D:/Nowa_praca/08.02.2024_marki/fi_fennica_08-02-2024.mrc'
+input_file_2 = 'D:/Nowa_praca/08.02.2024_marki/fi_arto__08-02-2024.mrc'
+
+# Ścieżki do wyjściowych plików w formatach MRK i MRC
+output_mrk = 'finnish_records.mrk'
+output_mrc = 'finnish_records.mrc'
+
+# Funkcja do odczytu i zapisu rekordów bezpośrednio podczas iteracji
+def process_marc_files(input_files, output_mrk, output_mrc):
+    # Otwórz pliki wyjściowe
+    with open(output_mrk, 'w', encoding='utf-8') as mrk_file, open(output_mrc, 'wb') as mrc_file:
+        # Inicjalizacja writerów do formatu MRK (tekstowy) i MRC (binarny)
+        text_writer = TextWriter(mrk_file)
+        marc_writer = MARCWriter(mrc_file)
+
+        # Przetwarzanie każdego pliku MARC
+        for file_path in input_files:
+            with open(file_path, 'rb') as marc_file:
+                reader = MARCReader(marc_file)
+                for record in tqdm(reader):
+                    # Zapisz rekord bezpośrednio do obu plików
+                    text_writer.write(record)
+                    marc_writer.write(record)
+
+        # Zamknięcie writerów po zakończeniu
+        text_writer.close()
+        marc_writer.close()
+
+# Lista plików do połączenia
+input_files = [input_file_1, input_file_2]
+
+# Wywołanie funkcji przetwarzającej pliki
+process_marc_files(input_files, output_mrk, output_mrc)
+
+print(f'Połączone pliki zostały zapisane jako {output_mrk} i {output_mrc}')
+
+
+
+
+
+
+
+
+
 #%% Podejcie iteracyjne vs wektor:
 mask_title_author_in_literature = df.apply(lambda row: (row['Title'], row['Author']) in literature_titles_authors, axis=1)
 #wektory:
