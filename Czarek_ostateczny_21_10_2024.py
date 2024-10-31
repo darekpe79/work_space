@@ -161,6 +161,8 @@ result_df = predict_categories(sampled_df, 'combined_text')
 
 
 # ADD BYTY
+
+
 model_checkpoint = "pietruszkowiec/herbert-base-ner"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 model = AutoModelForTokenClassification.from_pretrained(model_checkpoint)
@@ -255,37 +257,49 @@ import requests
 import re
 
 def preprocess_text(text):
-    # Usuwanie dat w formacie YYYY-YYYY lub YYYY
     text = re.sub(r'\b\d{4}-\d{4}\b', '', text)
     text = re.sub(r'\b\d{4}\b', '', text)
-    
-    # Usuwanie dat w formacie (YYYY-YYYY) lub (YYYY)
     text = re.sub(r'\(\d{4}-\d{4}\)', '', text)
     text = re.sub(r'\(\d{4}\)', '', text)
-    
-    # Usuwanie nawiasów, które mogą pozostać po usunięciu dat
-    text = re.sub(r'\(\)', '', text)
-    
-    # Usuwanie nadmiarowych spacji, które mogłyby się pojawić po usunięciu dat i nawiasów
     text = re.sub(r'\s+', ' ', text).strip()
-    
     return text
-
-
 
 def extract_text_from_main_headings(record_data):
     main_headings = []
+    
+    # Check if 'mainHeadings' exists
     if 'mainHeadings' in record_data:
         main_headings_data = record_data['mainHeadings']
+        
+        # If 'data' is a list
         if isinstance(main_headings_data.get('data'), list):
-            main_headings.extend(heading.get('text') for heading in main_headings_data['data'] if heading.get('text'))
+            for heading in main_headings_data['data']:
+                if isinstance(heading, dict) and 'text' in heading:
+                    main_headings.append(heading['text'])
+        
+        # If 'data' is a dict
         elif isinstance(main_headings_data.get('data'), dict):
-            main_headings.append(main_headings_data['data'].get('text'))
+            text = main_headings_data['data'].get('text')
+            if text:
+                main_headings.append(text)
+        
+        # Other potential cases
+        else:
+            # Check if 'data' is a string
+            if 'data' in main_headings_data and isinstance(main_headings_data['data'], str):
+                main_headings.append(main_headings_data['data'])
+    
     return main_headings
 
-def check_viaf_with_fuzzy_match2(entity_name, threshold=80, max_pages=5, entity_type=None):
+
+
+def check_viaf_with_fuzzy_match2(entity_name, threshold=84, max_pages=10, entity_type='personalNames'):
     base_url_search = "https://viaf.org/viaf/search"
     matches = []
+
+    # Ensure 'entity_name' is a string
+    if not isinstance(entity_name, str):
+        entity_name = str(entity_name)
 
     def search_viaf(query):
         try:
@@ -306,30 +320,191 @@ def check_viaf_with_fuzzy_match2(entity_name, threshold=80, max_pages=5, entity_
                         record_data = record['record'].get('recordData', {})
                         viaf_id = record_data.get('viafID')
 
-                        main_headings_texts = extract_text_from_main_headings(record_data)
-                        
-                        # Filtracja nagłówków zaczynających się na 4xx
-                        x400s = record_data.get('x400s', {}).get('x400', [])
-                        for x400 in x400s:
-                            if isinstance(x400, dict):
-                                tag = x400.get('datafield', {}).get('@tag')
-                                if tag and tag.startswith('4'):
+                        # Different parsing based on 'entity_type'
+                        if entity_type=='uniformTitleWorks':
+                            main_headings_texts = []
+
+                            # Check for 'mainHeadings'
+                            main_headings = record_data.get('mainHeadings', {})
+
+                            # Get 'mainHeadingEl', ensure it's a list
+                            mainHeadingEl = main_headings.get('mainHeadingEl', {})
+                            if isinstance(mainHeadingEl, dict):
+                                mainHeadingEl = [mainHeadingEl]
+                            elif not isinstance(mainHeadingEl, list):
+                                mainHeadingEl = []
+
+                            # Iterate over elements of 'mainHeadingEl'
+                            for heading_el in mainHeadingEl:
+                                datafield = heading_el.get('datafield', {})
+                                subfields = datafield.get('subfield', [])
+
+                                # Ensure 'subfields' is a list
+                                if isinstance(subfields, dict):
+                                    subfields = [subfields]
+                                elif not isinstance(subfields, list):
+                                    subfields = []
+
+                                # Check if any subfields have codes other than 't' or 'a'
+                                skip_record = False
+                                for subfield in subfields:
+                                    code = subfield.get('@code', '')
+                                    if code not in ['t', 'a']:
+                                        skip_record = True
+                                        break  # No need to check further subfields
+
+                                if skip_record:
+                                    # Skip this heading_el and continue with the next one
                                     continue
-                                
-                                subfields = x400.get('datafield', {}).get('subfield', [])
-                                if isinstance(subfields, dict) and subfields.get('@code') == 'a':
-                                    main_headings_texts.append(subfields.get('#text'))
-                                elif isinstance(subfields, list):
-                                    for subfield in subfields:
-                                        if subfield.get('@code') == 'a':
-                                            main_headings_texts.append(subfield.get('#text'))
+
+                                # Iterate over 'subfields' and extract those with '@code' equal to 't'
+                                for subfield in subfields:
+                                    if subfield.get('@code') == 't':
+                                        title = subfield.get('#text', 'Brak tytułu')
+                                        if title:
+                                            title = str(title)  # Ensure 'title' is a string
+                                            main_headings_texts.append(title)
+                        elif entity_type == 'uniformTitleExpressions':
+                            main_headings_texts = []
                         
-                        # Dopasowanie z użyciem fuzzy matching
+                            # Pobieramy 'mainHeadings' z danych rekordu
+                            main_headings = record_data.get('mainHeadings', {})
+                        
+                            # Pobieramy 'mainHeadingEl' i upewniamy się, że jest to lista
+                            mainHeadingEl = main_headings.get('mainHeadingEl', {})
+                            if isinstance(mainHeadingEl, dict):
+                                mainHeadingEl = [mainHeadingEl]
+                            elif not isinstance(mainHeadingEl, list):
+                                mainHeadingEl = []
+                        
+                            # Iterujemy po elementach 'mainHeadingEl'
+                            for heading_el in mainHeadingEl:
+                                datafield = heading_el.get('datafield', {})
+                                subfields = datafield.get('subfield', [])
+                        
+                                # Upewniamy się, że 'subfields' jest listą
+                                if isinstance(subfields, dict):
+                                    subfields = [subfields]
+                                elif not isinstance(subfields, list):
+                                    subfields = []
+                        
+                                # **Zbieramy tekst tylko z podpola 't'**
+                                for subfield in subfields:
+                                    code = subfield.get('@code', '')
+                                    if code == 't':
+                                        text = subfield.get('#text', '')
+                                        if text:
+                                            text = str(text)  # Upewniamy się, że 'text' jest łańcuchem znaków
+                                            main_headings_texts.append(text)
+
+                        elif entity_type == 'geographicNames':
+                            main_headings_texts = []
+
+                            # Check for 'mainHeadings'
+                            main_headings = record_data.get('mainHeadings', {})
+
+                            # Get 'mainHeadingEl', ensure it's a list
+                            mainHeadingEl = main_headings.get('mainHeadingEl', {})
+                            if isinstance(mainHeadingEl, dict):
+                                mainHeadingEl = [mainHeadingEl]
+                            elif not isinstance(mainHeadingEl, list):
+                                mainHeadingEl = []
+
+                            # Iterate over elements of 'mainHeadingEl'
+                            for heading_el in mainHeadingEl:
+                                datafield = heading_el.get('datafield', {})
+                                # Check if the datafield has tag '151'
+                                if datafield.get('@tag') not in ['151', '110']:#!= '151':
+                                    continue  # Skip if tag is not '151'
+
+                                subfields = datafield.get('subfield', [])
+
+                                # Ensure 'subfields' is a list
+                                if isinstance(subfields, dict):
+                                    subfields = [subfields]
+                                elif not isinstance(subfields, list):
+                                    subfields = []
+
+                                # Check if any subfields have codes other than 'a'
+                                skip_record = False
+                                for subfield in subfields:
+                                    code = subfield.get('@code', '')
+                                    if code != 'a':
+                                        skip_record = True
+                                        break  # No need to check further subfields
+
+                                if skip_record:
+                                    # Skip this heading_el and continue with the next one
+                                    continue
+
+                                # Iterate over 'subfields' and extract those with '@code' equal to 'a'
+                                for subfield in subfields:
+                                    if subfield.get('@code') == 'a':
+                                        name = subfield.get('#text', 'Brak nazwy')
+                                        if name:
+                                            name = str(name)  # Ensure 'name' is a string
+                                            main_headings_texts.append(name)
+
+                        elif entity_type == 'corporateNames':
+                            main_headings_texts = []
+
+                            # Check for 'mainHeadings'
+                            main_headings = record_data.get('mainHeadings', {})
+
+                            # Get 'mainHeadingEl', ensure it's a list
+                            mainHeadingEl = main_headings.get('mainHeadingEl', {})
+                            if isinstance(mainHeadingEl, dict):
+                                mainHeadingEl = [mainHeadingEl]
+                            elif not isinstance(mainHeadingEl, list):
+                                mainHeadingEl = []
+
+                            # Iterate over elements of 'mainHeadingEl'
+                            for heading_el in mainHeadingEl:
+                                datafield = heading_el.get('datafield', {})
+                                # Check if the datafield has tag '111'
+                                if datafield.get('@tag') not in ['111', '110']:
+                                    continue
+
+                                subfields = datafield.get('subfield', [])
+
+                                # Ensure 'subfields' is a list
+                                if isinstance(subfields, dict):
+                                    subfields = [subfields]
+                                elif not isinstance(subfields, list):
+                                    subfields = []
+
+                                # Check if any subfields have codes other than 'a'
+                                skip_record = False
+                                for subfield in subfields:
+                                    code = subfield.get('@code', '')
+                                    if code != 'a':
+                                        skip_record = True
+                                        break  # No need to check further subfields
+
+                                if skip_record:
+                                    # Skip this heading_el and continue with the next one
+                                    continue
+
+                                # Iterate over 'subfields' and extract those with '@code' equal to 'a'
+                                for subfield in subfields:
+                                    if subfield.get('@code') == 'a':
+                                        name = subfield.get('#text', 'Brak nazwy')
+                                        if name:
+                                            name = str(name)  # Ensure 'name' is a string
+                                            main_headings_texts.append(name)
+                        else:
+                            # Use the existing function for other entity types
+                            main_headings_texts = extract_text_from_main_headings(record_data)
+
+                        # Perform fuzzy matching
                         for main_heading in main_headings_texts:
+                            if not isinstance(main_heading, str):
+                                main_heading = str(main_heading)
+
                             score_with_date = fuzz.token_sort_ratio(entity_name, main_heading)
                             if score_with_date >= threshold:
                                 matches.append((viaf_id, score_with_date))
-                            
+
                             term_without_date = preprocess_text(main_heading)
                             score_without_date = fuzz.token_sort_ratio(entity_name, term_without_date)
                             if score_without_date >= threshold:
@@ -339,75 +514,30 @@ def check_viaf_with_fuzzy_match2(entity_name, threshold=80, max_pages=5, entity_
         except requests.RequestException as e:
             print(f"Error querying VIAF search: {e}")
 
-    # Wyszukiwanie z encją
+    # Search with entity type
     if entity_type:
         query = f'local.{entity_type} all "{entity_name}"'
         search_viaf(query)
-    if not entity_type:
-        # AutoSuggest z filtrowaniem tagów 4xx
-        base_url_suggest = "http://viaf.org/viaf/AutoSuggest"
-        query_params = {'query': entity_name}
-        try:
-            response = requests.get(base_url_suggest, params=query_params)
-            response.raise_for_status()
-            data = response.json()
-            
-            if data and data.get('result') is not None:
-                for result in data['result'][:10]:
-                    original_term = result.get('term')
-                    viaf_id = result.get('viafid')
-                    
-                    record_data = requests.get(f"https://viaf.org/viaf/{viaf_id}/viaf.json").json()
-                    main_headings_texts = extract_text_from_main_headings(record_data)
-                    
-                    # Pomijamy tagi 4xx również w wynikach AutoSuggest
-                    x400s = record_data.get('x400s', {}).get('x400', [])
-                    for x400 in x400s:
-                        if isinstance(x400, dict):
-                            tag = x400.get('datafield', {}).get('@tag')
-                            if tag and tag.startswith('4'):
-                                continue
-                            
-                            subfields = x400.get('datafield', {}).get('subfield', [])
-                            if isinstance(subfields, dict) and subfields.get('@code') == 'a':
-                                main_headings_texts.append(subfields.get('#text'))
-                            elif isinstance(subfields, list):
-                                for subfield in subfields:
-                                    if subfield.get('@code') == 'a':
-                                        main_headings_texts.append(subfield.get('#text'))
-                    
-                    # Dopasowanie
-                    for main_heading in main_headings_texts:
-                        score_with_date = fuzz.token_sort_ratio(entity_name, main_heading)
-                        if score_with_date >= threshold:
-                            matches.append((viaf_id, score_with_date))
-                        
-                        term_without_date = preprocess_text(main_heading)
-                        score_without_date = fuzz.token_sort_ratio(entity_name, term_without_date)
-                        if score_without_date >= threshold:
-                            matches.append((viaf_id, score_without_date))
-        except requests.RequestException as e:
-            print(f"Error querying VIAF AutoSuggest: {e}")
-        if not matches:
-            query = f'"{entity_name}"'
-            search_viaf(query)
+    else:
+        # Code for the case without a specified 'entity_type'
+        pass  # You can place your code here or leave it empty
 
-    # Usuwanie duplikatów
+    # Remove duplicates
     unique_matches = list(set(matches))
 
-    # Filtrowanie wyników 100% dopasowania
+    # Filter results with 100% match
     filtered_matches = [match for match in unique_matches if match[1] == 100]
 
-    # Zwracanie wszystkich wyników z dopasowaniem 100%
+    # Return all results with 100% match
     if filtered_matches:
         return [(f"https://viaf.org/viaf/{match[0]}", match[1]) for match in filtered_matches]
-    
-    # Jeśli brak wyników 100%, zwracamy najlepszy wynik
+
+    # If no 100% matches, return the best match
     if unique_matches:
         best_match = max(unique_matches, key=lambda x: x[1])
         return [(f"https://viaf.org/viaf/{best_match[0]}", best_match[1])]
-    
-    # Jeśli brak wyników
+
+    # If no matches
     return None
 
 #nowy model NER ladowanie i obsulga
@@ -453,10 +583,26 @@ result_df['Chosen_Entity'] = pd.NA
 result_df['VIAF_URL'] = pd.NA
 result_df['Entity_Type'] = pd.NA
 
-for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),total=result_df[result_df['True/False'] == "True"].shape[0],desc="Processing Rows"):
+
+
+
+from tqdm import tqdm
+
+for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),
+                       total=result_df[result_df['True/False'] == "True"].shape[0],
+                       desc="Processing Rows"):
     text = row['combined_text']
     autor = row['Autor']
-    viaf_autor = check_viaf_with_fuzzy_match2(autor,entity_type='personalNames')
+    
+    # Sprawdzanie VIAF dla autora
+    viaf_autor = check_viaf_with_fuzzy_match2(autor, entity_type='personalNames')
+    if viaf_autor and len(viaf_autor) > 0:
+        viaf_autor_urls = [ent[0] for ent in viaf_autor]
+        viaf_autor_str = ', '.join(viaf_autor_urls)
+    else:
+        viaf_autor_str = "Not found"
+    result_df.at[index, 'Viaf_AUTHOR'] = viaf_autor_str
+    
     tokens = tokenizer.tokenize(text)
     max_tokens = 512  # Przykładowe ograniczenie modelu
     token_fragments = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
@@ -494,7 +640,7 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),t
         representative = sorted(group, key=lambda x: (len(x), x))[0]
         for entity in group:
             entity_to_representative_map[entity] = representative
-    
+
     updated_text = replace_entities_with_representatives(lemmatized_text, entity_to_representative_map)
     list_of_new_entities = list(set(entity_to_representative_map.values()))
     
@@ -519,34 +665,39 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),t
         original_entities = entity_lemmatization_dict.get(first_entity_info[0], [])
         
         result_df.at[index, 'Chosen_Entity'] = next(iter(original_entities))[0]
-        viaf_url, entity_type = None, "Not found"
+        viaf_url_str, entity_type = "Not found", "Not found"
         if original_entities:
             chosen_entity = next(iter(original_entities))
             entity_name = chosen_entity[0]
             entity_type_code = chosen_entity[1]
             
             if entity_type_code == "PER":
-                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='personalNames')
+                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='personalNames')
             elif entity_type_code == "LOC":
-                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='geographicNames')
+                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='geographicNames')
             elif entity_type_code == "ORG":
-                viaf_url = check_viaf_with_fuzzy_match2(entity_name, entity_type='corporateNames')
+                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='corporateNames')
             else:
-                viaf_url = check_viaf_with_fuzzy_match2(entity_name)
+                viaf_result = check_viaf_with_fuzzy_match2(entity_name)
             
             entity_type = entity_type_code
         
-        result_df.at[index, 'VIAF_URL'] = viaf_url[0][0] if viaf_url else "Not found"
+            # Przypisanie wszystkich URL-i VIAF zwróconych przez funkcję
+            if viaf_result and len(viaf_result) > 0:
+                viaf_urls = [result[0] for result in viaf_result]
+                viaf_url_str = ', '.join(viaf_urls)
+            else:
+                viaf_url_str = "Not found"
+        else:
+            viaf_url_str = "Not found"
+            entity_type = "Not found"
+        
+        result_df.at[index, 'VIAF_URL'] = viaf_url_str
         result_df.at[index, 'Entity_Type'] = entity_type
     else:
         result_df.at[index, 'Chosen_Entity'] = pd.NA
         result_df.at[index, 'VIAF_URL'] = "Not found"
         result_df.at[index, 'Entity_Type'] = pd.NA
-        
-    if viaf_autor:
-        result_df.at[index, 'Viaf_AUTHOR'] = ', '.join([ent[0] for ent in viaf_autor])
-    else:
-        result_df.at[index, 'Viaf_AUTHOR'] = "Not found"
         
     # ----- Przetwarzanie za pomocą Nowego Modelu NER (PLAY, BOOK, EVENT) -----
     max_tokens = 514  # Przykładowe ograniczenie modelu
@@ -557,13 +708,12 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),t
     for fragment in fragments:
         ner_results_model2.extend(nlp_new(fragment))
     
-    
     # Filtracja encji z nowego modelu, biorąc tylko te z odpowiednich typów i powyżej progu
     filtered_entities_model2 = [
-    (entity['word'], entity['entity_group'])
-    for entity in ner_results_model2
-    if entity['entity_group'] in ['PLAY', 'BOOK', 'EVENT'] and entity['score'] >= 0.80
-]
+        (entity['word'], entity['entity_group'])
+        for entity in ner_results_model2
+        if entity['entity_group'] in ['PLAY', 'BOOK', 'EVENT'] and entity['score'] >= 0.80
+    ]
 
     # Unikanie duplikatów
     unique_filtered_entities = []
@@ -598,50 +748,21 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),t
         
         # Sprawdzanie VIAF dla encji
         viaf_result = None
-        if entity_type_code == "PLAY":
-            viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='dramaticWorks')  # Sprawdzenie w sztukach dramatycznych
+        if entity_type_code in ["PLAY", "BOOK"]:
+            viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='uniformTitleWorks')
             if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='artisticWorks')  # Sprawdzenie w pracach artystycznych
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='uniformTitles')  # Sprawdzenie w uniform titles
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='performances')
-            # if not viaf_result:
-            #     viaf_result = check_viaf_with_fuzzy_match2(entity_name)
-        elif entity_type_code == "BOOK":
-            # Najpierw sprawdzanie w 'publications'
-            viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='publications')
-            if not viaf_result:
-                # Jeśli brak wyniku, sprawdza w 'uniformTitles'
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='uniformTitles')
-            if not viaf_result:
-                # Jeśli brak wyniku, sprawdza w 'UniformTitleExpression'
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='uniformTitleExpression')
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='works')
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='texts')
+                     # Jeśli brak wyniku, sprawdza w 'UniformTitleExpression'
+                     viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='uniformTitleExpression')
         elif entity_type_code == "EVENT":
-            viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='eventNames')
-            if not viaf_result:
-                # Jeśli brak wyniku, sprawdza w 'corporateNames' tylko dla 'EVENT'
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='corporateNames')
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='conferenceNames')
-            if not viaf_result:
-                viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='performances')
-        # Ustalanie URL-a wyniku lub "Not found"
-        if viaf_result and len(viaf_result) > 0:
-            # Sortowanie wyników według procentu dopasowania malejąco
-            viaf_result_sorted = sorted(viaf_result, key=lambda x: x[1], reverse=True)
-            best_viaf = viaf_result_sorted[0]  # Najlepsze dopasowanie
-            viaf_url = best_viaf[0]  # URL VIAF
-        else:
-            viaf_url = "Not found"
-    
-        
-        # Przypisanie URL-a VIAF do odpowiedniej kolumny
-        result_df.at[index, viaf_col] = viaf_url
-# Zapisanie wyników do pliku Excel
-result_df.to_excel('nowe_przewidywania_with_byty.xlsx', index=False)
+            viaf_result = check_viaf_with_fuzzy_match2(entity_name, entity_type='corporateNames')
 
+        # Przypisanie wszystkich URL-i VIAF zwróconych przez funkcję
+        if viaf_result and len(viaf_result) > 0:
+            viaf_urls = [result[0] for result in viaf_result]
+            viaf_url_str = ', '.join(viaf_urls)
+        else:
+            viaf_url_str = "Not found"
+    
+        # Przypisanie URL-a VIAF do odpowiedniej kolumny
+        result_df.at[index, viaf_col] = viaf_url_str
+result_df.to_excel('nowe_przewidywania_with_byty2.xlsx', index=False)

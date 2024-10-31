@@ -153,6 +153,17 @@ mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['po�
 
 # Użycie mapowania do stworzenia nowej kolumny w df
 df['rozwiniete_haslo'] = df['hasła przedmiotowe'].map(mapowanie)
+wartosci = df['rozwiniete_haslo'].str.split(expand=True).stack()
+
+# Zlicz wystąpienia każdej wartości
+wartosci = df['rozwiniete_haslo'].str.split(expand=True).stack()
+
+# Zlicz wystąpienia każdej wartości
+liczba_wystapien = wartosci.value_counts()
+liczba_wystapien_sum = wartosci.value_counts().sum()
+ilosc_gatunkow = liczba_wystapien.index.nunique()
+
+
 
 df = df.dropna(subset=['rozwiniete_haslo'])
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
