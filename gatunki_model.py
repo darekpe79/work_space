@@ -165,6 +165,12 @@ datasets_logger = logging.getLogger("datasets")
 datasets_logger.setLevel(logging.INFO)
 # Usunięcie wierszy gdzie 'forma/gatunek' jest pusty
 df = df.dropna(subset=['forma/gatunek'])
+wartosci = df['forma/gatunek'].str.split(expand=True).stack()
+
+# Zlicz wystąpienia każdej wartości
+liczba_wystapien = wartosci.value_counts()
+liczba_wystapien_sum = wartosci.value_counts().sum()
+ilosc_gatunkow = liczba_wystapien.index.nunique()
 
 # Połącz tytuł i tekst artykułu w jednym polu
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']

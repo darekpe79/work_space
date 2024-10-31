@@ -165,7 +165,10 @@ print(f"Unique values in 'do PBL' after filtering: {unique_values}")
 
 # Mapowanie wartości '0.0' i '1.0' na 'False' i 'True'
 combined_df['do PBL'] = combined_df['do PBL'].map({'0.0': "False", '1.0': "True", 'True': "True", 'False': "False"})
+wartosci = combined_df['do PBL'].str.split(expand=True).stack()
 
+# Zlicz wystąpienia każdej wartości
+liczba_wystapien = wartosci.value_counts()
 # Usuwanie wierszy z nan
 combined_df = combined_df.dropna(subset=['do PBL'])
 
