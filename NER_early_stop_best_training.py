@@ -235,3 +235,5 @@ tokenizer.save_pretrained("D:/Nowa_praca/adnotacje_spubi/model/")
 
 with open("D:/Nowa_praca/adnotacje_spubi/model/tag2id.json", 'w') as f:
     json.dump(tag2id, f)
+import transformers
+print(transformers.__version__)
