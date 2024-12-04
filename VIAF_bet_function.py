@@ -1336,7 +1336,7 @@ entity_type = 'uniformTitleWorks'
 entity_type ='uniformTitleExpressions'
 
 
-results = check_viaf_with_fuzzy_match2(entity_name, entity_type=entity_type)
+results = check_viaf_with_fuzzy_match2(entity_name)
 entity_name = 'Łódź'
 results = check_viaf_with_fuzzy_match2(entity_name,entity_type='geographicNames' )
 

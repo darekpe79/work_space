@@ -27,9 +27,9 @@ from spacy.tokens import Span
 # Initialize the tokenizer with the Polish model
 tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
 ##LADOWANIE danych JSON
-json_files_dir = 'D:/Nowa_praca/model QA i inne/dokumenty po anotacji/'
+json_files_dir = 'D:/Nowa_praca/adnotacje_spubi/anotowane/'
 json_files = [f for f in os.listdir(json_files_dir) if f.endswith('.json')]
-
+labels_to_remove = {'TOM', 'WYDAWNICTWO'}
 # Iterate over each JSON file
 transformed_data=[]
 for json_file in json_files:
@@ -46,7 +46,32 @@ for json_file in json_files:
             entities = item[1]['entities']  # Assuming this directly gives a list of tuples [(start, end, label), ...]
             tuples_list = [tuple(item) for item in item[1]['entities']]
             # Append to the existing dataset
-            transformed_data.append((text, {'entities':tuples_list}))   
+            transformed_data.append((text, {'entities':tuples_list}))  
+            
+transformed_data = []
+
+for json_file in json_files:
+    file_path = os.path.join(json_files_dir, json_file)
+    
+    # Ładowanie danych JSON z pliku
+    with open(file_path, 'r', encoding='utf-8') as file:
+        json_data = json.load(file)
+        
+        # Ekstrakcja adnotacji z danych JSON
+        for item in json_data['annotations']:
+            text = item[0]  # Wyodrębnienie tekstu
+            entities = item[1]['entities']  # Lista encji
+            
+            # Filtracja encji, aby usunąć te, które nie są reprezentatywne
+            filtered_entities = [
+                (start, end, label) 
+                for start, end, label in entities 
+                if label not in labels_to_remove
+            ]
+            
+            # Tylko dodaj dane, jeśli po filtracji są jakieś encje
+            if filtered_entities:
+                transformed_data.append((text, {'entities': filtered_entities}))
             
 from collections import defaultdict
 
@@ -202,16 +227,42 @@ def prepare_data(data, tokenizer, tag2id, max_length=514):
 
 # Mapowanie etykiet
 # Existing tag2id mapping
+# tag2id = {
+#     'O': 0, 
+#     'B-PLAY': 1, 
+#     'I-PLAY': 2,
+#     'B-EVENT': 3,  # New label for the beginning of an EVENT entity
+#     'I-EVENT': 4,  # New label for the inside of an EVENT entity
+#     'B-BOOK': 5,   # New label for the beginning of a BOOK entity
+#     'I-BOOK': 6    # New label for the inside of a BOOK entity
+# }
 tag2id = {
-    'O': 0, 
-    'B-PLAY': 1, 
-    'I-PLAY': 2,
-    'B-EVENT': 3,  # New label for the beginning of an EVENT entity
-    'I-EVENT': 4,  # New label for the inside of an EVENT entity
-    'B-BOOK': 5,   # New label for the beginning of a BOOK entity
-    'I-BOOK': 6    # New label for the inside of a BOOK entity
+    'O': 0,
+    
+    'B-MIEJSCE WYDANIA': 1,
+    'I-MIEJSCE WYDANIA': 2,
+    
+    'B-TYTUŁ': 3,
+    'I-TYTUŁ': 4,
+    
+    'B-DATA': 5,
+    'I-DATA': 6,
+    
+    'B-STRONY': 7,
+    'I-STRONY': 8,
+    
+    'B-WSPÓŁTWÓRCA': 9,
+    'I-WSPÓŁTWÓRCA': 10,
+    
+    'B-AUTOR': 11,
+    'I-AUTOR': 12,
+    
+    'B-FUNKCJA WSPÓŁTWÓRSTWA': 13,
+    'I-FUNKCJA WSPÓŁTWÓRSTWA': 14,
+    
+    'B-DOPISEK BIBLIOGRAFICZNY': 15,
+    'I-DOPISEK BIBLIOGRAFICZNY': 16
 }
-
 
 # Przygotowanie danych
 input_ids, attention_masks, labels = prepare_data(transformed_data_train, tokenizer, tag2id)
@@ -222,21 +273,52 @@ input_ids_eval, attention_masks_eval, labels_eval = prepare_data(transformed_dat
 # Weryfikacja wyników
 print(input_ids.shape, attention_masks.shape, labels.shape)
 
-example_idx = 10  # indeks przykładu, który chcemy wydrukować
+example_idx = 1  
+
+# Pobranie tekstu i adnotacji z przekształconych danych treningowych
 text, annotation = transformed_data_train[example_idx]
+
 # Konwersja input_ids do tokenów
 tokens = tokenizer.convert_ids_to_tokens(input_ids[example_idx])
-tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id in tag2id.values() else 'O' for tag_id in labels[example_idx]]
-print(f"Tags:\n{tags}\n")
-print(f"Tokens:\n{tokens}\n")
+
+# Konwersja tag ID do tagów
+tags = [
+    list(tag2id.keys())[list(tag2id.values()).index(tag_id)] 
+    if tag_id in tag2id.values() else 'O' 
+    for tag_id in labels[example_idx]
+]
+
+# Wydrukowanie oryginalnego tekstu
+print(f"Tekst:\n{text}\n")
+
+# Wydrukowanie tokenów
+print(f"Tokeny:\n{tokens}\n")
+
+# Wydrukowanie tagów
+print(f"Etykiety:\n{tags}\n")
+
+# Wydrukowanie input IDs
 print(f"Input IDs:\n{input_ids[example_idx]}\n")
+
+# Wydrukowanie Attention Masks
 print(f"Attention Masks:\n{attention_masks[example_idx]}\n")
+
+# Wydrukowanie Tag IDs
 print(f"Tag IDs:\n{labels[example_idx]}\n")
 
 # Wydrukuj skojarzone z tokenami etykiety (dla lepszej czytelności)
-tags = [list(tag2id.keys())[list(tag2id.values()).index(tag_id)] if tag_id in tag2id.values() else 'PAD' for tag_id in labels[example_idx]]
-print(f"Tags:\n{tags}\n")
-for token, label in zip(tokens, tags):
+tags_readable = [
+    list(tag2id.keys())[list(tag2id.values()).index(tag_id)] 
+    if tag_id in tag2id.values() else 'PAD' 
+    for tag_id in labels[example_idx]
+]
+
+print(f"Przejrzyste Etykiety:\n{tags_readable}\n")
+
+# Wydrukowanie tokenów wraz z odpowiadającymi im etykietami
+print("Token\tEtykieta")
+print("-" * 20)
+for token, label in zip(tokens, tags_readable):
     print(f"{token}\t{label}")
 
 from transformers import AutoModelForTokenClassification
@@ -406,7 +488,7 @@ for epoch in range(num_epochs):
         best_val_loss = avg_val_loss
         epochs_no_improve = 0
         # Zapisz najlepszy model
-        torch.save(model.state_dict(), 'C:/Users/User/Desktop/model_ner_3/best_model.pt')
+        torch.save(model.state_dict(), 'D:/Nowa_praca/adnotacje_spubi/best_model.pt')
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
@@ -414,16 +496,16 @@ for epoch in range(num_epochs):
             break
 
 # Po treningu wczytaj najlepszy model
-model.load_state_dict(torch.load('C:/Users/User/Desktop/model_ner_3/best_model.pt'))
+model.load_state_dict(torch.load('D:/Nowa_praca/adnotacje_spubi/best_model.pt'))
 
 # Zapisanie modelu i tokenizera
-save_directory = "C:/Users/User/Desktop/model_ner_3/"
+save_directory = "D:/Nowa_praca/adnotacje_spubi/model/"
 
 model.save_pretrained(save_directory)
 tokenizer.save_pretrained(save_directory)
 
 # Ścieżka do zapisu mapowania tag2id
-tag2id_path = "C:/Users/User/Desktop/model_ner_3/tag2id.json"
+tag2id_path = "D:/Nowa_praca/adnotacje_spubi/model/"
 
 # Zapisanie tag2id do pliku JSON
 with open(tag2id_path, 'w') as f:

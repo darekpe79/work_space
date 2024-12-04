@@ -16,6 +16,7 @@ import json
 import torch
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+import os
 
 def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', selected_columns_list=['Tytuł artykułu', 'Tekst artykułu', "hasła przedmiotowe"]):
     # Wczytanie danych z pliku JSON

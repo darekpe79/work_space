@@ -44,119 +44,39 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link', s
         return pd.DataFrame(columns=selected_columns_list)
 
 
-# Ścieżki do plików
-json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/booklips_posts_2022-11-22.json'
-excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/booklips_2022-11-22.xlsx'
-json_file_path2 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/afisz_teatralny_2022-09-08.json'
-excel_file_path2 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/afisz_teatralny_2022-09-08.xlsx'
-json_file_path3 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/pisarze_2023-01-27.json'
-excel_file_path3 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/pisarze_2023-01-27.xlsx'
-json_file_path4 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/afront_2022-09-08.json'
-excel_file_path4 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/afront_2022-09-08.xlsx'
-json_file_path5 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/artpapier_2022-10-05.json'
-excel_file_path5 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/artpapier_2022-10-05.xlsx'
-json_file_path6 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/audycjekulturalne_2022-10-11.json'
-excel_file_path6 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/audycjekulturalne_2022-10-11.xlsx'
-json_file_path7 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/bylam_widzialam_2023-02-21.json'
-excel_file_path7 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/bylam_widzialam_2023-02-21.xlsx'
-json_file_path8 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/czas_kultury_2023-03-24.json'
-excel_file_path8 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/czas_kultury_2023-03-24.xlsx'
-json_file_path9 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/film_dziennik_2023-10-23.json'
-excel_file_path9 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/film_dziennik_2023-10-23.xlsx'
-json_file_path10 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/intimathule_2022-09-09.json'
-excel_file_path10 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/intimathule_2022-09-09.xlsx'
-json_file_path11 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/jerzy_sosnowski_2022-09-09.json'
-excel_file_path11 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jerzy_sosnowski_2022-09-09.xlsx'
-json_file_path12 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/komnen_kastamonu_2022-09-12.json'
-excel_file_path12 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/komnen_kastamonu_2022-09-12.xlsx'
-json_file_path13 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/krzysztof_jaworski_2022-12-08.json'
-excel_file_path13 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/krzysztof_jaworski_2022-12-08.xlsx'
-json_file_path14 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/pgajda_2022-09-13.json'
-excel_file_path14 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/pgajda_2022-09-13.xlsx'
-json_file_path15 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/poeci_po_godzinach_2022-09-14.json'
-excel_file_path15 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/poeci_po_godzinach_2022-09-14.xlsx'
-# ... więcej plików w razie potrzeby
-
-# Użycie funkcji
-df1 = load_and_merge_data(json_file_path, excel_file_path)
-df2 = load_and_merge_data(json_file_path2, excel_file_path2)
-df3 = load_and_merge_data(json_file_path3, excel_file_path3)
-df4 = load_and_merge_data(json_file_path4, excel_file_path4)
-df5 = load_and_merge_data(json_file_path5, excel_file_path5)
-df6 = load_and_merge_data(json_file_path6, excel_file_path6)
-df7 = load_and_merge_data(json_file_path7, excel_file_path7)
-df8 = load_and_merge_data(json_file_path8, excel_file_path8)
-df9 = load_and_merge_data(json_file_path9, excel_file_path9)
-df10 = load_and_merge_data(json_file_path10, excel_file_path10)
-df11 = load_and_merge_data(json_file_path11, excel_file_path11)
-df12 = load_and_merge_data(json_file_path12, excel_file_path12)
-df13 = load_and_merge_data(json_file_path13, excel_file_path13)
-df14 = load_and_merge_data(json_file_path14, excel_file_path14)
-df15 = load_and_merge_data(json_file_path15, excel_file_path15)
-
-# ... wczytanie kolejnych par plików
-
-# Połączenie wszystkich DataFrame'ów
-combined_df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15], ignore_index=True)
-#%%
-# import pandas as pd
-# import json
-
-# # Ścieżki do plików
-# json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/booklips_posts_2022-11-22.json'
-# excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/booklips_2022-11-22.xlsx'
-# json_file_path2 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/afisz_teatralny_2022-09-08.json'
-# excel_file_path2 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/afisz_teatralny_2022-09-08.xlsx'
-# json_file_path3 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/pisarze_2023-01-27.json'
-# excel_file_path3 = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/pisarze_2023-01-27.xlsx'
-
-# # Wczytanie danych z pliku JSON
-# with open(json_file_path, 'r', encoding='utf-8') as file:
-#     json_data = json.load(file)
-# df_json = pd.DataFrame(json_data)
-# df_json=df_json[['Link', 'Tekst artykułu']]
-# # Wczytanie danych z pliku Excel
-# df_excel = pd.read_excel(excel_file_path)
-
-
-# # Połączenie danych po tytule artykułu
-# merged_df = pd.merge(df_json, df_excel, on="Link", how="inner")
-
-# # Wybór kolumn, w tym pełnych tekstów
-# selected_columns = merged_df[['Tytuł artykułu', 'Tekst artykułu', "forma/gatunek"]]
-# selected_columns=selected_columns.dropna(subset=['forma/gatunek'])
-# with open(json_file_path2, 'r', encoding='utf-8') as file2:
-#     json_data2 = json.load(file2)
-# df_json2 = pd.DataFrame(json_data2)
-# df_json2=df_json2[['Link', 'Tekst artykułu']]
-# # Wczytanie danych z pliku Excel
-# df_excel2 = pd.read_excel(excel_file_path2)
-# merged_df2 = pd.merge(df_json2, df_excel2, on="Link", how="inner")
-# selected_columns2 = merged_df2[['Tytuł artykułu', 'Tekst artykułu', "forma/gatunek"]]
-# selected_columns2=selected_columns2.dropna(subset=['forma/gatunek'])
-# with open(json_file_path3, 'r', encoding='utf-8') as file3:
-#     json_data3 = json.load(file3)
-# df_json3 = pd.DataFrame(json_data3)
-# df_json3=df_json3[['Link', 'Tekst artykułu']]
-# # Wczytanie danych z pliku Excel
-# df_excel3 = pd.read_excel(excel_file_path3)
-# merged_df3 = pd.merge(df_json3, df_excel3, on="Link", how="inner")
-# selected_columns3 = merged_df3[['Tytuł artykułu', 'Tekst artykułu', "forma/gatunek"]]
-# selected_columns3=selected_columns3.dropna(subset=['forma/gatunek'])
-# combined_df = pd.concat([selected_columns, selected_columns2,selected_columns3], ignore_index=True)
-# # Eksportowanie do pliku JSON
-# output_json_path = 'merged_data.json'  # Ścieżka do zapisu pliku JSON
-# selected_columns.to_json(output_json_path, orient='records', force_ascii=False)
-from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
+from transformers import BertTokenizer,EarlyStoppingCallback, BertForSequenceClassification, Trainer, TrainingArguments, AutoModelForSequenceClassification
 from datasets import Dataset, DatasetDict
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import torch
 import logging
-from transformers import AutoTokenizer, AutoModel
-
+from transformers import AutoTokenizer, AutoModel,HerbertTokenizerFast
+import os
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 # Załaduj dane z wcześniej przygotowanego DataFrame (df)
-df = combined_df
+base_dir = 'D:/Nowa_praca/dane_model_jezykowy/kopia_dla_UAM/'
+json_dir = os.path.join(base_dir, 'Json')
+
+# Pobranie list plików JSON i Excel
+json_files = {os.path.splitext(f)[0]: os.path.join(json_dir, f) for f in os.listdir(json_dir) if f.endswith('.json')}
+excel_files = {os.path.splitext(f)[0]: os.path.join(base_dir, f) for f in os.listdir(base_dir) if f.endswith('.xlsx')}
+
+# Znalezienie wspólnych nazw plików
+common_files = set(json_files.keys()).intersection(excel_files.keys())
+
+# Automatyczne wczytywanie i łączenie danych
+merged_dfs = []
+for file_name in common_files:
+    json_path = json_files[file_name]
+    excel_path = excel_files[file_name]
+    print(f"Przetwarzanie pary: JSON - {json_path}, Excel - {excel_path}")
+    merged_df = load_and_merge_data(json_path, excel_path)
+    if merged_df is not None:
+        merged_dfs.append(merged_df)
+
+# Połączenie wszystkich wynikowych DataFrame'ów w jeden
+if merged_dfs:
+    df = pd.concat(merged_dfs, ignore_index=True)
 #df=df.head(300)
 logger = logging.getLogger("transformers")
 logger.setLevel(logging.INFO)
@@ -165,85 +85,138 @@ datasets_logger = logging.getLogger("datasets")
 datasets_logger.setLevel(logging.INFO)
 # Usunięcie wierszy gdzie 'forma/gatunek' jest pusty
 df = df.dropna(subset=['forma/gatunek'])
-wartosci = df['forma/gatunek'].str.split(expand=True).stack()
 
-# Zlicz wystąpienia każdej wartości
-liczba_wystapien = wartosci.value_counts()
-liczba_wystapien_sum = wartosci.value_counts().sum()
-ilosc_gatunkow = liczba_wystapien.index.nunique()
+df = df.assign(forma_gatunek_split=df['forma/gatunek'].str.split(r'[;,]')).explode('forma_gatunek_split')
+
+
+# Usuń zbędne białe znaki z hasła przedmiotowego
+df['forma_gatunek_split'] = df['forma_gatunek_split'].str.strip()
+
+
+# Opcjonalnie: Usuń wiersze z pustymi hasłami po stripowaniu
+df = df[df['forma_gatunek_split'] != '']
+df = df.reset_index(drop=True)
+
+df = df.dropna(subset=['forma/gatunek'])
+min_samples = 100
+class_counts = df['forma_gatunek_split'].value_counts()
+classes_to_keep = class_counts[class_counts >= min_samples].index.tolist()
+
+# Odfiltrowujemy wiersze z klasami poniżej progu
+df = df[df['forma_gatunek_split'].isin(classes_to_keep)]
+# Zresetuj indeksy DataFrame
 
 # Połącz tytuł i tekst artykułu w jednym polu
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
 
 # Kodowanie etykiet
 label_encoder = LabelEncoder()
-df['labels'] = label_encoder.fit_transform(df['forma/gatunek'])
 
-# Przygotuj tokenizator i model
-# tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-# model = BertForSequenceClassification.from_pretrained(
-#     "bert-base-uncased",
-#     num_labels=len(label_encoder.classes_),
-#     problem_type="single_label_classification"
-# )
+df['labels'] = label_encoder.fit_transform(df['forma_gatunek_split'])
+num_classes = len(label_encoder.classes_)
 
-tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-base-cased")
+tokenizer = AutoTokenizer.from_pretrained("allegro/herbert-large-cased")
 model = AutoModelForSequenceClassification.from_pretrained(
-    "allegro/herbert-base-cased",
+    "allegro/herbert-large-cased",
     num_labels=len(label_encoder.classes_),
     problem_type="single_label_classification"
 )
 
-
 # Funkcja do tokenizacji i kodowania danych
 def tokenize_and_encode(examples):
-    return tokenizer(examples['combined_text'], padding='max_length', truncation=True, max_length=512)
+    return tokenizer(
+        examples['combined_text'],
+        padding='max_length',
+        truncation=True,
+        max_length=514
+    )
 
 # Mapowanie funkcji tokenizującej do datasetu
-dataset = Dataset.from_pandas(df)
+dataset = Dataset.from_pandas(df[['combined_text', 'labels']])
 dataset = dataset.map(tokenize_and_encode, batched=True)
+
+# Ustawienie kolumny 'labels' jako 'label' i sformatowanie danych
+dataset = dataset.rename_column("labels", "label")
+dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
 
 # Podział na zbiór treningowy i walidacyjny
 train_test_dataset = dataset.train_test_split(test_size=0.2)
 dataset_dict = DatasetDict({
     'train': train_test_dataset['train'],
-    'test': train_test_dataset['test']
+    'eval': train_test_dataset['test']
 })
+
+# **Obliczanie wag klas**
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
+# Pobranie etykiet ze zbioru treningowego
+train_labels = np.array(dataset_dict['train']['label'])
+
+# Obliczanie wag klas
+classes = np.unique(train_labels)
+class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=train_labels)
+
+# Konwersja wag klas na tensor
+class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
 
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
     output_dir="./results",
-    num_train_epochs=4,              # liczba epok
-    per_device_train_batch_size=4,   # rozmiar batcha
-    per_device_eval_batch_size=4,
-    warmup_steps=500,                # kroki rozgrzewki
-    weight_decay=0.01,               # waga decay
+    num_train_epochs=10,               # Ustawienie większej liczby epok
+    per_device_train_batch_size=8,     # Zwiększenie batch size, jeśli to możliwe
+    per_device_eval_batch_size=8,
+    warmup_steps=500,
+    weight_decay=0.01,
     logging_dir='./logs',
+    logging_steps=50,
     evaluation_strategy="epoch",
-    no_cuda=True  # Używanie CPU
+    save_strategy="epoch",
+    load_best_model_at_end=True,       # Załadowanie najlepszego modelu na końcu
+    metric_for_best_model="accuracy",  # Metryka używana do wyboru najlepszego modelu
+    greater_is_better=True,
+    save_total_limit=2,                # Maksymalna liczba zapisanych modeli
+    no_cuda=True                       # Ustaw na False, jeśli masz dostęp do GPU
 )
 
-# Inicjalizacja trenera
-# trainer = Trainer(
-#     model=model,
-#     args=training_args,
-#     train_dataset=dataset_dict['train'],
-#     eval_dataset=dataset_dict['test']
-# )
-from sklearn.metrics import accuracy_score
-
+# Definicja funkcji do obliczania metryk
 def compute_metrics(pred):
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
     acc = accuracy_score(labels, preds)
-    return {'accuracy': acc}
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
+    return {
+        'accuracy': acc,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
+    }
 
-trainer = Trainer(
+# **Tworzenie niestandardowej klasy trenera z wagami klas**
+from transformers import Trainer
+
+class WeightedTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.get("labels")
+        # Forward pass
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+        # Przeniesienie wag klas na odpowiednie urządzenie (CPU lub GPU)
+        device = logits.device
+        weights = class_weights_tensor.to(device)
+        # Definicja funkcji straty z wagami klas
+        loss_fct = torch.nn.CrossEntropyLoss(weight=weights)
+        # Obliczenie straty
+        loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
+        return (loss, outputs) if return_outputs else loss
+
+# Inicjalizacja trenera z funkcją wczesnego zatrzymania
+trainer = WeightedTrainer(
     model=model,
     args=training_args,
     train_dataset=dataset_dict['train'],
-    eval_dataset=dataset_dict['test'],
-    compute_metrics=compute_metrics
+    eval_dataset=dataset_dict['eval'],
+    compute_metrics=compute_metrics,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]  # Wczesne zatrzymanie po 2 epokach bez poprawy
 )
 
 # Trening modelu
@@ -254,13 +227,18 @@ results = trainer.evaluate()
 
 # Wyniki
 print(results)
-model_path = "model_4epoch"
+
+# Zapisanie modelu i tokenizer'a
+model_path = "model_best"
 model.save_pretrained(model_path)
 tokenizer.save_pretrained(model_path)
 import joblib
-
 # Zapisanie LabelEncoder
 joblib.dump(label_encoder, 'label_encoder.joblib')
+
+
+
+
 
 
 #ładowanie modelu

@@ -2396,7 +2396,11 @@ def lack_of_data_first_step(df):
     return df
 
 def add_literature_2(df):
-    literary_genres = ["poesie", "poezie", "próz", "román", "novel", "novella", "povídk", "obraz", "drama", "bás", "verš", "jednán"]
+    literary_genres = [
+            "poesie", "poezie", "próz.*", "román.*", "roman.*", "novel", "novella",
+            "povídk.*", "obraz.*", "obráz.*", "drama", "drama.*", ".*hra ", ".*hry ",
+            "dějstv.*", "bás.*", "verš.*", "jednán.*"
+        ]
     mask_literary_genre = df['Subtitle'].str.lower().str.contains('|'.join(literary_genres), na=False)
     mask_lack_of_data = df['695'].str.contains('Lack of Data', na=False)
     final_mask = mask_literary_genre & mask_lack_of_data
@@ -2573,6 +2577,55 @@ with pd.ExcelWriter('authors_with_errors.xlsx', engine='xlsxwriter') as writer:
     authors_df.to_excel(writer, index=False)
 
 
+from pymarc import Field, MARCWriter
+
+def update_marc_records(df, marc_records, output_file):
+    """
+    Aktualizuje rekordy MARC na podstawie zaktualizowanego DataFrame i zapisuje do nowego pliku MARC.
+    
+    Parametry:
+    - df: pandas DataFrame zawierający zaktualizowane dane, kolumny 'Record ID', '695', '690'.
+    - marc_records: lista rekordów MARC do przetworzenia.
+    - output_file: ścieżka do pliku wyjściowego MARC.
+    """
+    with MARCWriter(open(output_file, 'wb')) as writer:
+        for record in marc_records:
+            record_id = record['001'].value() if record['001'] else None
+            if not record_id or record_id not in df['Record ID'].values:
+                writer.write(record)
+                continue
+
+            # Pobranie odpowiednich wartości z DataFrame
+            current_row = df.loc[df['Record ID'] == record_id].squeeze()
+            updated_695 = current_row['695']
+            updated_690 = current_row['690']
+
+            # Aktualizacja pola 695
+            record.remove_fields('695')
+            for val in updated_695.split(','):
+                record.add_field(
+                    Field(
+                        tag='695',
+                        indicators=[' ', ' '],
+                        subfields=['a', val.strip()]
+                    )
+                )
+
+            # Aktualizacja pola 690
+            record.remove_fields('690')
+            for val in updated_690.split(','):
+                record.add_field(
+                    Field(
+                        tag='690',
+                        indicators=[' ', ' '],
+                        subfields=['a', val.strip()]
+                    )
+                )
+            
+            # Zapisz zaktualizowany rekord
+            writer.write(record)
+
+    print(f"Updated MARC records saved to {output_file}")
 
 
 

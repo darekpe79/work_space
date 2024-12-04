@@ -70,8 +70,8 @@ def load_and_merge_data(json_file_path, excel_file_path, common_column='Link'):
     return merged_df
 
 # Przykładowe użycie
-json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/jsony/domagala2024-02-08.json'
-excel_file_path = 'D:/Nowa_praca/dane_model_jezykowy/drive-download-20231211T112144Z-001/domagala_2024-02-08.xlsx'
+json_file_path = 'D:/Nowa_praca/dane_model_jezykowy/kopia_dla_UAM/bernadetta_darska_2022-09-09.json'
+excel_file_path = 'C:/Users/dariu/Downloads/bernadetta_darska_2022-09-09 (1).xlsx'
 df = load_and_merge_data(json_file_path, excel_file_path)
 df = df[df['Tytuł artykułu'].apply(lambda x: isinstance(x, str))]
 df = df[df['Tekst artykułu'].apply(lambda x: isinstance(x, str))]
@@ -83,9 +83,15 @@ tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
 # W późniejszym czasie, aby wczytać LabelEncoder:
 label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek_large/label_encoder_gatunek5.joblib')
 # TRUE FALSE
-model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
+model_path = "C:/Users/dariu/Truefalse_21.11.2024/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
-tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
+tokenizer_t_f = HerbertTokenizerFast.from_pretrained("allegro/herbert-large-cased")
+
+label_encoder_t_f = joblib.load('C:/Users/dariu/Truefalse_21.11.2024/label_encoder.joblib')
+# TRUE FALSE
+# model_path = "C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/"
+# model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
+# tokenizer_t_f =  HerbertTokenizerFast.from_pretrained(model_path)
 
 label_encoder_t_f = joblib.load('C:/Users/dariu/model_TRUE_FALSE_4epoch_base_514_tokens/label_encoder_true_false4epoch_514_tokens.joblib')
 
@@ -100,10 +106,12 @@ tokenizer_hasla = HerbertTokenizerFast.from_pretrained(model_path_hasla)
 label_encoder_hasla = joblib.load('C:/Users/dariu/model_hasla_8epoch_base/label_encoder_hasla_base.joblib')
 #sampled_df['combined_text'] =sampled_df['Tytuł artykułu'].astype(str) + " </tytuł>" + sampled_df['Tekst artykułu'].astype(str)
 df['combined_text'] =df['Tytuł artykułu'].astype(str) + " </tytuł>" + df['Tekst artykułu'].astype(str)
-sampled_df=df[:20]#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
+# sampled_df=df#[['combined_text','Tytuł artykułu','Tekst artykułu', 'Link', 'do PBL']]
 
-sampled_df['do PBL']=sampled_df['do PBL'].astype(str)
-
+# sampled_df['do PBL']=sampled_df['do PBL'].astype(str)
+model_genre.eval()
+model_t_f.eval()
+model_hasla.eval()
 def predict_categories(df, text_column):
     predictions_list = []
     
@@ -123,25 +131,25 @@ def predict_categories(df, text_column):
         confidence_genre = ''  # Początkowa wartość pewności dla gatunku
         confidence_haslo = ''  # Początkowa wartość pewności dla hasła
         
-        if predicted_label_t_f == 'True':
+        # if predicted_label_t_f == 'True':
             # Przewidywanie gatunku
-            inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
-            outputs_genre = model_genre(**inputs_genre)
-            predictions_genre = torch.softmax(outputs_genre.logits, dim=1)
-            predicted_index_genre = predictions_genre.argmax().item()
-            genre = label_encoder.inverse_transform([predicted_index_genre])[0]
-            confidence_genre = predictions_genre.max().item() * 100  # Procent pewności
-            
-            # Przewidywanie hasła
-            inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
-            outputs_hasla = model_hasla(**inputs_hasla)
-            predictions_hasla = torch.softmax(outputs_hasla.logits, dim=1)
-            predicted_index_hasla = predictions_hasla.argmax().item()
-            haslo = label_encoder_hasla.inverse_transform([predicted_index_hasla])[0]
-            confidence_haslo = predictions_hasla.max().item() * 100  # Procent pewności
-            
-            row_data = [text, predicted_label_t_f, confidence_t_f, genre, confidence_genre, haslo, confidence_haslo] + [row[col] for col in df.columns if col != text_column]
-            predictions_list.append(row_data)
+        inputs_genre = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
+        outputs_genre = model_genre(**inputs_genre)
+        predictions_genre = torch.softmax(outputs_genre.logits, dim=1)
+        predicted_index_genre = predictions_genre.argmax().item()
+        genre = label_encoder.inverse_transform([predicted_index_genre])[0]
+        confidence_genre = predictions_genre.max().item() * 100  # Procent pewności
+        
+        # Przewidywanie hasła
+        inputs_hasla = tokenizer_hasla(text, return_tensors="pt", padding=True, truncation=True, max_length=514)
+        outputs_hasla = model_hasla(**inputs_hasla)
+        predictions_hasla = torch.softmax(outputs_hasla.logits, dim=1)
+        predicted_index_hasla = predictions_hasla.argmax().item()
+        haslo = label_encoder_hasla.inverse_transform([predicted_index_hasla])[0]
+        confidence_haslo = predictions_hasla.max().item() * 100  # Procent pewności
+        
+        row_data = [text, predicted_label_t_f, confidence_t_f, genre, confidence_genre, haslo, confidence_haslo] + [row[col] for col in df.columns if col != text_column]
+        predictions_list.append(row_data)
     
     new_columns = [text_column, 'True/False', 'Pewnosc T/F', 'Gatunek', 'Pewnosc Gatunku', 'Hasło', 'Pewnosc Hasła'] + [col for col in df.columns if col != text_column]
     
@@ -151,13 +159,13 @@ def predict_categories(df, text_column):
 
 
 # Przykład użycia funkcji:
-result_df = predict_categories(sampled_df, 'combined_text')
+result_df = predict_categories(df, 'combined_text')
 
 
 
-# result_df['comparison'] = np.where(result_df['do PBL'] == result_df['True/False'], 'Match', 'Mismatch')
-# result_df['comparison_gatunek'] = np.where(result_df['forma/gatunek'] == result_df['Gatunek'], 'Match', 'Mismatch')
-# result_df.to_excel('nowe_przewidywania28-06.xlsx', index=False)
+result_df['comparison'] = np.where(result_df['do PBL'] == result_df['True/False'], 'Match', 'Mismatch')
+result_df['comparison_gatunek'] = np.where(result_df['forma/gatunek'] == result_df['Gatunek'], 'Match', 'Mismatch')
+result_df.to_excel('nowe_przewidywania28-06.xlsx', index=False)
 
 
 # ADD BYTY
@@ -765,4 +773,5 @@ for index, row in tqdm(result_df[result_df['True/False'] == "True"].iterrows(),
     
         # Przypisanie URL-a VIAF do odpowiedniej kolumny
         result_df.at[index, viaf_col] = viaf_url_str
-result_df.to_excel('nowe_przewidywania_with_byty2.xlsx', index=False)
+result_df.to_excel('nowe_przewidywania_nowy model2.xlsx', index=False)
+sampled_df.to_excel('nowe_przewidywania_with_byty2.xlsx', index=False)

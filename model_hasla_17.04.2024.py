@@ -16,6 +16,7 @@ import torch
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from transformers import AutoConfig
+import os
 
 # Załaduj konfigurację modelu Herbert
 config = AutoConfig.from_pretrained("allegro/herbert-base-cased")
@@ -140,7 +141,30 @@ df25= load_and_merge_data(json_file_path25, excel_file_path25)
 
 # Połączenie wszystkich DataFrame'ów
 df = pd.concat([df1, df2, df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df19,df20,df21,df22,df23,df24,df25], ignore_index=True)
+#%%
+base_dir = 'D:/Nowa_praca/dane_model_jezykowy/kopia_dla_UAM/'
+json_dir = os.path.join(base_dir, 'Json')
 
+# Pobranie list plików JSON i Excel
+json_files = {os.path.splitext(f)[0]: os.path.join(json_dir, f) for f in os.listdir(json_dir) if f.endswith('.json')}
+excel_files = {os.path.splitext(f)[0]: os.path.join(base_dir, f) for f in os.listdir(base_dir) if f.endswith('.xlsx')}
+
+# Znalezienie wspólnych nazw plików
+common_files = set(json_files.keys()).intersection(excel_files.keys())
+
+# Automatyczne wczytywanie i łączenie danych
+merged_dfs = []
+for file_name in common_files:
+    json_path = json_files[file_name]
+    excel_path = excel_files[file_name]
+    print(f"Przetwarzanie pary: JSON - {json_path}, Excel - {excel_path}")
+    merged_df = load_and_merge_data(json_path, excel_path)
+    if merged_df is not None:
+        merged_dfs.append(merged_df)
+
+# Połączenie wszystkich wynikowych DataFrame'ów w jeden
+if merged_dfs:
+    df = pd.concat(merged_dfs, ignore_index=True)
 logger = logging.getLogger("transformers")
 logger.setLevel(logging.INFO)
 
@@ -153,10 +177,9 @@ mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['po�
 
 # Użycie mapowania do stworzenia nowej kolumny w df
 df['rozwiniete_haslo'] = df['hasła przedmiotowe'].map(mapowanie)
-wartosci = df['rozwiniete_haslo'].str.split(expand=True).stack()
+wartosci = df['hasła przedmiotowe'].str.split(r'[;,]', expand=True).stack().str.strip()
 
-# Zlicz wystąpienia każdej wartości
-wartosci = df['rozwiniete_haslo'].str.split(expand=True).stack()
+
 
 # Zlicz wystąpienia każdej wartości
 liczba_wystapien = wartosci.value_counts()
@@ -165,12 +188,24 @@ ilosc_gatunkow = liczba_wystapien.index.nunique()
 
 
 
-df = df.dropna(subset=['rozwiniete_haslo'])
+df = df.dropna(subset=['hasła przedmiotowe'])
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
+
+
+df = df.assign(hasła_przedmiotowe_split=df['hasła przedmiotowe'].str.split(';')).explode('hasła_przedmiotowe_split')
+
+# Usuń zbędne białe znaki z hasła przedmiotowego
+df['hasła_przedmiotowe_split'] = df['hasła_przedmiotowe_split'].str.strip()
+
+# Opcjonalnie: Usuń wiersze z pustymi hasłami po stripowaniu
+df = df[df['hasła_przedmiotowe_split'] != '']
+
+# Zresetuj indeksy DataFrame
+df = df.reset_index(drop=True)
 
 # Kodowanie etykiet
 label_encoder = LabelEncoder()
-df['labels'] = label_encoder.fit_transform(df['rozwiniete_haslo'])
+df['labels'] = label_encoder.fit_transform(df['hasła_przedmiotowe_split'])
 
 # Przygotuj tokenizator i model
 # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")

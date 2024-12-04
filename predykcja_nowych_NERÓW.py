@@ -4,6 +4,45 @@ Created on Thu Mar  7 10:56:22 2024
 
 @author: dariu
 """
+import json
+from transformers import AutoModelForTokenClassification, HerbertTokenizerFast, pipeline
+
+# Ścieżki do modelu i pliku tag2id
+model_path = "D:/Nowa_praca/adnotacje_spubi/model_29_11_2024/"
+tag2id_path = "D:/Nowa_praca/adnotacje_spubi/model_29_11_2024/tag2id.json"
+
+# Ładowanie modelu
+model = AutoModelForTokenClassification.from_pretrained(model_path)
+
+# Ładowanie tokenizatora
+tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
+
+# Załadowanie mapowania tagów z pliku JSON
+with open(tag2id_path, "r", encoding="utf-8") as f:
+    tag2id = json.load(f)
+
+# Utworzenie odwróconego mapowania id2tag
+id2tag = {v: k for k, v in tag2id.items()}
+
+# Przypisanie mapowania do konfiguracji modelu
+model.config.label2id = tag2id
+model.config.id2label = id2tag
+
+# Tworzenie pipeline NER
+nlp = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
+
+# Przykładowy tekst
+text = ''' 
+[rec. ks.:] Gabriele Muschter, Ruediger Thomas: Jenseits der Staatskultur. Traditionen autonomer Kunst in der DDR. Muenchen-Wien 1992.  
+'''
+
+# Analiza tekstu za pomocą pipeline
+results = nlp(text)
+
+# Wyświetlenie wyników
+for entity in results:
+    print(f"Tekst: {entity['word']}, Etykieta: {entity['entity_group']}, Skala pewności: {entity['score']:.2f}")
+
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 import json
 from transformers import AutoConfig

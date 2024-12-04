@@ -8,7 +8,7 @@ Created on Wed Oct 30 09:01:50 2024
 from pymarc import MARCReader, XMLWriter
 
 # Otwieranie pliku MARC i pliku wyjściowego XML
-with open('input.mrc', 'rb') as marc_file, open('output.xml', 'wb') as xml_file:
+with open('D:/Nowa_praca/08.02.2024_marki/es_articles__08-02-2024.mrc', 'rb') as marc_file, open('spain_articles.xml', 'wb') as xml_file:
     reader = MARCReader(marc_file)
     writer = XMLWriter(xml_file)
 
