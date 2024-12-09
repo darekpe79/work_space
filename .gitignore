@@ -6,3 +6,4 @@ build/
 *.pkg
 *.zip
 *.tar.gz
+Scopus_API.py
