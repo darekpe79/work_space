@@ -55,7 +55,7 @@ entity_stats = sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)
 transformed_data_train, transformed_data_eval = train_test_split(transformed_data, test_size=0.1, random_state=42)
 
 # Funkcja przetwarzająca dane do formatu `datasets`
-def prepare_data(data, tokenizer, tag2id, max_length=439):
+def prepare_data(data, tokenizer, tag2id, max_length=514):
     texts = [text for text, _ in data]
     annotations = [annotation['entities'] for _, annotation in data]
 

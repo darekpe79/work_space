@@ -76,12 +76,14 @@ df = load_and_merge_data(json_file_path, excel_file_path)
 df = df[df['Tytuł artykułu'].apply(lambda x: isinstance(x, str))]
 df = df[df['Tekst artykułu'].apply(lambda x: isinstance(x, str))]
 
-model_path = "C:/Users/dariu/model_5epoch_gatunek_large"
+model_path = "D:/Nowa_praca/dane_model_jezykowy/katalog na best model GATUNKI/model_best 6epok/"
 model_genre = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
-
+# model_path = "C:/Users/dariu/model_5epoch_gatunek_large"
+# model_genre = AutoModelForSequenceClassification.from_pretrained(model_path)
+# tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
 # W późniejszym czasie, aby wczytać LabelEncoder:
-label_encoder = joblib.load('C:/Users/dariu/model_5epoch_gatunek_large/label_encoder_gatunek5.joblib')
+label_encoder = joblib.load('D:/Nowa_praca/dane_model_jezykowy/katalog na best model GATUNKI/model_best 6epok/label_encoder.joblib')
 # TRUE FALSE
 model_path = "C:/Users/dariu/Truefalse_21.11.2024/"
 model_t_f = AutoModelForSequenceClassification.from_pretrained(model_path)
