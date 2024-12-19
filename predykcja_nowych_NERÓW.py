@@ -15,7 +15,7 @@ tag2id_path = "D:/Nowa_praca/adnotacje_spubi/model_29_11_2024/tag2id.json"
 model = AutoModelForTokenClassification.from_pretrained(model_path)
 
 # Ładowanie tokenizatora
-tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
+tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
 
 # Załadowanie mapowania tagów z pliku JSON
 with open(tag2id_path, "r", encoding="utf-8") as f:

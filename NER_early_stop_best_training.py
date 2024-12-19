@@ -21,7 +21,7 @@ tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
 json_files_dir = 'D:/Nowa_praca/adnotacje_spubi/anotowane/'
 json_files = [f for f in os.listdir(json_files_dir) if f.endswith('.json')]
 
-labels_to_remove = {'TOM', 'WYDAWNICTWO'}
+labels_to_remove ={} #{'TOM', 'WYDAWNICTWO'}
 transformed_data = []
 
 # Wczytanie danych i przetworzenie adnotacji
@@ -129,7 +129,7 @@ tag2id = {
     'B-WSPÓŁTWÓRCA': 9, 'I-WSPÓŁTWÓRCA': 10,
     'B-AUTOR': 11, 'I-AUTOR': 12,
     'B-FUNKCJA WSPÓŁTWÓRSTWA': 13, 'I-FUNKCJA WSPÓŁTWÓRSTWA': 14,
-    'B-DOPISEK BIBLIOGRAFICZNY': 15, 'I-DOPISEK BIBLIOGRAFICZNY': 16
+    'B-DOPISEK BIBLIOGRAFICZNY': 15, 'I-DOPISEK BIBLIOGRAFICZNY': 16, 'B-TOM':17,'I-TOM':18
 }
 id2tag = {v: k for k, v in tag2id.items()}
 
@@ -149,6 +149,32 @@ dataset_dict = DatasetDict({
     "train": train_dataset,
     "test": eval_dataset
 })
+
+def print_example_from_dataset(dataset, tokenizer, example_index=0):
+    input_ids = dataset[example_index]["input_ids"]
+    attention_mask = dataset[example_index]["attention_mask"]
+    labels = dataset[example_index]["labels"]
+
+    # Konwersja input_ids do tokenów
+    tokens = tokenizer.convert_ids_to_tokens(input_ids)
+
+    # Mapowanie etykiet do nazw
+    readable_labels = [id2tag[label] if label in id2tag else "PAD" for label in labels]
+
+    print("\n=== Przykład danych ===")
+    print("Pełny tekst (zrekonstruowany):")
+    reconstructed_text = tokenizer.decode(input_ids, skip_special_tokens=True)
+    print(reconstructed_text)
+    print("\nTokeny, etykiety i maski uwagi:")
+    print(f"{'Token':<15} {'Label':<25} {'Attention Mask':<15}")
+    print("-" * 55)
+
+    for token, label, mask in zip(tokens, readable_labels, attention_mask):
+        if mask == 1:  # Wyświetlaj tylko te tokeny, które mają maskę uwagi równą 1
+            print(f"{token:<15} {label:<25} {mask:<15}")
+
+# Wydruk przykładowych danych z train_dataset
+print_example_from_dataset(train_dataset, tokenizer, example_index=0)
 
 # Przygotowanie modelu
 model = AutoModelForTokenClassification.from_pretrained(
@@ -228,8 +254,10 @@ trainer = Trainer(
 
 # Trening
 trainer.train()
-
+model.config.label2id = tag2id
+model.config.id2label = {v: k for k, v in tag2id.items()}
 # Zapisanie modelu, tokenizera i mapowania tagów
+
 trainer.save_model("D:/Nowa_praca/adnotacje_spubi/model/")
 tokenizer.save_pretrained("D:/Nowa_praca/adnotacje_spubi/model/")
 
@@ -237,3 +265,32 @@ with open("D:/Nowa_praca/adnotacje_spubi/model/tag2id.json", 'w') as f:
     json.dump(tag2id, f)
 import transformers
 print(transformers.__version__)
+
+
+from transformers import AutoModelForTokenClassification, HerbertTokenizerFast, pipeline
+
+# Ścieżka do modelu
+model_path = "D:/Nowa_praca/adnotacje_spubi/model_29_11_2024/"
+
+# Ładowanie modelu i tokenizatora
+model = AutoModelForTokenClassification.from_pretrained(model_path)
+tokenizer = HerbertTokenizerFast.from_pretrained(model_path)
+
+# Mapowania tagów są automatycznie dostępne w konfiguracji modelu
+tag2id = model.config.label2id
+id2tag = model.config.id2label
+
+# Tworzenie pipeline NER
+nlp = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
+
+# Przykładowy tekst
+text = ''' 
+[rec. ks.:] Gabriele Muschter, Ruediger Thomas: Jenseits der Staatskultur. Traditionen autonomer Kunst in der DDR. Muenchen-Wien 1992.  
+'''
+
+# Analiza tekstu za pomocą pipeline
+results = nlp(text)
+
+# Wyświetlenie wyników z mapowaniem etykiet
+for entity in results:
+    print(f"Tekst: {entity['word']}, Etykieta: {entity['entity_group']}, Skala pewności: {entity['score']:.2f}")

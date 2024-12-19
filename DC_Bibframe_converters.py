@@ -438,3 +438,155 @@ for _, row in data.iterrows():
 
 # Zapisywanie do pliku RDF/XML
 rdf_graph.serialize("output_bibframe.rdf", format="xml")
+
+
+
+#%%
+import pandas as pd
+import json
+from rdflib import Graph, Namespace, URIRef, Literal, BNode
+from rdflib.namespace import RDF, RDFS, XSD
+
+# Namespace'y
+BF = Namespace('http://id.loc.gov/ontologies/bibframe/')
+BFL = Namespace('http://id.loc.gov/ontologies/bflc/')
+EX = Namespace('http://example.org/')
+RDFS = RDFS
+XSD = XSD
+
+# Wczytanie danych z Excela i mapowania z JSON
+def load_data_and_mapping(excel_file, mapping_file):
+    df = pd.read_excel(excel_file)
+    with open(mapping_file, 'r', encoding='utf-8') as f:
+        mapping = json.load(f)
+    return df, mapping
+
+# Tworzenie Work
+def create_work(graph, identifier, title):
+    work_uri = URIRef(f"http://example.org/work/{identifier}")
+    graph.add((work_uri, RDF.type, BF.Work))
+    
+    # Dodanie tytułu
+    if title:
+        title_uri = URIRef(f"http://example.org/work/{identifier}/title")
+        graph.add((work_uri, BF.title, title_uri))
+        graph.add((title_uri, RDF.type, BF.Title))
+        graph.add((title_uri, BF.mainTitle, Literal(title)))
+    return work_uri
+
+# Tworzenie Instance
+def create_instance(graph, identifier, related_work, instance_title=None):
+    instance_uri = URIRef(f"http://example.org/instance/{identifier}")
+    graph.add((instance_uri, RDF.type, BF.Instance))
+    graph.add((instance_uri, BF.instanceOf, related_work))
+    graph.add((related_work, BF.hasInstance, instance_uri))
+    
+    # Dodanie tytułu instancji
+    if instance_title:
+        instance_title_uri = URIRef(f"http://example.org/instance/{identifier}/title")
+        graph.add((instance_uri, BF.title, instance_title_uri))
+        graph.add((instance_title_uri, RDF.type, BF.Title))
+        graph.add((instance_title_uri, BF.mainTitle, Literal(instance_title)))
+    return instance_uri
+
+# Dodanie szczegółów instancji
+def add_instance_details(graph, instance_uri, details):
+    provision_bnode = BNode()
+    graph.add((instance_uri, BF.provisionActivity, provision_bnode))
+    graph.add((provision_bnode, RDF.type, BF.Publication))
+
+    if 'publication_date' in details:
+        graph.add((provision_bnode, BF.date, Literal(details['publication_date'], datatype=XSD.date)))
+    
+    if 'publication_place' in details:
+        place_uri = URIRef(f"http://example.org/place/{details['publication_place'].replace(' ', '_')}")
+        graph.add((provision_bnode, BF.place, place_uri))
+        graph.add((place_uri, RDFS.label, Literal(details['publication_place'])))
+
+# Dodanie autora jako Contribution
+def add_author(graph, work_uri, author_name):
+    if author_name:
+        contribution_bnode = BNode()
+        graph.add((work_uri, BF.contribution, contribution_bnode))
+        graph.add((contribution_bnode, RDF.type, BF.Contribution))
+        
+        author_uri = URIRef(f"http://example.org/author/{author_name.replace(' ', '_')}")
+        graph.add((author_uri, RDF.type, BF.Agent))
+        graph.add((author_uri, RDFS.label, Literal(author_name)))
+        graph.add((contribution_bnode, BF.agent, author_uri))
+
+# Dodanie powiązanych zasobów (np. czasopisma)
+def add_related_work(graph, work_uri, related_title, related_issn, part_info=None):
+    if not related_title or not pd.notna(related_title):
+        return
+    
+    # Tworzenie URI dla czasopisma
+    if related_issn and pd.notna(related_issn):
+        related_work_uri = URIRef(f"http://example.org/journal/issn/{related_issn}")
+    else:
+        related_work_uri = URIRef(f"http://example.org/journal/title/{related_title.replace(' ', '_')}")
+    
+    # Dodanie czasopisma jako Work
+    graph.add((related_work_uri, RDF.type, BF.Work))
+    
+    # Dodanie tytułu czasopisma
+    title_uri = URIRef(f"http://example.org/journal/title/{related_title.replace(' ', '_')}/title")
+    graph.add((related_work_uri, BF.title, title_uri))
+    graph.add((title_uri, RDF.type, BF.Title))
+    graph.add((title_uri, BF.mainTitle, Literal(related_title)))
+    
+    # Dodanie ISSN
+    if related_issn and pd.notna(related_issn):
+        issn_uri = URIRef(f"http://example.org/issn/{related_issn}")
+        graph.add((related_work_uri, BF.identifiedBy, issn_uri))
+        graph.add((issn_uri, RDF.type, BF.Issn))
+        graph.add((issn_uri, RDF.value, Literal(related_issn)))
+    
+    # Relacja
+    relation_uri = URIRef(f"http://example.org/relation/{related_title.replace(' ', '_')}/relation")
+    graph.add((work_uri, BF.relation, relation_uri))
+    graph.add((relation_uri, RDF.type, BF.Relation))
+    graph.add((relation_uri, BF.associatedResource, related_work_uri))
+    graph.add((relation_uri, BF.relationship, URIRef("http://id.loc.gov/vocabulary/relationship/partof")))
+    
+    # Instancja czasopisma
+    instance_uri = URIRef(f"http://example.org/journal/instance/{related_title.replace(' ', '_')}")
+    graph.add((related_work_uri, BF.hasInstance, instance_uri))
+    graph.add((instance_uri, RDF.type, BF.Instance))
+    graph.add((instance_uri, BF.instanceOf, related_work_uri))
+    
+    # Informacje o części
+    if part_info and pd.notna(part_info):
+        graph.add((instance_uri, BF.part, Literal(part_info)))
+
+# Główna logika programu
+if __name__ == "__main__":
+    excel_file = 'data.xlsx'
+    mapping_file = 'mapping.json'
+    
+    df, mapping = load_data_and_mapping(excel_file, mapping_file)
+    
+    g = Graph()
+    g.bind('bf', BF)
+    g.bind('bflc', BFL)
+    g.bind('ex', EX)
+    g.bind('rdfs', RDFS)
+
+    for _, row in df.iterrows():
+        work_uri = create_work(g, row['IDENTIFIER'], row['TITLE'])
+        instance_uri = create_instance(g, row['IDENTIFIER'], work_uri, instance_title=row.get('INSTANCE_TITLE'))
+        instance_details = {
+            'publication_date': row.get('PUBLICATION_DATE'),
+            'publication_place': row.get('PUBLICATION_PLACE')
+        }
+        add_instance_details(g, instance_uri, instance_details)
+        add_author(g, work_uri, row.get('CREATOR'))
+        add_related_work(g, work_uri, row.get('SOURCE_TITLE'), row.get('SOURCE_ISSN'), part_info=row.get('PART_INFO'))
+
+    g.serialize(destination='output.rdf', format='xml')
+    print("Konwersja zakończona. Wynik zapisany w 'output.rdf'.")
+    
+    
+    
+
+
