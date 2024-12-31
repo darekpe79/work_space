@@ -1,6 +1,5 @@
 __pycache__/
 results/
-dist/
 build/
 *.exe
 *.pkg
