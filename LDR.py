@@ -28,3 +28,18 @@ for p in tqdm(plik):
     x=list_of_dict_from_file(p)
     article=LDR_article(x)  
     to_file2('artykuly_'+file,article)
+    
+    
+    
+import os
+
+# Ścieżka do katalogu
+folder_path = r"D:/work_space/"
+
+# Iteracja przez pliki w katalogu
+for root, dirs, files in os.walk(folder_path):
+    for file in files:
+        # Sprawdzenie, czy nazwa pliku zawiera 'ldr' (ignorując wielkość liter)
+        if 'ldr' in file.lower():
+            # Wyświetlenie pełnej ścieżki do pliku
+            print(f"Znaleziono: {os.path.join(root, file)}")
