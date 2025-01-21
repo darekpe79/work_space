@@ -217,153 +217,7 @@ if current_chunk_records:
 
 
 
-#%%
-import os
-import requests
-from tqdm import tqdm
-from pymarc import MARCWriter, parse_xml_to_array
-import xml.etree.ElementTree as ET
-from io import BytesIO
 
-# Parametry połączenia
-base_url = 'https://oai-pmh.api.melinda.kansalliskirjasto.fi/bib'
-chunk_size = 100000  # Liczba rekordów w jednym pliku
-file_count = 1  # Numeracja plików
-records_in_file = 0  # Licznik rekordów w bieżącym pliku
-output_dir = "D:\\Nowa_praca"  # Katalog wyjściowy
-start_date = "2023-01-01"  # Początek zakresu dat
-end_date = "2023-12-31"    # Koniec zakresu dat
-
-# Tworzenie katalogu wyjściowego, jeśli nie istnieje
-os.makedirs(output_dir, exist_ok=True)
-
-# Lista prefiksów UKD dla literatury
-LITERATURE_UKD_PREFIXES = [
-    "82", "830", "840", "850", "860", "870", "880", "890"
-]
-# Klasy YKL związane z literaturą
-LITERATURE_YKL_CLASSES = [
-    "80", "82", "83", "84", "85", "86"
-]
-
-# Funkcja zapisująca rekordy do plików MARC
-def save_records_to_file(records, file_count):
-    file_name = os.path.join(output_dir, f"fennica_records_3{file_count}.mrc")
-    with open(file_name, 'wb') as marc_file:
-        writer = MARCWriter(marc_file)
-        for record in records:
-            try:
-                writer.write(record)
-            except Exception as e:
-                print(f"Błąd podczas zapisywania rekordu: {e}")
-        writer.close()
-    print(f"Zapisano {len(records)} rekordów do pliku: {file_name}")
-
-# Funkcja usuwająca przestrzenie nazw z XML
-def remove_namespace(xml_string):
-    xml_bytes = BytesIO(xml_string.encode('utf-8'))
-    it = ET.iterparse(xml_bytes, events=['start', 'end'])
-    for _, el in it:
-        if '}' in el.tag:
-            el.tag = el.tag.split('}', 1)[1]
-    return ET.tostring(it.root, encoding='utf-8')
-
-def is_literary_record(record):
-    """
-    Sprawdza, czy rekord dotyczy literatury na podstawie pól 080 i 084.
-    """
-    for field in record.get_fields('080'):
-        if field['a'] and any(field['a'].startswith(prefix) for prefix in LITERATURE_UKD_PREFIXES):
-            return True
-    for field in record.get_fields('084'):
-        if field['a'] and any(field['a'].startswith(prefix) for prefix in LITERATURE_YKL_CLASSES):
-            return True
-    return False
-
-current_chunk_records = []  # Lista rekordów dla bieżącego pliku
-resumption_token = None
-
-while True:
-    # Przygotowanie parametrów zapytania
-    params = {
-        'verb': 'ListRecords',
-        'metadataPrefix': 'marc21',
-        'from': start_date,
-        'until': end_date,
-        'set': 'fennica'
-    }
-    if resumption_token:
-        params['resumptionToken'] = resumption_token
-    
-    # Wysyłanie zapytania
-    print(f"Wysyłanie zapytania... (plik {file_count})")
-    response = requests.get(base_url, params=params)
-    
-    if response.status_code != 200:
-        print(f"Błąd: {response.status_code}")
-        break
-    
-    # Przetwarzanie odpowiedzi
-    try:
-        # Parsowanie XML i usuwanie przestrzeni nazw
-        root = ET.ElementTree(ET.fromstring(response.content)).getroot()
-        raw_xml_cleaned = remove_namespace(ET.tostring(root, encoding='unicode'))
-        
-        # Pobranie rekordów z XML
-        for record_elem in root.findall('.//{http://www.openarchives.org/OAI/2.0/}record'):
-            metadata_elem = record_elem.find('.//{http://www.loc.gov/MARC21/slim}record')
-            if metadata_elem is not None:
-                marcxml = (
-                    '<?xml version="1.0" encoding="UTF-8"?>\n'
-                    '<collection xmlns="http://www.loc.gov/MARC21/slim">\n'
-                    + ET.tostring(metadata_elem, encoding='unicode') +
-                    '</collection>'
-                )
-                try:
-                    record_list = parse_xml_to_array(BytesIO(marcxml.encode('utf-8')))
-                    # Filtrowanie rekordów literackich
-                    literary_records = [rec for rec in record_list if is_literary_record(rec)]
-                    current_chunk_records.extend(literary_records)
-                    records_in_file += len(literary_records)
-                    
-                    # Drukuj licznik każdego przetworzonego rekordu
-                    for _ in literary_records:
-                        print(f"Przetworzono rekord #{records_in_file}")
-                    
-                    # Sprawdź, czy osiągnięto rozmiar chunk
-                    if records_in_file >= chunk_size:
-                        save_records_to_file(current_chunk_records, file_count)
-                        file_count += 1
-                        records_in_file = 0
-                        current_chunk_records = []  # Wyczyść listę dla następnego pliku
-                except Exception as e:
-                    print(f"Błąd podczas parsowania rekordu: {e}")
-                    print(f"Surowy XML rekordu:\n{marcxml}")
-    
-    except Exception as e:
-        print(f"Błąd podczas przetwarzania odpowiedzi: {e}")
-        break
-    
-    # Pobranie tokenu stronicowania
-    try:
-        resumption_token_elem = root.find('.//{http://www.openarchives.org/OAI/2.0/}resumptionToken')
-        if resumption_token_elem is not None:
-            resumption_token = resumption_token_elem.text
-            print(f"Pobrano resumptionToken: {resumption_token}")
-        else:
-            print("Brak resumptionToken. Pobieranie zakończone.")
-            break
-    except Exception as e:
-        print(f"Błąd podczas pobierania resumptionToken: {e}")
-        break
-
-# Zapis ostatniej porcji rekordów, jeśli pozostały jakieś
-if current_chunk_records:
-    save_records_to_file(current_chunk_records, file_count)
-
-    
-
-    
 
 #%% deduplikacja
 
@@ -938,6 +792,47 @@ if __name__ == "__main__":
     modify_or_add_995(input_path, output_path)
 
 
+#%%Literka F 001
+
+from pymarc import MARCReader, MARCWriter, TextWriter
+
+input_file = "D:/Nowa_praca/update_fennica/fennica_650_380_381new_viafd_unify+995.mrc"
+output_mrc = "D:/Nowa_praca/update_fennica/fennica_update_do_wyslania.mrc"
+output_mrk = "D:/Nowa_praca/update_fennica/fennica_update_do_wyslania.mrk"
+
+with open(input_file, "rb") as fh_in, \
+     open(output_mrc, "wb") as fh_out_mrc, \
+     open(output_mrk, "w", encoding="utf-8") as fh_out_mrk:
+
+    # Inicjalizujemy czytnik MARC
+    reader = MARCReader(fh_in, to_unicode=True, force_utf8=True)
+
+    # Inicjalizujemy zapis do pliku MARC i do pliku tekstowego
+    writer_mrc = MARCWriter(fh_out_mrc)
+    writer_mrk = TextWriter(fh_out_mrk)
+
+    # Iteracja przez rekordy
+    for record in reader:
+        field_001 = record.get_fields('001')
+        print(field_001)
+        
+        # Jeśli rekord ma pole 001 (jest zawsze max 1 w standardowym MARC),
+        # to dodajemy literkę 'f' z przodu.
+        if field_001:
+            old_value = field_001[0].data
+            print(old_value)
+            new_value = 'f' + old_value
+            field_001[0].data = new_value
+
+        # Zapisujemy zmodyfikowany rekord do obu plików
+        writer_mrc.write(record)
+        writer_mrk.write(record)
+
+    # Zamykamy writery
+    writer_mrc.close()
+    writer_mrk.close()
+
+print("Gotowe. Zmodyfikowane rekordy zapisano do:", output_mrc, "oraz", output_mrk)
 
 
 
