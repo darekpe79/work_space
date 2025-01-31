@@ -484,7 +484,7 @@ model_name = "lzw1008/ConspEmoLLM-7b"
 # Ładowanie tokenizera
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
-# Ładowanie modelu z automatycznym przypisaniem do GPU/CPU i kwantyzacją 8-bitową
+# Ładowanie modelu z automatycznym przypisaniem do GPU/CPU
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     device_map="auto",       # Automatyczne przypisanie do GPU/CPU
