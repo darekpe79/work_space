@@ -432,7 +432,7 @@ from copy import deepcopy
 from definicje import *
 my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_celar_ready_to_enrichment/17_12_2024_espana.mrc"]
 
-field650=pd.read_excel('D:/Nowa_praca/Espana/650,655 staystyki_english_etc/words_655_stats2.xlsx', sheet_name='Sheet1',dtype=str)
+field650=pd.read_excel('D:/Nowa_praca/update_fennica/Major_genre_wszystko.xlsx', sheet_name='655_spain',dtype=str)
 listy=dict(zip(field650['field_655'].to_list(),field650['major genre'].to_list()))
 dictionary_to_check={}
 for k,v in listy.items():
@@ -505,154 +505,309 @@ for my_marc_file in tqdm(my_marc_files):
 # Zamknięcie writera
 writer.close()
 mrc_writer.close()
-#650
 
-field650=pd.read_excel('D:/Nowa_praca/Espana/650,655 staystyki_english_etc/words_650_stats.xlsx', sheet_name='Sheet1',dtype=str)
-listy=dict(zip(field650['field_650'].to_list(),field650['genre_to_work'].to_list()))
-dictionary_to_check={}
-for k,v in listy.items():
-    #print(v)
-    if type(v)!=float:
-        dictionary_to_check[k]=v
+#%%650 N G
+
+from pymarc import MARCReader, Field, TextWriter, MARCWriter
+import pandas as pd
+import re
+from pymarc import MARCReader, TextWriter, Field, Subfield,MARCWriter
+# Wczytanie Excela
+excel_path = "D:/Nowa_praca/update_fennica/all_650_new_karolina.xlsx"
+              
+arkusz1 = pd.read_excel(excel_path, sheet_name="spain_do_laczenia")
+arkusz2 = pd.read_excel(excel_path, sheet_name="wszystko_karolina")
+
+# Wyciągamy tylko potrzebne kolumny
+arkusz1 = arkusz1[['all', 'desk_650']]
+arkusz2 = arkusz2[['all', 'KPto650', 'nationalityto650']]
+
+# Łączenie arkuszy na podstawie kolumny "all"
+merged = pd.merge(arkusz1, arkusz2, on="all", how="left")
+# Funkcja do przetwarzania pola MARC na format zgodny z desk_650
+def clean_text(value):
+    """
+    Usuwa zbędne spacje, kropki i przecinki z początku i końca tekstu.
+    """
+    if not value:
+        return None
+    return re.sub(r'[.,]+$', '', value.strip())  # Usuwa kropki/przecinki na końcu i zbędne spacje
+
+# Funkcja do wyciągania podpola 'a'
+def extract_subfield_a(value):
+    """
+    Wyciąga zawartość podpola 'a' z wartości MARC (desk_650 lub pole 650).
+    """
+    value = re.sub(r'^\\[0-9]*', '', value)  # Usunięcie wskaźnika (\7, \0)
+    match = re.search(r'\$a([^$]+)', value)  # Szukanie zawartości podpola 'a'
+    if match:
+        return clean_text(match.group(1))  # Czyszczenie i zwracanie zawartości podpola 'a'
+    return None
+
+# Czyszczenie desk_650 w Excelu
+merged['desk_650_normalized'] = merged['desk_650'].apply(lambda x: clean_text(x))
+
+
+
+
+
+def is_duplicate_field(record, new_field):
+    """
+    Sprawdza, czy rekord MARC zawiera już pole identyczne z new_field.
+    """
+    for field in record.get_fields(new_field.tag):
+        # Porównujemy wskaźniki i podpola
+        if field.indicators == new_field.indicators and field.subfields == new_field.subfields:
+            return True
+    return False
+
+# Funkcja przetwarzająca MARC dla danego wskaźnika i kolumny Excela
+def process_marc(input_file, output_mrk, output_mrc, merge_column, indicator_value):
+    """
+    Przetwarza plik MARC, dodając pola 650 na podstawie podanej kolumny Excela.
+    """
+    with open(input_file, "rb") as marc_file:
+        reader = MARCReader(marc_file)
+
+        # Przygotowanie writerów
+        with open(output_mrk, "w", encoding="utf-8") as text_output, \
+             open(output_mrc, "wb") as binary_output:
+            
+            text_writer = TextWriter(text_output)
+            mrc_writer = MARCWriter(binary_output)
+
+            # Liczniki
+            total_records = 0
+            records_with_new_fields = 0
+
+            # Iteracja przez rekordy MARC
+            for record in reader:
+                total_records += 1
+                added_new_field = False  # Flaga dla rekordu
+
+                for field in record.get_fields('650'):
+                    # Wyciągnięcie podpola 'a'
+                    subfield_a = clean_text(extract_subfield_a(str(field)))
+
+                    if subfield_a:
+                        # Dopasowanie do Excela
+                        nowy_wiersz = merged.loc[merged['desk_650_normalized'] == subfield_a]
+
+                        if not nowy_wiersz.empty:
+                            # Obsługa tłumaczeń
+                            new_fields = nowy_wiersz[merge_column].dropna().unique()
+                            for new_value in new_fields:
+                                if new_value:
+                                    # Formatowanie i czyszczenie wartości
+                                    formatted_value = clean_text(new_value).capitalize()
+
+                                    # Tworzenie pola 650
+                                    new_field = Field(
+                                        tag='650',
+                                        indicators=[' ', ' '],
+                                        subfields=[
+                                            Subfield('a', formatted_value),
+                                            Subfield('2', indicator_value)
+                                        ]
+                                    )
+
+                                    # Sprawdzanie duplikatów
+                                    if not is_duplicate_field(record, new_field):
+                                        record.add_ordered_field(new_field)
+                                        added_new_field = True
+
+                # Zliczanie rekordów z nowymi polami
+                if added_new_field:
+                    records_with_new_fields += 1
+
+                # Zapis rekordu
+                text_writer.write(record)
+                mrc_writer.write(record)
+
+            # Zamknięcie writerów
+            text_writer.close()
+            mrc_writer.close()
+
+    # Wynik w konsoli
+    print(f"{indicator_value}: Total records processed: {total_records}")
+    print(f"{indicator_value}: Records with new fields: {records_with_new_fields}")
+
+# Czyszczenie kolumny 'desk_650'
+merged['desk_650_normalized'] = merged['desk_650'].apply(lambda x: clean_text(extract_subfield_a(x)))
+
+# Pierwszy proces: ELB-g
+process_marc(
+    input_file="D:/Nowa_praca/update_fennica/uniqueFennica.mrc",
+    output_mrk="wynikowy_elb_g.mrk",
+    output_mrc="wynikowy_elb_g.mrc",
+    merge_column="KPto650",
+    indicator_value="ELB-g"
+)
+
+# Drugi proces: ELB-n (bazując na wynikowym pliku z ELB-g)
+process_marc(
+    input_file="wynikowy_elb_g.mrc",
+    output_mrk="wynikowy_elb_n_g.mrk",
+    output_mrc="wynikowy_elb_n_g.mrc",
+    merge_column="nationalityto650",
+    indicator_value="ELB-n")
+
+
+
+
+
+
+
+
+
+# #650
+
+# field650=pd.read_excel('D:/Nowa_praca/Espana/650,655 staystyki_english_etc/words_650_stats.xlsx', sheet_name='Sheet1',dtype=str)
+# listy=dict(zip(field650['field_650'].to_list(),field650['genre_to_work'].to_list()))
+# dictionary_to_check={}
+# for k,v in listy.items():
+#     #print(v)
+#     if type(v)!=float:
+#         dictionary_to_check[k]=v
         
-my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_380_381/17_12_2024_espana_380_1.mrc"]
-output_mrc_file = '17_12_2024_espana_380_1_650g.mrc'
-mrc_writer = MARCWriter(open(output_mrc_file, 'wb'))
-for my_marc_file in tqdm(my_marc_files):
-    writer = TextWriter(open('17_12_2024_espana_380_1_650g.mrk','wt',encoding="utf-8"))
-    with open(my_marc_file, 'rb') as data:
-        reader = MARCReader(data)
-        for record in tqdm(reader):
-            print(record)
+# my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_380_381/17_12_2024_espana_380_1.mrc"]
+# output_mrc_file = '17_12_2024_espana_380_1_650g.mrc'
+# mrc_writer = MARCWriter(open(output_mrc_file, 'wb'))
+# for my_marc_file in tqdm(my_marc_files):
+#     writer = TextWriter(open('17_12_2024_espana_380_1_650g.mrk','wt',encoding="utf-8"))
+#     with open(my_marc_file, 'rb') as data:
+#         reader = MARCReader(data)
+#         for record in tqdm(reader):
+#             print(record)
             
-            # [e for e in record if e.tag=='381'][-1]['a']='test2'
+#             # [e for e in record if e.tag=='381'][-1]['a']='test2'
             
-            # for field in record:
+#             # for field in record:
                 
-            #     if field.tag=='381':
+#             #     if field.tag=='381':
                     
-            #         field['a']='test'
-            #         field.subfields[3]='new'
-            #         field.get_subfields('a')[0]='sraka'
-            #         fie
-            #         for sub in field.get_subfields('a'):
-            #             print(sub)
+#             #         field['a']='test'
+#             #         field.subfields[3]='new'
+#             #         field.get_subfields('a')[0]='sraka'
+#             #         fie
+#             #         for sub in field.get_subfields('a'):
+#             #             print(sub)
                     
             
-            # print(record)
-            new_field=[]
-            my = record.get_fields('650')
+#             # print(record)
+#             new_field=[]
+#             my = record.get_fields('650')
             
-            for field in my:
-                subfields=field.get_subfields('a')
-                for subfield in subfields:
-                    if subfield in dictionary_to_check:
-                        if dictionary_to_check[subfield]=="Puerto Rican literature":
-                            new_field.append(dictionary_to_check[subfield])
+#             for field in my:
+#                 subfields=field.get_subfields('a')
+#                 for subfield in subfields:
+#                     if subfield in dictionary_to_check:
+#                         if dictionary_to_check[subfield]=="Puerto Rican literature":
+#                             new_field.append(dictionary_to_check[subfield])
                             
-                        else:    
-                            new_field.append(dictionary_to_check[subfield].capitalize())
-            if new_field:
-                unique(new_field)
-                for new in new_field:
+#                         else:    
+#                             new_field.append(dictionary_to_check[subfield].capitalize())
+#             if new_field:
+#                 unique(new_field)
+#                 for new in new_field:
                     
                         
                         
                     
-                        my_new_245_field = Field(
+#                         my_new_245_field = Field(
             
-                                tag = '650', 
+#                                 tag = '650', 
             
-                                indicators = [' ',' '],
+#                                 indicators = [' ',' '],
             
-                                subfields = [Subfield(
+#                                 subfields = [Subfield(
                                                 
-                                                'a', new),
-                                                Subfield('2', 'ELB-g')
-                                            ])
+#                                                 'a', new),
+#                                                 Subfield('2', 'ELB-g')
+#                                             ])
                                         
                                             
                                 
 
-                        record.add_ordered_field(my_new_245_field)
+#                         record.add_ordered_field(my_new_245_field)
                         
                   
                         
 
-### adding the new field
+# ### adding the new field
             
-            # record.add_ordered_field(my_new_245_field)
-            # record['380']['a'] = 'The Zombie Programmer '
-            # print(record['380'])
-            writer.write(record) 
-            mrc_writer.write(record)
-writer.close()
-mrc_writer.close()
+#             # record.add_ordered_field(my_new_245_field)
+#             # record['380']['a'] = 'The Zombie Programmer '
+#             # print(record['380'])
+#             writer.write(record) 
+#             mrc_writer.write(record)
+# writer.close()
+# mrc_writer.close()
 
-#ELB-n adding  
-field650=pd.read_excel('D:/Nowa_praca/Espana/650,655 staystyki_english_etc/words_650_stats.xlsx', sheet_name='Sheet1',dtype=str)
-listy=dict(zip(field650['field_650'].to_list(),field650['nationality_to_work'].to_list()))
-dictionary_to_check={}
-for k,v in listy.items():
-    #print(v)
-    if type(v)!=float:
-        dictionary_to_check[k]=v
+# #ELB-n adding  
+# field650=pd.read_excel('D:/Nowa_praca/Espana/650,655 staystyki_english_etc/words_650_stats.xlsx', sheet_name='Sheet1',dtype=str)
+# listy=dict(zip(field650['field_650'].to_list(),field650['nationality_to_work'].to_list()))
+# dictionary_to_check={}
+# for k,v in listy.items():
+#     #print(v)
+#     if type(v)!=float:
+#         dictionary_to_check[k]=v
       
-my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_380_301_650ng/17_12_2024_espana_380_1_650g.mrc"]
-output_mrc_file = '17_12_2024_espana_380_1_650gn.mrc'
-mrc_writer = MARCWriter(open(output_mrc_file, 'wb'))
-for my_marc_file in tqdm(my_marc_files):
-    writer = TextWriter(open('17_12_2024_espana_380_1_650gn.mrk','wt',encoding="utf-8"))
-    with open(my_marc_file, 'rb') as data:
-        reader = MARCReader(data)
-        for record in tqdm(reader):
-            print(record)
+# my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_380_301_650ng/17_12_2024_espana_380_1_650g.mrc"]
+# output_mrc_file = '17_12_2024_espana_380_1_650gn.mrc'
+# mrc_writer = MARCWriter(open(output_mrc_file, 'wb'))
+# for my_marc_file in tqdm(my_marc_files):
+#     writer = TextWriter(open('17_12_2024_espana_380_1_650gn.mrk','wt',encoding="utf-8"))
+#     with open(my_marc_file, 'rb') as data:
+#         reader = MARCReader(data)
+#         for record in tqdm(reader):
+#             print(record)
             
 
-            new_field=[]
-            my = record.get_fields('650')
+#             new_field=[]
+#             my = record.get_fields('650')
             
-            for field in my:
-                subfields=field.get_subfields('a')
-                for subfield in subfields:
-                    if subfield in dictionary_to_check:
-                        if dictionary_to_check[subfield]=="Puerto Rican literature":
-                            new_field.append(dictionary_to_check[subfield])
+#             for field in my:
+#                 subfields=field.get_subfields('a')
+#                 for subfield in subfields:
+#                     if subfield in dictionary_to_check:
+#                         if dictionary_to_check[subfield]=="Puerto Rican literature":
+#                             new_field.append(dictionary_to_check[subfield])
                             
-                        else:    
-                            new_field.append(dictionary_to_check[subfield].capitalize())
-            if new_field:
-                unique(new_field)
-                for new in new_field:
+#                         else:    
+#                             new_field.append(dictionary_to_check[subfield].capitalize())
+#             if new_field:
+#                 unique(new_field)
+#                 for new in new_field:
                     
                         
                         
                     
-                        my_new_245_field = Field(
+#                         my_new_245_field = Field(
             
-                                tag = '650', 
+#                                 tag = '650', 
             
-                                indicators = [' ',' '],
+#                                 indicators = [' ',' '],
             
-                                subfields = [Subfield(
+#                                 subfields = [Subfield(
                                                 
-                                                'a', new),
-                                                Subfield('2', 'ELB-n')
-                                            ])
+#                                                 'a', new),
+#                                                 Subfield('2', 'ELB-n')
+#                                             ])
                                         
                                             
                                 
 
-                        record.add_ordered_field(my_new_245_field)
+#                         record.add_ordered_field(my_new_245_field)
                         
                   
                         
 
 
-            writer.write(record) 
-            mrc_writer.write(record)
-writer.close()
-mrc_writer.close()
+#             writer.write(record) 
+#             mrc_writer.write(record)
+# writer.close()
+# mrc_writer.close()
 
 my_marc_files = ["D:/Nowa_praca/Espana/update_16_12_2024/records_380_301_650ng/17_12_2024_espana_380_1_650gn.mrc"]
 output_mrc_file = '17_12_2024_espana_380_1_650gn_995.mrc'
@@ -665,32 +820,7 @@ for my_marc_file in tqdm(my_marc_files):
         for record in tqdm(reader):
 
                 
-                
-                
-                
-            #     # field=field['a']+'ddd'
-            #     # field.add_subfield('a', 'daro')
-            #     # field.subfields=[Subfield('a', 'Biblioteca Nacional de España')]
-            #     # for i, s in enumarate(field.subfields):
-            #     #     print(i)
-            #     #     if s.code=='a':
-            #     #         print (s)
-            #     #         s.value=s.value+'dupa'
-                
-            #     # field.subfields[0]=Subfield('a', 'Biblioteca Nacional de España') 
-             
-            # print(record)
-            # record.remove_field(record['003'])
-            # # for field in record:
-            # #     if field.tag=='003':
-            # #         print(field)
-            # #         field.data='ES-LoD'
-          
 
-            # my_003=Field(tag='003', data='ES-LoD')
-
-            # print(record)
-            # record.add_ordered_field(my_003)
             my_new_995_field = Field(
 
                         tag = '995', 
@@ -810,26 +940,7 @@ for my_marc_file in tqdm(my_marc_files):
             data1.write(record.as_marc())
             writer.write(record)    
 writer.close()                    
-L = ['a', "term1", 'b', "term2", 'c', "term3", 'd', "termN"]
-it = iter(L)
-x=list(zip(it, it))
-print(x)
-output=[Subfield(*e) for e in x]
-print(output)
 
-txt = "Company 12"
-txt2=
-text=''
-test=[]
-for l in txt:
-    if l.isalnum():
-        text=text+l
-        # test.extend(l)
-        
-test.append(text)
-x = txt.isalnum()
-
-print(x)
 #%%
 #compose_data pymarc4
 my_marc_files = ["D:/Nowa_praca/marki_21.02.2023/nowe_marki21-02-2023/pbl_articles_21-02-2023.mrc",
