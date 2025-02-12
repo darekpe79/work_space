@@ -22,7 +22,7 @@ from pymarc import Record, Field
 import pandas as pd
 from definicje import *
 from pymarc import MARCReader, MARCWriter
-#%% leader
+#%% leader rozdzial artykul- korekta Basia
 input_file = 'C:/Users/darek/Downloads/libri_marc_bn_articles_2024-12-09.mrc'   # plik MARC z błędnym leaderem
 output_file = 'C:/Users/darek/Downloads/libri_marc_bn_articles_2024-01-29.mrc'  # plik wyjściowy z poprawionym leaderem
 
@@ -41,7 +41,7 @@ with open(input_file, 'rb') as fh_in, open(output_file, 'wb') as fh_out:
     
     writer.close()
 
-
+#%% To Marcin
 
 
 #viaf_combination
@@ -148,7 +148,7 @@ for my_marc_file in tqdm(my_marc_files):
 writer.close()   
 
 
-#%% 655 wzbogacenie
+#%% 655 wzbogacenie To Marcin, Marcin przygotuje tabelkę
 my_marc_files = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/libri_marc_bn_chapters_2023-08-07new_viaf.mrc",
 "D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/libri_marc_bn_books_2023-08-07new_viaf.mrc",
 "D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/libri_marc_bn_articles_2023-08-07new_viaf.mrc"]
@@ -182,18 +182,7 @@ for my_marc_file in tqdm(my_marc_files):
         for record in tqdm(reader):
             
             
-            # [e for e in record if e.tag=='381'][-1]['a']='test2'
-            
-            # for field in record:
-                
-            #     if field.tag=='381':
-                    
-            #         field['a']='test'
-            #         field.subfields[3]='new'
-            #         field.get_subfields('a')[0]='sraka'
-            #         fie
-            #         for sub in field.get_subfields('a'):
-            #             print(sub)
+
                     
             
             # print(record)
@@ -269,7 +258,7 @@ for my_marc_file in tqdm(my_marc_files):
             writer.write(record)    
 writer.close() 
 
-#%%650 N G
+#%%650 N G To Basia
 
 from pymarc import MARCReader, Field, TextWriter, MARCWriter
 import pandas as pd
@@ -344,6 +333,10 @@ def process_marc(input_file, output_mrk, output_mrc, merge_column, indicator_val
 
             # Iteracja przez rekordy MARC
             for record in reader:
+                if record is None:
+                    print(f"Nieprawidłowy rekord napotkany w pozycji {total_records + 1}. Pomijanie rekordu.")
+                    continue
+                
                 total_records += 1
                 added_new_field = False  # Flaga dla rekordu
 
@@ -399,7 +392,7 @@ merged['desk_650_normalized'] = merged['desk_650'].apply(lambda x: clean_text(ex
 
 # Pierwszy proces: ELB-g
 process_marc(
-    input_file="D:/Nowa_praca/update_fennica/uniqueFennica.mrc",
+    input_file="C:/Users/darek/Downloads/libri_marc_bn_chapters_2024-12-10 (1).mrc",
     output_mrk="wynikowy_elb_g.mrk",
     output_mrc="wynikowy_elb_g.mrc",
     merge_column="KPto650",
@@ -415,7 +408,7 @@ process_marc(
     indicator_value="ELB-n")
 
 
-#%%correct field "d"  
+#%%correct field "d"  ujednolicanie dat robi Marcin
 my_marc_files = ["C:/Users/darek/fennica_650_380_381new_viaf.mrc"]
 records_double_d=set()
 for my_marc_file in tqdm(my_marc_files):
@@ -455,7 +448,7 @@ for my_marc_file in tqdm(my_marc_files):
             data1.write(record.as_marc()) 
             writer.write(record)    
 writer.close() 
-#%%995
+#%%995 To robi Marcin
 from pymarc import MARCReader, MARCWriter, Field, Subfield, Record
 import string
 def shift_subfield_code(code: str) -> str:
@@ -487,7 +480,7 @@ def shift_subfield_code(code: str) -> str:
         # Jeśli to cyfra lub inny znak, nie zmieniamy
         return code
 
-def modify_or_add_995(file_path, output_path):
+def modify_or_add_995(file_path, output_path, value='Polska Bibliografia Literacka'):
     with open(file_path, 'rb') as marc_file, open(output_path, 'wb') as out_file:
         reader = MARCReader(marc_file, to_unicode=True, force_utf8=True)
         writer = MARCWriter(out_file)
@@ -503,7 +496,7 @@ def modify_or_add_995(file_path, output_path):
                 new_995 = Field(
                     tag='995',
                     indicators=[' ', ' '],
-                    subfields=[Subfield(code='a', value='Kansalliskirjasto')]
+                    subfields=[Subfield(code='a', value=value)]
                 )
                 record.add_field(new_995)
             else:
@@ -516,7 +509,7 @@ def modify_or_add_995(file_path, output_path):
 
                 # Sprawdzamy, czy istnieje subfield a z wartością "Kansalliskirjasto"
                 sub_a_exists = any(
-                    (sf.code == 'a' and sf.value == 'Kansalliskirjasto') 
+                    (sf.code == 'a' and sf.value == value) 
                     for sf in subfields_list
                 )
 
@@ -533,7 +526,7 @@ def modify_or_add_995(file_path, output_path):
                         new_subfields.append(Subfield(code=shifted_code, value=sf.value))
                     
                     # Wstawiamy *na początek* nowy subfield a="Kansalliskirjasto"
-                    new_subfields.insert(0, Subfield(code='a', value='Kansalliskirjasto'))
+                    new_subfields.insert(0, Subfield(code='a', value=value))
                     
                     # Tworzymy nowe pole 995 z przesuniętymi kodami + nowym subfieldem 'a'
                     new_field_995 = Field(
@@ -560,7 +553,7 @@ if __name__ == "__main__":
     
     
 #%%
-#add issns by title
+#add issns by title Marcin to robi
 fields_to_check={}
 my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
 "D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
@@ -636,7 +629,7 @@ for my_marc_file in tqdm(my_marc_files):
 writer.close()   
 
 
-#%%773 records s
+#%%773 records podpole s - ujednolicenie nazwy czasopisma po issn Robi to Marcin
 fields_to_check={}
 my_marc_files = ["D:/Nowa_praca/marki_compose_19.05.2023/arto_21-02-2023compose.mrc",
 "D:/Nowa_praca/marki_compose_19.05.2023/bn_articles_21-02-2023compose.mrc",
@@ -712,54 +705,3 @@ for my_marc_file in tqdm(my_marc_files):
 writer.close()   
 
 
-#%%
-#move 773 x in old files to proper place    
-from pymarc import MARCReader, MARCWriter, Field, Subfield
-
-def move_x_after_t_in_773(record):
-    field_773 = record.get('773', None)
-
-    # If the record doesn't have a 773 field, return as is
-    if not field_773:
-        return record
-
-    x_subfield = next((subfield for subfield in field_773.subfields if subfield.code == 'x'), None)
-    t_subfield = next((subfield for subfield in field_773.subfields if subfield.code == 't'), None)
-
-    # If either subfield x or t doesn't exist, return the record as is
-    if not x_subfield or not t_subfield:
-        return record
-
-    # Remove the $x subfield
-    field_773.subfields.remove(x_subfield)
-
-    # Find the position of the $t subfield and insert the $x subfield after it
-    t_position = field_773.subfields.index(t_subfield)
-    field_773.subfields.insert(t_position + 1, x_subfield)
-
-    return record
-
-# Function to process a MARC file
-def process_marc_file(input_path, output_path):
-    with open(input_path, 'rb') as input_file, open(output_path, 'wb') as output_file:
-        reader = MARCReader(input_file)
-        writer = MARCWriter(output_file)
-
-        for record in reader:
-            modified_record = move_x_after_t_in_773(record)
-            writer.write(modified_record)
-
-        writer.close()
-def process_marc_files(file_list):
-    for file_path in file_list:
-        # For demonstration purposes, I'm assuming you want to overwrite each file with its processed data.
-        # If you'd like a different output naming convention, adjust the output_path accordingly.
-        output_path = file_path.replace('.mrc', '_processed.mrc')
-        process_marc_file(file_path, output_path)
-
-# Call the function specifying the input and output file paths
-process_marc_file('C:/Users/dariu/773_proba.mrc', 'path_to_output.mrc')
-files_to_process = ["D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_chapters_2023-08-07new_viaf.mrc+773x.mrc+773s.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_llibri_marc_bn_books_2023-08-07new_viaf.mrc+773x.mrc+773s.mrc",
-"D:/Nowa_praca/08082023-Czarek_BN_update/przerobione-viaf/11082023_995viaf_655_650_773_710_libri_marc_bn_articles_2023-08-07new_viaf.mrc+773x.mrc+773s.mrc"]
-process_marc_files(files_to_process)

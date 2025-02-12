@@ -1033,6 +1033,85 @@ def build_subjects_index(records, model):
 
     return index_subjects, subjects_vectors, subjects_metadata
 
+def search_subjects(query, model, index_subjects, subjects_metadata, records, top_k=3, score_threshold=0.8):
+    # Jeśli indeks nie został utworzony, zwróć pustą listę
+    if index_subjects is None:
+        return []
+    
+    # Normalizujemy zapytanie
+    q_norm = normalize_text(query)
+    # Generujemy embedding zapytania
+    q_vec = model.encode(q_norm).astype('float32')
+    # Normalizujemy embedding zapytania (L2)
+    q_vec = q_vec / np.linalg.norm(q_vec)
+    
+    # Wyszukujemy top_k podobnych wektorów w indeksie
+    distances, indices = index_subjects.search(np.array([q_vec]), top_k)
+    
+    # Użyjemy słownika, aby dla danego record_id zapisać wynik o najwyższym score
+    unique_results = {}
+    
+    for rank, idx in enumerate(indices[0]):
+        score = distances[0][rank]
+        if score < score_threshold:
+            continue
+        # Z subjects_metadata pobieramy, do którego rekordu należy dana fraza
+        meta = subjects_metadata[idx]
+        record_id = meta["record_id"]
+        matched_subj = meta["subject"]
+        
+        # Jeśli ten rekord już mamy, zachowujemy wynik z wyższym score
+        if record_id in unique_results:
+            if score > unique_results[record_id]["score"]:
+                unique_results[record_id] = {
+                    "score": score,
+                    "metadata": records[record_id],
+                    "subject_matched": matched_subj
+                }
+        else:
+            unique_results[record_id] = {
+                "score": score,
+                "metadata": records[record_id],
+                "subject_matched": matched_subj
+            }
+    
+    # Zwracamy listę unikalnych wyników
+    return list(unique_results.values())
+
+def search_faiss(query, model, index, vector_data, vector_key="full_text_vector", top_k=3, score_threshold=0.8):
+    """
+    Wyszukuje zapytanie 'query' w indeksie FAISS na podstawie wektorów.
+    
+    :param query: Tekst zapytania (np. tytuł lub autor)
+    :param model: Model embeddingów (np. SentenceTransformer)
+    :param index: Indeks FAISS (np. title_index lub author_index)
+    :param vector_data: Lista słowników zawierających embeddingi oraz metadane
+    :param vector_key: Klucz w vector_data, którego embeddingi mają być użyte (np. "title_vector" lub "author_vector")
+    :param top_k: Liczba wyników do zwrócenia
+    :param score_threshold: Minimalna wartość podobieństwa (score), aby wynik został zaakceptowany (domyślnie 0.8)
+    :return: Lista wyników (każdy wynik to słownik z kluczami: "score", "metadata")
+    """
+    # Normalizujemy zapytanie
+    q_norm = normalize_text(query)
+    # Generujemy embedding zapytania
+    q_vec = model.encode(q_norm).astype('float32')
+    # Normalizujemy wektor zapytania (L2)
+    q_vec = q_vec / np.linalg.norm(q_vec)
+    
+    # Wyszukujemy top_k podobnych wektorów w indeksie
+    distances, indices = index.search(np.array([q_vec]), top_k)
+    results = []
+    for rank, idx in enumerate(indices[0]):
+        score = distances[0][rank]
+        if score < score_threshold:
+            continue  # pomijamy wyniki, których score jest mniejsze niż threshold
+        record_meta = vector_data[idx]["metadata"]
+        results.append({
+            "score": score,
+            "metadata": record_meta
+        })
+    return results
+
 
 # --------------------------
 # MAIN (budujemy i zapisujemy)
@@ -1058,28 +1137,28 @@ if __name__ == "__main__":
     # ---------------------------
     # ZAPISUJEMY indeksy FAISS
     # ---------------------------
-    print("\nZapisujemy indeksy FAISS do plików .faiss...")
-    faiss.write_index(full_text_index, FULL_TEXT_INDEX_PATH)
-    faiss.write_index(title_index, TITLE_INDEX_PATH)
-    faiss.write_index(author_index, AUTHOR_INDEX_PATH)
-    if index_subjects is not None:
-        faiss.write_index(index_subjects, SUBJECTS_INDEX_PATH)
+    # print("\nZapisujemy indeksy FAISS do plików .faiss...")
+    # faiss.write_index(full_text_index, FULL_TEXT_INDEX_PATH)
+    # faiss.write_index(title_index, TITLE_INDEX_PATH)
+    # faiss.write_index(author_index, AUTHOR_INDEX_PATH)
+    # if index_subjects is not None:
+    #     faiss.write_index(index_subjects, SUBJECTS_INDEX_PATH)
 
-    # ---------------------------
-    # ZAPISUJEMY vector_data, marc_records, subjects_metadata (pickle)
-    # ---------------------------
-    print("Zapis do pickle: vector_data, marc_records, subjects_metadata...")
+    # # ---------------------------
+    # # ZAPISUJEMY vector_data, marc_records, subjects_metadata (pickle)
+    # # ---------------------------
+    # print("Zapis do pickle: vector_data, marc_records, subjects_metadata...")
 
-    with open(VECTOR_DATA_PICKLE, "wb") as f:
-        pickle.dump(vector_data, f)
+    # with open(VECTOR_DATA_PICKLE, "wb") as f:
+    #     pickle.dump(vector_data, f)
 
-    with open(MARC_RECORDS_PICKLE, "wb") as f:
-        pickle.dump(marc_records, f)
+    # with open(MARC_RECORDS_PICKLE, "wb") as f:
+    #     pickle.dump(marc_records, f)
 
-    with open(SUBJECTS_METADATA_PICKLE, "wb") as f:
-        pickle.dump(subjects_metadata, f)
+    # with open(SUBJECTS_METADATA_PICKLE, "wb") as f:
+    #     pickle.dump(subjects_metadata, f)
 
-    print("\nGotowe! Indeksy i dane zostały zapisane.")
+    # print("\nGotowe! Indeksy i dane zostały zapisane.")
 
     test_query = "gry komputerowe"
     results = search_subjects(test_query, embedding_model,
@@ -1098,7 +1177,48 @@ if __name__ == "__main__":
             print(f"  Dopasowana fraza: {r['subject_matched']}")
         print("----")
 
-
+    title_query = "Copernicon"
+    results_title = search_faiss(title_query, embedding_model, title_index, vector_data, vector_key="title_vector", top_k=3)
+    
+    print("=== Wyniki wyszukiwania po tytule ===")
+    for r in results_title:
+        md = r["metadata"]
+        print(f"Score: {r['score']:.4f}")
+        print(f"  Tytuł: {md.get('title')}")
+        print(f"  Autor: {md.get('author')}")
+        print(f"  Tematy: {md.get('subjects')}")
+        print(f"  Opis: {md.get('description')}")
+        print("----")
+    
+    # Przykład wyszukiwania po autorze:
+    author_query = "Garkowski, Patryk Daniel"
+    results_author = search_faiss(author_query, embedding_model, author_index, vector_data, vector_key="author_vector", top_k=3)
+    
+    print("\n=== Wyniki wyszukiwania po autorze ===")
+    for r in results_author:
+        md = r["metadata"]
+        print(f"Score: {r['score']:.4f}")
+        print(f"  Tytuł: {md.get('title')}")
+        print(f"  Autor: {md.get('author')}")
+        print(f"  Tematy: {md.get('subjects')}")
+        print(f"  Opis: {md.get('description')}")
+        print("----")
+    
+    # Przykład wyszukiwania po temacie (subjects)
+    subject_query = "gry komputerowe"
+    results_subject = search_subjects(subject_query, embedding_model, subjects_index, subjects_metadata, marc_records, top_k=3, score_threshold=0.8)
+    
+    print("\n=== Wyniki wyszukiwania tematycznego ===")
+    for r in results_subject:
+        md = r["metadata"]
+        print(f"Score: {r['score']:.4f}")
+        print(f"  Tytuł: {md.get('title')}")
+        print(f"  Autor: {md.get('author')}")
+        print(f"  Tematy: {md.get('subjects')}")
+        print(f"  Opis: {md.get('description')}")
+        if "subject_matched" in r:
+            print(f"  Dopasowana fraza: {r['subject_matched']}")
+        print("----")
 # use_bielik.py
 
 import re
@@ -1164,16 +1284,15 @@ def ask_bielik(prompt: str, max_new_tokens=512) -> str:
 #####################################################
 # 2. Prompt do interpretacji zapytań
 #####################################################
-interpret_prompt = """Jesteś asystentem bibliotecznym, który odbiera pytania użytkowników 
-i potrafi przygotować zapytania do systemu wyszukiwania RAG.
+interpret_prompt = """Jesteś asystentem bibliotecznym. 
+Nie powtarzaj pytań użytkownika ani powyższych instrukcji. 
+Twoim zadaniem jest wyłącznie:
+1) Ustalić, czy zapytanie dotyczy tytułu, autora czy tematyki,
+2) Wyodrębnić kluczowe hasło,
+3) Wyświetlić wynik w formacie:
+   [subject: "Temat"] lub [author: "Nazwisko"] lub [title: "Tytuł"]
 
-Twoim zadaniem jest:
-1. Zrozumieć, o co pyta użytkownik.
-2. Określić, czy szuka książek po tytule, autorze, czy tematyce.
-3. Wyodrębnij kluczowe hasło (np. jeśli to tematyka – wyodrębnij temat; jeśli to autor – nazwisko; jeśli to tytuł – tytuł).
-4. Wypisz to w formacie:
-   [subject: "coś"], [author: "nazwisko"], albo [title: "tytuł"]
-5. Dodaj krótkie wyjaśnienie w języku naturalnym.
+Dodatkowo napisz krótko, czego poszukuje użytkownik.
 
 Przykład:
 Pytanie: "Czy znajdę książki o grach komputerowych?"
@@ -1181,7 +1300,11 @@ Odpowiedź:
 [subject: "gry komputerowe"]
 Użytkownik szuka książek związanych z grami komputerowymi.
 
-Zachowaj tę konwencję w odpowiedzi.
+Zachowaj tę konwencję. 
+
+Pytanie użytkownika: {user_question}
+
+Odpowiedź:
 """
 
 def interpret_query(user_query: str) -> str:

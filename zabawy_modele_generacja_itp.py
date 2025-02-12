@@ -5,63 +5,6 @@ Created on Tue Jan 21 13:57:18 2025
 @author: darek
 """
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-# Wybierz model, np. BLOOM
-model_name = "bigscience/bloom-7b1"
-
-# Pobierz tokenizer i model
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
-
-# Funkcja do generowania tekstu
-def generate_text(prompt, max_length=100):
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = model.generate(inputs.input_ids, max_length=max_length, num_return_sequences=1)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-# Przykładowe zapytanie
-prompt = "What is the future of AI?"
-generated_text = generate_text(prompt)
-print(generated_text)
-
-
-from transformers import pipeline
-
-# Możesz wybrać inny model niż google/flan-t5-large,
-# np. bigscience/bloomz-7b1 albo google/flan-t5-xxl (choć jest większy).
-model_name = "google/flan-t5-large"
-
-# Konfigurujemy pipeline do generowania tekstu
-qa_pipeline = pipeline("text2text-generation", model=model_name)
-
-def answer_question(question: str) -> str:
-    """
-    Zwraca odpowiedź na zadane pytanie w formie tekstu.
-    """
-    prompt = (
-        f"You are a helpful and knowledgeable assistant. "
-        f"Please answer the following question as accurately as possible.\n\n"
-        f"Question: {question}\nAnswer:"
-    )
-
-    # Wykonujemy generowanie
-    response = qa_pipeline(
-        prompt,
-        max_length=250,       # maksymalna długość odpowiedzi
-        num_return_sequences=1,
-        temperature=0.7,      # od 0.0 (bardzo konserwatywne) do ~1.0 (bardziej kreatywne)
-        top_p=0.9
-    )
-    # Pipeline zwraca listę odpowiedzi, bierzemy pierwszą
-    return response[0]["generated_text"]
-
-# Przykładowe pytanie
-if __name__ == "__main__":
-    question = "What is the future of AI?"
-    generated_answer = answer_question(question)
-    print("Question:", question)
-    print("Answer:", generated_answer)
 
 
 #%% bloomz
@@ -285,18 +228,18 @@ model_name = "speakleash/Bielik-11B-v2.3-Instruct"
 # Ładujemy tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 # Ładujemy model z automatycznym mapowaniem na GPU (wymaga accelerate)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    device_map="auto",        # automatycznie wgra model na GPU/CPU (o ile jest accelerate)
-    torch_dtype=torch.float16, # wymaga GPU z obsługą float16
-    trust_remote_code=True
-)
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     device_map="auto",        # automatycznie wgra model na GPU/CPU (o ile jest accelerate)
+#     torch_dtype=torch.float16, # wymaga GPU z obsługą float16
+#     trust_remote_code=True
+# )
 
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    torch_dtype=torch.float16,
-    trust_remote_code=True
-)
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     torch_dtype=torch.float16,
+#     trust_remote_code=True
+# )
 #Kwantyzajca 8 bitowa
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
@@ -353,17 +296,24 @@ model_name = "speakleash/Bielik-11B-v2.3-Instruct"
 
 # Ładujemy tokenizer i model Bielika w float16 na GPU:
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     torch_dtype=torch.float16,
+#     trust_remote_code=True
+# ).cuda()
+
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype=torch.float16,
+    device_map="auto",
+    load_in_8bit=True,
     trust_remote_code=True
-).cuda()
-
+)
 generator = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    device=0  # GPU
+    return_full_text=False
+    #device=0  # GPU
 )
 
 def ask_bielik(prompt: str, max_new_tokens=300) -> str:
@@ -371,25 +321,33 @@ def ask_bielik(prompt: str, max_new_tokens=300) -> str:
         prompt,
         max_new_tokens=max_new_tokens,
         do_sample=True,
-        temperature=1.0,   # możesz zmienić
+        temperature=0.7,   # możesz zmienić
         top_p=0.9,
         repetition_penalty=1.2
     )
     return output[0]["generated_text"]
 
+if __name__ == "__main__":
+    # Testowe pytanie
+    prompt = 'Tell me something about adam mickiewicz'
+    result = ask_bielik(prompt)
+    print("Wynik:")
+    print(result)
+
+
+
 # --------------------
 # 1) Prompt interpretacyjny
 # --------------------
-interpret_prompt = """Jesteś asystentem bibliotecznym, który odbiera pytania użytkowników 
-i potrafi przygotować zapytania do systemu wyszukiwania RAG.
+interpret_prompt = """Jesteś asystentem bibliotecznym. 
+Nie powtarzaj pytań użytkownika ani powyższych instrukcji. 
+Twoim zadaniem jest wyłącznie:
+1) Ustalić, czy zapytanie dotyczy tytułu, autora czy tematyki,
+2) Wyodrębnić kluczowe hasło,
+3) Wyświetlić wynik w formacie:
+   [subject: "Temat"] lub [author: "Nazwisko"] lub [title: "Tytuł"]
 
-Twoim zadaniem jest:
-1. Zrozumieć, o co pyta użytkownik.
-2. Określić, czy szuka książek po tytule, autorze, czy tematyce.
-3. Wyodrębnij kluczowe hasło (np. jeśli to tematyka – wyodrębnij temat; jeśli to autor – nazwisko; jeśli to tytuł – tytuł).
-4. Wypisz to w formacie:
-   [subject: "coś"], [author: "nazwisko"], albo [title: "tytuł"]
-5. Dodaj krótkie wyjaśnienie w języku naturalnym.
+Dodatkowo napisz krótko, czego poszukuje użytkownik.
 
 Przykład:
 Pytanie: "Czy znajdę książki o grach komputerowych?"
@@ -397,31 +355,35 @@ Odpowiedź:
 [subject: "gry komputerowe"]
 Użytkownik szuka książek związanych z grami komputerowymi.
 
-Zachowaj tę konwencję w odpowiedzi.
+Zachowaj tę konwencję. 
+
+Pytanie użytkownika: {user_question}
+
+Odpowiedź:
 """
 
-# --------------------
-# 2) Prompt finalnej odpowiedzi
-# --------------------
+final_prompt_template = """Oto wyniki wyszukiwania z bazy biblioteki:
+{results_text}
+
+Napisz zwięzłą, krótką, konkretną i profesjonalną i formalną odpowiedź dla użytkownika, uwzględniając powyższe pozycje.
+"""
+
 def create_final_prompt(user_query, results_text):
     return f"""Użytkownik pytał: {user_query}
 
-Oto wyniki wyszukiwania z bazy biblioteki:
-{results_text}
-
-Napisz zwięzłą i przyjazną odpowiedź dla użytkownika, uwzględniając powyższe pozycje.
+{final_prompt_template.format(results_text=results_text)}
 """
 
-# --------------------
-# TEST
-# --------------------
 if __name__ == "__main__":
-    # Przykładowe zapytanie:
     user_query = "Czy znajdę książki o grach komputerowych?"
-    
-    # 1) Wywołanie promptu interpretacyjnego
-    interp = interpret_prompt + f"\nPytanie użytkownika: {user_query}\n"
+    user_query = "Czy znajdę książki autorstwa Stanisława Lema?"
+    interp = interpret_prompt.format(user_question=user_query)
+
+    print(">>> interpret_prompt:")
+    print(interp)
+
     interpretation = ask_bielik(interp, max_new_tokens=200)
+
     print("=== INTERPRETACJA ===")
     print(interpretation)
     
@@ -438,40 +400,7 @@ if __name__ == "__main__":
     print(final_answer)
 
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
 
-# Nazwa modelu na Hugging Face
-model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
-
-# Sprawdzenie dostępności GPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Uruchamianie na urządzeniu: {device}")
-
-# Ładowanie tokenizera
-tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=True)
-
-# Ładowanie modelu z kwantyzacją 8-bitową dla oszczędności pamięci
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    device_map="auto",          # Automatyczny podział na GPU i CPU
-    load_in_8bit=True,          # 8-bitowa kwantyzacja (znacznie zmniejsza użycie VRAM)
-    torch_dtype=torch.float16,  # Obliczenia w float16 dla wydajności
-)
-
-# Tworzenie pipeline do generacji tekstu
-generator = pipeline(
-    "text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    device=0,  # GPU
-)
-
-# Testowe generowanie tekstu
-input_text = "Explain the principles of quantum mechanics."
-output = generator(input_text, max_length=100, temperature=0.7, top_k=50)
-print("Generated text:")
-print(output[0]["generated_text"])
 
 #%%Model czarka
 
