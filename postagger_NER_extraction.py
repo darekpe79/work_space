@@ -116,10 +116,13 @@ import os
 import json
 import pandas as pd
 
-def process_files_in_dir_explode(input_dir: str, output_excel: str):
+def process_files_in_dir_explode(input_dir: str, output_excel: str, context_size: int = 100):
     """
     - Przetwarza wszystkie pliki w `input_dir`.
-    - Każda para concept–score zostaje w osobnym wierszu DataFrame.
+    - Dla każdej jednostki (spana) zwraca wiersze, gdzie każda para concept–score
+      jest zapisywana osobno.
+    - Do każdego wiersza dodaje się 'context_snippet' – fragment tekstu z ± context_size znaków.
+    - Jeśli są wyniki, sortuje je malejąco według 'score' (czyli najlepszy wynik jest pierwszy).
     """
     all_rows = []
     
@@ -138,10 +141,9 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
         
         text_id = data.get("id", None)
         full_text = data.get("text", "")
-        
         spans_ner = data.get("spans", {}).get("ner", [])
         
-        # Linkowanie (obj-id -> [ {concept, score}, ... ])
+        # Linkowanie: mapujemy obj_id na listę wyników [{concept, score}, ...]
         linking = data.get("records", {}).get("linking", {})
         clalink = linking.get("clalink", {})
         link_info_list = clalink.get("links", [])
@@ -151,7 +153,7 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
             obj_id = link_info["obj-id"]
             obj_id_to_results[obj_id] = link_info.get("results", [])
         
-        # Iterujemy po spanach
+        # Iterujemy po rozpoznanych jednostkach (spanach)
         for span in spans_ner:
             obj_id = span["id"]
             start = span["start"]
@@ -159,13 +161,21 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
             ner_type = span.get("type", None)
             
             entity_text = full_text[start:stop]
+            
+            # Wyliczamy kontekst: ± context_size znaków, ale nie wykraczając poza granice full_text
+            context_start = max(0, start - context_size)
+            context_end = min(len(full_text), stop + context_size)
+            context_snippet = full_text[context_start:context_end]
+            
             results = obj_id_to_results.get(obj_id, [])
             
-            # Jeśli dany span nie ma resultów, tworzymy "pusty" wiersz
+            # Jeśli brak wyników, dodajemy jeden wiersz z pustymi concept i score
             if not results:
                 row = {
                     "file_name": filename,
                     "text_id": text_id,
+                    "full_text": full_text,
+                    "context_snippet": context_snippet,
                     "obj_id": obj_id,
                     "entity_text": entity_text,
                     "start": start,
@@ -176,11 +186,14 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
                 }
                 all_rows.append(row)
             else:
-                # Każdą parę concept–score zapisujemy w osobnym wierszu
-                for r in results:
+                # Sortujemy wyniki malejąco po score (najwyższy score pierwszy)
+                sorted_results = sorted(results, key=lambda r: r["score"], reverse=True)
+                for r in sorted_results:
                     row = {
                         "file_name": filename,
                         "text_id": text_id,
+                        "full_text": full_text,
+                        "context_snippet": context_snippet,
                         "obj_id": obj_id,
                         "entity_text": entity_text,
                         "start": start,
@@ -191,7 +204,6 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
                     }
                     all_rows.append(row)
     
-    # Tworzymy DataFrame i zapisujemy
     df = pd.DataFrame(all_rows)
     df.to_excel(output_excel, index=False)
     
@@ -202,9 +214,10 @@ def process_files_in_dir_explode(input_dir: str, output_excel: str):
 
 if __name__ == "__main__":
     process_files_in_dir_explode(
-        input_dir="D:/Nowa_praca/KPO/postagger/",
+        input_dir="D:/Nowa_praca/KPO/postagger/fragmenty artykułów dla CLARIN-u-20250218T071948Z-001/jsony/",
         output_excel="D:/Nowa_praca/KPO/postagger/zbiory_ner_explode.xlsx"
     )
+
 
 #%%tylko najlepszy score
 import os
@@ -278,6 +291,7 @@ def process_files_in_dir_best_score(input_dir: str, output_excel: str):
                 "file_name": filename,
                 "text_id": text_id,
                 "obj_id": obj_id,
+                "full_text": full_text,
                 "entity_text": entity_text,
                 "start": start,
                 "stop": stop,

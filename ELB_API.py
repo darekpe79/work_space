@@ -29,6 +29,15 @@ params = {
     'resultSize': 'small'
 }
 
+params = {
+    "lookfor": "Mickiewicz, Cezary",
+    "type": "author",
+    "withFacets": "subjects_str_mv",
+    "useFacet": 'subjects_str_mv:"Hasła osobowe (literatura polska)"',
+    "limit": 100,
+    "page": 1
+}
+
 # 3. Wykonujemy zapytanie do API z powyższymi parametrami.
 response = requests.get(base_search_url, params=params)
 
