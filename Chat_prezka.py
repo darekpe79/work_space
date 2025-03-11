@@ -78,24 +78,7 @@ Pytanie użytkownika: {user_question}
 Odpowiedź:
 """
 
-interpret_prompt = """Jesteś asystentem bibliotecznym.
 
-Twoje zadanie:
-1. Ustalić, czy w pytaniu użytkownika występuje tytuł, autor lub tematyka.
-2. Jeśli pytanie zawiera wiele aspektów (np. autor i temat), zwróć je osobno.
-3. Wynik przedstaw **wyłącznie** w formacie:
-   [author: "nazwa"], [subject: "temat"], [title: "tytuł"]
-4. Nie wpisuj niczego, czego nie ma w pytaniu.
-5. Nie wyjaśniaj, nie dodawaj komentarzy, nie zmieniaj nazwisk ani tematów.
-
-Przykład:
-Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie?"
-Odpowiedź:
-[author: "mickiewicz"], [subject: "przyroda"]
-
-Pytanie użytkownika: {user_question}
-
-Odpowiedź: """
 
 
 interpret_prompt = """Jesteś asystentem bibliotecznym.
@@ -106,24 +89,257 @@ Masz wyłącznie ustalić, czy w pytaniu użytkownika występuje:
 - tematyka,
 - zakres dat (year range),
 - pojedyncza data (year),
+- miejsce wydania (place),
 lub jakiekolwiek kombinacje powyższych.
 
 Wynik przedstaw **wyłącznie** w formacie:
-[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"]
+[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"], [place: "miejsce wydania"]
 
 Jeśli pytanie zawiera wiele aspektów, zwróć je osobno, np.:
-[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"]
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
 
-Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów i lat.
+Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów, lat ani miejsca wydania.
 Nie wpisuj kluczy, których nie ma w pytaniu.
 
 Przykład:
-Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840?"
+Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840 wydane w Warszawie?"
 Odpowiedź:
-[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"]
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
 
-Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku: {user_question}
+Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeśli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku: {user_question}
 Odpowiedź:"""
+
+interpret_prompt = """Jesteś asystentem bibliotecznym.
+
+Masz wyłącznie ustalić, czy w pytaniu użytkownika występuje:
+- tytuł,
+- autor,
+- tematyka,
+- zakres dat (year range),
+- pojedyncza data (year),
+- miejsce wydania (place),
+- wydawca (publisher),
+- język (language),
+- typ dokumentu (document_type),
+lub jakiekolwiek kombinacje powyższych.
+
+Wynik przedstaw **wyłącznie** w formacie:
+[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"], [place: "miejsce wydania"], [publisher: "wydawca"], [language: "język"], [document_type: "typ dokumentu"]
+
+Jeśli pytanie zawiera wiele aspektów, zwróć je osobno, np.:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"], [publisher: "Wydawnictwo Naukowe PWN"], [language: "polski"], [document_type: "książka"]
+
+Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów, lat ani miejsca wydania.
+Nie wpisuj kluczy, których nie ma w pytaniu.
+
+Przykład:
+Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840 wydane w Warszawie?"
+Odpowiedź:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
+
+Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeśli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku: {user_question}
+Odpowiedź:"""
+interpret_prompt = """Jesteś asystentem bibliotecznym.
+
+Masz wyłącznie ustalić, czy w pytaniu użytkownika występuje:
+- tytuł,
+- autor,
+- tematyka,
+- zakres dat (year range),
+- pojedyncza data (year),
+- miejsce wydania (place),
+- wydawca (publisher),
+- język (language),
+- typ dokumentu (document_type),
+lub jakiekolwiek kombinacje powyższych.
+
+Wynik przedstaw **wyłącznie** w formacie:
+[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"], [place: "miejsce wydania"], [publisher: "wydawca"], [language: "język"], [document_type: "typ dokumentu"]
+
+Jeśli pytanie zawiera wiele aspektów, zwróć je osobno, np.:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"], [publisher: "Wydawnictwo Naukowe PWN"], [language: "polski"], [document_type: "książka"]
+
+Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów, lat ani miejsca wydania.
+Nie wpisuj kluczy, których nie ma w pytaniu.
+
+Przykłady:
+1. Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840 wydane w Warszawie?"
+Odpowiedź:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
+
+2. Pytanie użytkownika: "Szukam czasopism o astronomii wydanych w Krakowie."
+Odpowiedź:
+[subject: "astronomia"], [place: "Kraków"], [document_type: "czasopismo"]
+
+3. Pytanie użytkownika: "Czy macie artykuły naukowe o sztucznej inteligencji z lat 2010-2020?"
+Odpowiedź:
+[subject: "sztuczna inteligencja"], [year_range: "2010-2020"], [document_type: "artykuł naukowy"]
+
+4. Pytanie użytkownika: "Gdzie mogę znaleźć ebooki Stephena Kinga w języku angielskim?"
+Odpowiedź:
+[author: "Stephen King"], [language: "angielski"], [document_type: "ebook"]
+
+5. Pytanie użytkownika: "Czy macie raporty o zmianach klimatycznych wydane przez ONZ?"
+Odpowiedź:
+[subject: "zmiany klimatyczne"], [publisher: "ONZ"], [document_type: "raport"]
+
+6. Pytanie użytkownika: "Szukam audiobooków z powieściami kryminalnymi."
+Odpowiedź:
+[subject: "powieści kryminalne"], [document_type: "audiobook"]
+
+Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeśli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku: {user_question}
+Odpowiedź:"""
+
+interpret_prompt = """Jesteś asystentem bibliotecznym.
+
+Masz wyłącznie ustalić, czy w pytaniu użytkownika występuje:
+- tytuł,
+- autor,
+- tematyka,
+- zakres dat (year range),
+- pojedyncza data (year),
+- miejsce wydania (place),
+- wydawca (publisher),
+- język (language),
+- typ dokumentu (document_type),
+lub jakiekolwiek kombinacje powyższych.
+
+Wynik przedstaw **wyłącznie** w formacie:
+[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"], [place: "miejsce wydania"], [publisher: "wydawca"], [language: "język"], [document_type: "typ dokumentu"]
+
+Jeśli pytanie zawiera wiele aspektów, zwróć je osobno, np.:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"], [publisher: "Wydawnictwo Naukowe PWN"], [language: "polski"], [document_type: "książka"]
+
+Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów, lat ani miejsca wydania.
+Nie wpisuj kluczy, których nie ma w pytaniu.
+
+Przykłady:
+1. Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840 wydane w Warszawie?"
+Odpowiedź:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
+
+2. Pytanie użytkownika: "Szukam czasopism o astronomii wydanych w Krakowie."
+Odpowiedź:
+[subject: "astronomia"], [place: "Kraków"], [document_type: "czasopismo"]
+
+3. Pytanie użytkownika: "Czy macie artykuły naukowe o sztucznej inteligencji z lat 2010-2020?"
+Odpowiedź:
+[subject: "sztuczna inteligencja"], [year_range: "2010-2020"], [document_type: "artykuł naukowy"]
+
+4. Pytanie użytkownika: "Gdzie mogę znaleźć ebooki Stephena Kinga w języku angielskim?"
+Odpowiedź:
+[author: "Stephen King"], [language: "angielski"], [document_type: "ebook"]
+
+5. Pytanie użytkownika: "Czy macie raporty o zmianach klimatycznych wydane przez ONZ?"
+Odpowiedź:
+[subject: "zmiany klimatyczne"], [publisher: "ONZ"], [document_type: "raport"]
+
+6. Pytanie użytkownika: "Szukam audiobooków z powieściami kryminalnymi."
+Odpowiedź:
+[subject: "powieści kryminalne"], [document_type: "audiobook"]
+
+7. Pytanie użytkownika: "Czy macie raporty ekonomiczne wydane przez Bank Światowy oraz Forum Ekonomiczne?"
+Odpowiedź:
+[subject: "ekonomia"], [publisher: "Bank Światowy"], [publisher: "Forum Ekonomiczne"], [document_type: "raport"]
+
+8. Pytanie użytkownika: "Szukam książek o historii Polski lub historii Europy wydanych w latach 2000-2010."
+Odpowiedź:
+[subject: "historia Polski"], [subject: "historia Europy"], [year_range: "2000-2010"], [document_type: "książka"]
+
+9. Pytanie użytkownika: "Czy macie artykuły naukowe o medycynie oraz raporty o zdrowiu publicznym?"
+Odpowiedź:
+[subject: "medycyna"], [document_type: "artykuł naukowy"], [subject: "zdrowie publiczne"], [document_type: "raport"]
+
+Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeśli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku: {user_question}
+Odpowiedź:"""
+
+import datetime
+
+# Oblicz bieżący rok
+current_year = datetime.datetime.now().year
+
+# Dynamically insert the current year into the prompt:
+interpret_prompt = f"""Jesteś asystentem bibliotecznym.
+
+Masz wyłącznie ustalić, czy w pytaniu użytkownika występuje:
+- tytuł,
+- autor,
+- tematyka,
+- zakres dat (year range),
+- pojedyncza data (year),
+- miejsce wydania (place),
+- wydawca (publisher),
+- język (language),
+- typ dokumentu (document_type),
+lub jakiekolwiek kombinacje powyższych.
+
+Wynik przedstaw **wyłącznie** w formacie:
+[author: "nazwisko"], [subject: "temat"], [title: "tytuł"], [year: "RRRR"], [year_range: "RRRR-RRRR"], [place: "miejsce wydania"], [publisher: "wydawca"], [language: "język"], [document_type: "typ dokumentu"]
+
+Jeśli pytanie zawiera wiele aspektów, zwróć je osobno, np.:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"], [publisher: "Wydawnictwo Naukowe PWN"], [language: "polski"], [document_type: "książka"]
+
+Nie powtarzaj pytania użytkownika, nie dodawaj komentarzy, nie zmieniaj nazwisk, tytułów, lat, miejsc wydania, wydawcy, języka ani typu dokumentu.
+Nie wpisuj kluczy, których nie ma w pytaniu.
+
+Dodatkowe zasady interpretacji dat:
+1. Jeśli w pytaniu jest „ostatnich X lat”, przyjmij, że obecny rok to {current_year}, więc zapisz [year_range: "{current_year} - X + 1-{current_year}"].
+2. Jeśli w pytaniu jest „przed rokiem YYYY”, przyjmij [year_range: "0000-(YYYY-1)"].
+3. Jeśli w pytaniu jest „po roku YYYY”, przyjmij [year_range: "(YYYY+1)-9999"].
+4. Jeśli w pytaniu jest „w roku YYYY”, przyjmij [year: "YYYY"].
+5. Jeśli w pytaniu jest „od roku YYYY do roku ZZZZ”, przyjmij [year_range: "YYYY-ZZZZ"].
+6. Jeśli nie da się jednoznacznie ustalić, nie wpisuj year ani year_range.
+
+Przykłady:
+
+1. Pytanie użytkownika: "Czy znajdę książki Mickiewicza o przyrodzie z lat 1830-1840 wydane w Warszawie?"
+Odpowiedź:
+[author: "mickiewicz"], [subject: "przyroda"], [year_range: "1830-1840"], [place: "warszawa"]
+
+2. Pytanie użytkownika: "Szukam czasopism o astronomii wydanych w Krakowie."
+Odpowiedź:
+[subject: "astronomia"], [place: "Kraków"], [document_type: "czasopismo"]
+
+3. Pytanie użytkownika: "Czy macie artykuły naukowe o sztucznej inteligencji z lat 2010-2020?"
+Odpowiedź:
+[subject: "sztuczna inteligencja"], [year_range: "2010-2020"], [document_type: "artykuł naukowy"]
+
+4. Pytanie użytkownika: "Gdzie mogę znaleźć ebooki Stephena Kinga w języku angielskim?"
+Odpowiedź:
+[author: "Stephen King"], [language: "angielski"], [document_type: "ebook"]
+
+5. Pytanie użytkownika: "Czy macie raporty o zmianach klimatycznych wydane przez ONZ?"
+Odpowiedź:
+[subject: "zmiany klimatyczne"], [publisher: "ONZ"], [document_type: "raport"]
+
+6. Pytanie użytkownika: "Szukam audiobooków z powieściami kryminalnymi."
+Odpowiedź:
+[subject: "powieści kryminalne"], [document_type: "audiobook"]
+
+7. Pytanie użytkownika: "Czy macie raporty ekonomiczne wydane przez Bank Światowy oraz Forum Ekonomiczne?"
+Odpowiedź:
+[subject: "ekonomia"], [publisher: "Bank Światowy"], [publisher: "Forum Ekonomiczne"], [document_type: "raport"]
+
+8. Pytanie użytkownika: "Szukam książek o historii Polski lub historii Europy wydanych w latach 2000-2010."
+Odpowiedź:
+[subject: "historia Polski"], [subject: "historia Europy"], [year_range: "2000-2010"], [document_type: "książka"]
+
+9. Pytanie użytkownika: "Czy macie artykuły naukowe o medycynie oraz raporty o zdrowiu publicznym?"
+Odpowiedź:
+[subject: "medycyna"], [document_type: "artykuł naukowy"], [subject: "zdrowie publiczne"], [document_type: "raport"]
+
+10. Pytanie użytkownika: "Czy macie książki Stephena Kinga wydane przed 2000 rokiem?"
+Odpowiedź:
+[author: "Stephen King"], [year_range: "0000-1999"], [document_type: "książka"]
+
+11. Pytanie użytkownika: "Czy macie artykuły naukowe o psychologii z ostatnich 5 lat?"
+Odpowiedź:
+[subject: "psychologia"], [year_range: "{current_year - 4}-{current_year}"], [document_type: "artykuł naukowy"]
+
+Pytanie użytkownika, interesuje Ci tylko ono, nic od siebie nie dodawaj, żadnych pytań, jeśli użytkownik używa imienia i nazwiska używaj ich obu, wszystko zawsze w mianowniku, pamiętaj o zasadach dotyczących dat i obecnym roku {current_year}!: {{user_question}}
+Odpowiedź:
+"""
+
 
 
 final_prompt_template = """Oto wyniki wyszukiwania z bazy biblioteki:
@@ -131,7 +347,6 @@ final_prompt_template = """Oto wyniki wyszukiwania z bazy biblioteki:
 
 Napisz zwięzłą, krótką, konkretną i formalną odpowiedź dla użytkownika, uwzględniając powyższe pozycje. Podziękuj za pytanie i wymień pozycje z bazy, z polami które otrzymałes, nic więcej nie dodawaj.
 """
-
 def create_final_prompt(user_query, results_text):
     return f"""Użytkownik pytał: {user_query}
 
@@ -140,7 +355,14 @@ def create_final_prompt(user_query, results_text):
 
 if __name__ == "__main__":
     #user_query = "Czy znajdę książki o grach komputerowych?"
-    user_query = "„Czy znajdę książkę 'Traktat o checkpointach' Garkowskiego o tematyce gier komputerowych?"
+    user_query = "„Czy macie książki napisane przez Bolesława Prusa, wydane w Warszawie w roku 1890?"
+    user_query ="Szukam książek o historii Polski w języku angielskim, wydanych przez wydawnictwo Penguin."
+    user_query ="Czy macie czasopisma o astronomii wydane w Krakowie?"
+    user_query ="Czy macie artykuły naukowe o medycynie oraz raporty o zdrowiu publicznym?"
+    user_query ="Czy macie raporty ekonomiczne wydane przez Bank Światowy oraz Forum Europejskie?"
+    user_query ="Czy macie czasopisma o technologii oraz artykuły naukowe o sztucznej inteligencji?"
+    user_query ="Czy macie książki Stephena Kinga wydane przed 2000 rokiem oraz artykuły naukowe o psychologii z ostatnich 5 lat?"
+    user_query ="Czy znajdę ebooki w języku angielskim autorstwa J.K. Rowling?"
     interp = interpret_prompt.format(user_question=user_query)
 
     print(">>> interpret_prompt:")

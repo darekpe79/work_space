@@ -555,3 +555,141 @@ if __name__ == "__main__":
         input_dir="C:/Users/darek/Downloads/postagger_13.2_12_36/",
         output_excel="zbiory_ner_ndjson.xlsx"
     )
+
+
+import pandas as pd
+
+# 1. Wczytanie pliku A (z kolumną "true/false")
+dfA = pd.read_excel("C:/Users/darek/Downloads/KPO_postagger_ewaluacja.xlsx") 
+# Załóżmy, że w dfA są kolumny: 
+# [entity_text, wikidata_label, concept, true/false]
+# (oraz ewentualnie inne)
+
+# 2. Wczytanie pliku B (bez "true/false", ale z pełnymi danymi)
+dfB = pd.read_excel("C:/Users/darek/Downloads/KPO_postagger_test_backup.xlsx") 
+# Zakładamy, że w dfB są m.in.:
+# [text_id, context_snippet, obj_id, entity_text, wikidata_label, concept, 
+#  wiki_Click_URL, wikidata_url, itp.]
+# Bez kolumny true/false
+
+# 3. Tworzymy "subset" z dfA, by nie nadpisywać 
+#    ewentualnie niepotrzebnych kolumn
+dfA_sub = dfA[["entity_text", "wikidata_label", "concept", "true/false"]]
+
+# 4. Łączymy (merge) dfB z dfA_sub:
+#    - how="left" => chcemy zachować wszystkie wiersze z dfB
+#    - on=... => łączymy po 3 kolumnach:
+#      entity_text, wikidata_label, concept
+df_merged = pd.merge(
+    dfB,
+    dfA_sub,
+    on=["entity_text", "wikidata_label", "concept"],
+    how="left"
+)
+
+# 5. Zapisujemy połączoną tabelę do nowego pliku
+df_merged.to_excel("KPO_postagger_ewaluacja_full.xlsx", index=False)
+
+print("Gotowe! Zapisano df_merged z dołączoną kolumną true/false.")
+
+
+import os
+import json
+import pandas as pd
+
+import os
+import json
+import pandas as pd
+import shutil
+
+# Ścieżki (dostosuj do swoich potrzeb)
+input_dir = r"D:/Nowa_praca/KPO/postagger/fragmenty artykułów dla CLARIN-u-20250218T071948Z-001/jsony/"
+output_dir = r"D:/Nowa_praca/KPO/postagger/fragmenty artykułów dla CLARIN-u-20250218T071948Z-001/Jsony_True_False/"
+excel_file = r"KPO_postagger_ewaluacja_full.xlsx"
+
+# Tworzymy katalog wynikowy (jeśli nie istnieje)
+os.makedirs(output_dir, exist_ok=True)
+
+# Wczytujemy Excela
+df_excel = pd.read_excel(excel_file)
+filtered_df = df_excel[df_excel['text_id'] == '6b3dc02d-4379-4a78-82b0-a77bc9193ad1']
+
+# wyświetlenie wyniku
+print(filtered_df)
+
+
+# Upewnijmy się, że true/false są tekstem
+df_excel['true/false'] = df_excel['true/false'].astype(str).str.upper()
+
+# Tworzymy słownik ułatwiający wyszukiwanie wartości true/false
+tf_dict = {}
+for idx, row in df_excel.iterrows():
+    key = (row['text_id'], row['obj_id'], row['concept'])
+    
+    if pd.isna(row['true/false']):
+        tf_dict[key] = "?"
+    elif row['true/false'] == '1.0':
+        tf_dict[key] = "T"
+    elif row['true/false'] == '0.0':
+        tf_dict[key] = "F"
+    else:
+        tf_dict[key] = "?"
+        
+
+count = sum(1 for v in tf_dict.values() if v == "?")
+print(f'Ilość znaków "?": {count}')
+
+selected_text_id = "6b3dc02d-4379-4a78-82b0-a77bc9193ad1"
+
+# filtrowanie słownika
+filtered_dict = {key: val for key, val in tf_dict.items() if key[0] == selected_text_id}
+
+# sprawdzenie wyników
+for key, val in filtered_dict.items():
+    print(key, val)
+
+# Przetwarzanie każdego pliku JSON
+for filename in os.listdir(input_dir):
+    if not filename.endswith(".json"):
+        continue
+
+    input_filepath = os.path.join(input_dir, filename)
+    output_filepath = os.path.join(output_dir, filename)
+
+    # Wczytujemy oryginalny JSON
+    with open(input_filepath, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    text_id = data.get('id', None)
+    if text_id is None:
+        print(f"Brak text_id w pliku: {filename}")
+        continue
+
+    # Iterujemy po obj-id w JSON-ie i dodajemy T/F
+    links = data.get('records', {}).get('linking', {}).get('clalink', {}).get('links', [])
+    for link in links:
+        obj_id = link['obj-id']
+        print(obj_id)
+        for result in link['results']:
+            concept = result['concept']
+            # Wyszukujemy wartość T/F
+            key = (text_id, obj_id, concept)
+            tf_value = tf_dict.get(key, None)
+
+            if tf_value is not None:
+                result["T/F"] = tf_value  # Dodajemy T/F
+            else:
+                result["T/F"] = '?'  # Jeśli nie ma dopasowania
+
+    # Zapisujemy zmodyfikowany JSON do nowego katalogu
+    with open(output_filepath, 'w', encoding='utf-8') as file:
+        json.dump(data, file, ensure_ascii=False)
+
+print("Przetwarzanie zakończone.")
+
+
+
+
+    
+
+

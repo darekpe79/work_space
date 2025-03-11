@@ -30,7 +30,7 @@ params = {
 }
 
 params = {
-    "lookfor": "Mickiewicz, Cezary",
+    "lookfor": "Mickiewicz",
     "type": "author",
     "withFacets": "subjects_str_mv",
     "useFacet": 'subjects_str_mv:"Hasła osobowe (literatura polska)"',
@@ -38,11 +38,29 @@ params = {
     "page": 1
 }
 
-# 3. Wykonujemy zapytanie do API z powyższymi parametrami.
+params = {
+    "withFacets": "subjects_str_mv,publisher,format_major",
+    "useFacet": 'subjects_str_mv:"ekonomia" AND publisher:("Bank Światowy" OR "Forum Europejskie") AND format_major:"raport"'
+}
+
+params = {
+    "lookfor": "ekonomia",
+    "withFacets": "subjects_str_mv,publisher,format_major",
+    "useFacet": 'publisher:("Bank Światowy" OR "Forum Europejskie") AND format_major:"raport"',
+    "page": 1,
+    "limit": 10,
+    "sort": "title_sort asc",
+    "resultSize": "small"
+}
+
+# URL bazowy
+base_search_url = "https://testlibri.ucl.cas.cz/pl/api/biblio"
+
+# Wysyłanie zapytania
 response = requests.get(base_search_url, params=params)
 
+# Przetwarzanie odpowiedzi
 if response.status_code == 200:
-    # 4. Odbieramy wyniki w formacie JSON.
     data = response.json()
     
     # Wyciągamy informację o całkowitej liczbie wyników.
@@ -54,6 +72,7 @@ if response.status_code == 200:
     
     if not docs:
         print("Brak wyników do pobrania.")
+
     else:
         # 5. Przygotowujemy plik MARC do zapisu (tryb 'wb' - zapis binarny).
         writer = MARCWriter(open('moje_rekordy.mrc', 'wb'))

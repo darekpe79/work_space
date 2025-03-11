@@ -17,7 +17,7 @@ tokenizer = HerbertTokenizerFast.from_pretrained('allegro/herbert-large-cased')
 json_files_dir = 'E:/Python/json_trening/'
 json_files = [f for f in os.listdir(json_files_dir) if f.endswith('.json')]
 
-labels_to_remove = {'WYDAWNICTWO'}
+labels_to_remove = {}#{'WYDAWNICTWO'}
 transformed_data = []
 
 # Wczytanie danych i przetworzenie adnotacji
@@ -53,7 +53,7 @@ tag2id = {
     'B-AUTOR': 11, 'I-AUTOR': 12,
     'B-FUNKCJA WSPÓŁTWÓRSTWA': 13, 'I-FUNKCJA WSPÓŁTWÓRSTWA': 14,
     'B-DOPISEK BIBLIOGRAFICZNY': 15, 'I-DOPISEK BIBLIOGRAFICZNY': 16,
-    'B-TOM': 17, 'I-TOM': 18
+    'B-TOM': 17, 'I-TOM': 18, 'B-WYDAWNICTWO' : 19, 'I-WYDAWNICTWO' : 20
 }
 id2tag = {v: k for k, v in tag2id.items()}
 
