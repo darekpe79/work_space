@@ -242,69 +242,6 @@ if __name__ == "__main__":
     print(interpretation)
     
     
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
-# Identyfikator modelu na Hugging Face Hub
-model_id = "speakleash/Bielik-11B-v2.3-Instruct-GGUF"
-
-# Nazwa pliku GGUF w repozytorium modelu
-gguf_filename = "Bielik-11B-v2.3-Instruct.Q4_K_M.gguf"
-
-# Ścieżka do pliku GGUF (zostanie automatycznie pobrany z Hugging Face Hub)
-gguf_file = hf_hub_download(model_id, filename=gguf_filename)
-
-
-tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename)
-model = AutoModelForCausalLM.from_pretrained(model_id, gguf_file=filename)
-
-model = AutoModelForCausalLM.from_pretrained(
-    model_path,
-    model_type="llama",
-    gpu_layers=55,
-    max_context_size=2048  # jeżeli biblioteka to wspiera
-)
-
-# Wczytanie modelu bez ponownej kwantyzacji
-model = AutoModelForCausalLM.from_pretrained(
-    model_path,
-    
-    gpu_layers=55
-)
-
-# Funkcja do zadawania pytań
-def ask_bielik(prompt: str, max_new_tokens=600) -> str:
-    return model(
-        prompt,
-        max_new_tokens=max_new_tokens,
-
-        top_p=0.7,
-        repetition_penalty=1.2
-    )
-
-# Przykład użycia
-prompt = "opowiedz mi o mickiewiczu adamie"
-response = ask_bielik(prompt)
-print(response)
-
-
-if __name__ == "__main__":
-    #user_query = "Czy znajdę książki o grach komputerowych?"
-    user_query = "„Czy macie książki napisane przez Bolesława Prusa, wydane w Warszawie w roku 1890?"
-    user_query ="Szukam książek o historii Polski w języku angielskim, wydanych przez wydawnictwo Penguin."
-    user_query ="Czy macie czasopisma o astronomii wydane w Krakowie?"
-    user_query ="Czy macie artykuły naukowe o medycynie oraz raporty o zdrowiu publicznym?"
-    user_query ="Czy macie raporty ekonomiczne wydane przez Bank Światowy oraz Forum Europejskie?"
-    user_query ="Czy macie czasopisma o technologii oraz artykuły naukowe o sztucznej inteligencji?"
-    user_query ="Czy macie książki Stephena Kinga wydane przed 2000 rokiem oraz artykuły naukowe o psychologii z ostatnich 5 lat?"
-    user_query ="Czy znajdę ebooki w języku angielskim autorstwa J.K. Rowling?"
-    interp = interpret_prompt.format(user_question=user_query)
-
-    print(">>> interpret_prompt:")
-    print(interp)
-
-    interpretation = ask_bielik(interp, max_new_tokens=150)
-    
 #%% FALCON   
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
@@ -505,13 +442,13 @@ generator = pipeline(
 )
 
 # 🔹 Funkcja do zadawania pojedynczych pytań (bez przechowywania historii)
-def ask_model(prompt: str, max_new_tokens=150) -> str:
+def ask_model(prompt: str, max_new_tokens=1000) -> str:
     output = generator(
         prompt,
         max_new_tokens=max_new_tokens,
         do_sample=True,
         temperature=0.1,   # Niska temperatura dla bardziej przewidywalnych odpowiedzi
-        top_p=0.9,
+        top_p=0.7,
         repetition_penalty=1.2
     )
     
@@ -663,3 +600,55 @@ def chat_with_model():
 
 # Uruchomienie czatu
 chat_with_model()
+#DEEP SEEK CODER
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+# 🔹 Konfiguracja kwantyzacji 4-bitowej
+quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,                     
+    bnb_4bit_compute_dtype="float16",      
+    bnb_4bit_quant_type="nf4",             
+    llm_int8_enable_fp32_cpu_offload=True  
+)
+
+# 🔹 Model do załadowania
+model_name = "deepseek-ai/DeepSeek-Coder-V2-Lite-Base"
+
+# 🔹 Ładowanie modelu z `trust_remote_code=True`
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    quantization_config=quant_config,
+    device_map="auto",
+    trust_remote_code=True  # ✅ Pozwala modelowi na wykonanie niestandardowego kodu
+)
+
+# 🔹 Tokenizer
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+
+print("✅ Model załadowany pomyślnie!")
+
+from transformers import pipeline
+
+# Pipeline do generowania kodu
+generator = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    return_full_text=False
+)
+
+# 🔹 Funkcja do generowania kodu
+def ask_model(prompt: str, max_new_tokens=200) -> str:
+    output = generator(
+        prompt,
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        temperature=0.2,  # Niska temperatura dla precyzyjnych wyników
+        top_p=0.8,
+        repetition_penalty=1.2
+    )
+    return output[0]["generated_text"]
+
+# 🔹 Test
+response = ask_model("Napisz funkcję w Pythonie, która sortuje listę liczb.")
+print(f"📜 Wygenerowany kod:\n{response}")
