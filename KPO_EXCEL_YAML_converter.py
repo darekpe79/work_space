@@ -315,10 +315,13 @@ import pandas as pd
 import yaml
 from collections import defaultdict, Counter
 
-# Wczytanie pliku
-df = pd.read_excel("D:/Nowa_praca/KPO/YAML/KPO moduł 18 yamle_217cab33b2adf95c7e2afa28b6b496f7.xlsx", sheet_name="walidacja")
+# Wczytanie danych
+df = pd.read_excel(
+    "D:/Nowa_praca/KPO/YAML/KPO moduł 18 yamle_217cab33b2adf95c7e2afa28b6b496f7.xlsx",
+    sheet_name="walidacja"
+)
 
-# Główna struktura
+# Struktura główna
 main_event = {
     "name": None,
     "description": None,
@@ -330,7 +333,7 @@ main_event = {
     "subevents": []
 }
 
-# Bufory pomocnicze
+# Bufory
 subevents = defaultdict(lambda: {
     "performers": [],
     "creative_work_titles": [],
@@ -341,13 +344,13 @@ place_counter = Counter()
 organizer_counter = Counter()
 dates = {}
 
-# Parsowanie
+# Przetwarzanie danych
 for _, row in df.iterrows():
     key = str(row['klucz']).strip()
     sub_id = int(row['numer dla subeventu']) if not pd.isna(row['numer dla subeventu']) else None
     value = str(row['wartość']).strip() if not pd.isna(row['wartość']) else None
 
-    # Wydarzenie główne
+    # Główne wydarzenie
     if key.startswith("wydarzenie -"):
         attr = key.replace("wydarzenie - ", "")
         if attr == "tytuł":
@@ -363,6 +366,7 @@ for _, row in df.iterrows():
         elif attr == "typ wydarzenia":
             main_event["type_of_event"] = value
         elif attr == "organizator" and value != "[automatycznie]":
+            organizer_counter[value] += 1
             main_event["organizers"].append(value)
 
     # Subeventy
@@ -376,7 +380,8 @@ for _, row in df.iterrows():
             sub["description"] = value
         elif attr == "miejsce":
             sub["location"] = value
-            place_counter[value] += 1
+            if value:
+                place_counter[value] += 1
         elif attr == "typ wydarzenia":
             sub["type_of_event"] = value
         elif attr == "data":
@@ -394,18 +399,18 @@ for _, row in df.iterrows():
         elif attr == "dzieło - osoba (twórca/współtwórca)" and value:
             sub["creative_work_authors"].append(value)
 
-# Uzupełnij automatyczne wartości
+# Domknięcie braków
 if not main_event.get("location"):
-    most_common = place_counter.most_common(1)
-    if most_common:
-        main_event["location"] = most_common[0][0]
+    all_places = [place for place in place_counter if place]
+    if all_places:
+        main_event["location"] = all_places if len(all_places) > 1 else all_places[0]
 
 if not main_event.get("organizers"):
     most_common = organizer_counter.most_common(1)
     if most_common:
         main_event["organizers"] = [most_common[0][0]]
 
-# Finalne składanie subeventów
+# Budowanie subeventów
 for sub in subevents.values():
     sub_yaml = {}
 
@@ -419,16 +424,23 @@ for sub in subevents.values():
     if sub.get("topic_persons"):
         sub_yaml["topic_persons"] = sub["topic_persons"]
 
-    # Dodaj dzieła
-    if sub["creative_work_titles"] or sub["creative_work_authors"]:
-        sub_yaml["list_of_creative_works"] = [{
-            "title": title,
-            "creators": sub["creative_work_authors"] or []
-        } for title in sub["creative_work_titles"] or [""]]
+    if sub["creative_work_titles"]:
+        works = []
+        for title in sub["creative_work_titles"]:
+            work = {}
+            if title:
+                work["title"] = title
+            if sub["creative_work_authors"]:
+                work["creators"] = sub["creative_work_authors"]
+            if work:
+                works.append(work)
+        if works:
+            sub_yaml["list_of_creative_works"] = works
 
     main_event["subevents"].append(sub_yaml)
 
-# Zapisz YAML
+# Zapis
 with open("wydarzenie.yaml", "w", encoding="utf-8") as f:
     yaml.dump(main_event, f, allow_unicode=True, sort_keys=False)
+
 
