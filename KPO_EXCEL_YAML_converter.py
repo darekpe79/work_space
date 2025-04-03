@@ -367,7 +367,8 @@ for _, row in df.iterrows():
             main_event["type_of_event"] = value
         elif attr == "organizator" and value != "[automatycznie]":
             organizer_counter[value] += 1
-            main_event["organizers"].append(value)
+            if value not in main_event["organizers"]:
+                main_event["organizers"].append(value)
 
     # Subeventy
     elif key.startswith("subevent -") and sub_id is not None:
@@ -401,14 +402,15 @@ for _, row in df.iterrows():
 
 # Domknięcie braków
 if not main_event.get("location"):
-    all_places = [place for place in place_counter if place]
+    all_places = list(dict.fromkeys([place for place in place_counter if place]))
     if all_places:
         main_event["location"] = all_places if len(all_places) > 1 else all_places[0]
 
+
 if not main_event.get("organizers"):
-    most_common = organizer_counter.most_common(1)
-    if most_common:
-        main_event["organizers"] = [most_common[0][0]]
+    unique_orgs = list(organizer_counter.keys())
+    if unique_orgs:
+        main_event["organizers"] = unique_orgs
 
 # Budowanie subeventów
 for sub in subevents.values():
@@ -439,8 +441,9 @@ for sub in subevents.values():
 
     main_event["subevents"].append(sub_yaml)
 
-# Zapis
+# Zapis do YAML
 with open("wydarzenie.yaml", "w", encoding="utf-8") as f:
     yaml.dump(main_event, f, allow_unicode=True, sort_keys=False)
+
 
 
