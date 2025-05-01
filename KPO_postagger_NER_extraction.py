@@ -6,111 +6,111 @@ Created on Thu Feb 13 12:54:57 2025
 """
 
     
-#%% Wszystkie id z prawdopodobieństwem w jednym wierszu 
-import os
-import json
-import pandas as pd
+# #%% Wszystkie id z prawdopodobieństwem w jednym wierszu 
+# import os
+# import json
+# import pandas as pd
 
-def process_files_in_dir(input_dir: str, output_excel: str):
-    """
-    Przetwarza wszystkie pliki w katalogu `input_dir` i zapisuje
-    zbiorcze wyniki do pliku Excel `output_excel`.
-    Dla każdego spana NER zbiera wszystkie pary concept–score (z "results").
-    """
-    all_rows = []
+# def process_files_in_dir(input_dir: str, output_excel: str):
+#     """
+#     Przetwarza wszystkie pliki w katalogu `input_dir` i zapisuje
+#     zbiorcze wyniki do pliku Excel `output_excel`.
+#     Dla każdego spana NER zbiera wszystkie pary concept–score (z "results").
+#     """
+#     all_rows = []
     
-    # Przechodzimy przez wszystkie pliki w katalogu
-    for filename in os.listdir(input_dir):
-        filepath = os.path.join(input_dir, filename)
+#     # Przechodzimy przez wszystkie pliki w katalogu
+#     for filename in os.listdir(input_dir):
+#         filepath = os.path.join(input_dir, filename)
         
-        # Pomijamy katalogi
-        if not os.path.isfile(filepath):
-            continue
+#         # Pomijamy katalogi
+#         if not os.path.isfile(filepath):
+#             continue
         
-        # Wczytujemy plik jako JSON
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            print(f"[WARN] Nie można wczytać pliku {filename} jako JSON: {e}")
-            continue
+#         # Wczytujemy plik jako JSON
+#         try:
+#             with open(filepath, 'r', encoding='utf-8') as f:
+#                 data = json.load(f)
+#         except (json.JSONDecodeError, UnicodeDecodeError) as e:
+#             print(f"[WARN] Nie można wczytać pliku {filename} jako JSON: {e}")
+#             continue
         
-        # Pobierz 'id' tekstu, jeśli jest
-        text_id = data.get("id", None)
+#         # Pobierz 'id' tekstu, jeśli jest
+#         text_id = data.get("id", None)
         
-        # Pełny tekst (do wycinków spana)
-        full_text = data.get("text", "")
+#         # Pełny tekst (do wycinków spana)
+#         full_text = data.get("text", "")
         
-        # Spany NER
-        spans_ner = data.get("spans", {}).get("ner", [])
+#         # Spany NER
+#         spans_ner = data.get("spans", {}).get("ner", [])
         
-        # Szukamy sekcji z linkowaniem
-        linking = data.get("records", {}).get("linking", {})
-        clalink = linking.get("clalink", {})
-        link_info_list = clalink.get("links", [])
+#         # Szukamy sekcji z linkowaniem
+#         linking = data.get("records", {}).get("linking", {})
+#         clalink = linking.get("clalink", {})
+#         link_info_list = clalink.get("links", [])
         
-        # Mapa: obj_id -> list of {concept, score}
-        obj_id_to_results = {}
-        for link_info in link_info_list:
-            obj_id = link_info["obj-id"]
-            results = link_info.get("results", [])
-            # Zapisujemy wszystkie wyniki (każdy to {concept, score})
-            obj_id_to_results[obj_id] = results
+#         # Mapa: obj_id -> list of {concept, score}
+#         obj_id_to_results = {}
+#         for link_info in link_info_list:
+#             obj_id = link_info["obj-id"]
+#             results = link_info.get("results", [])
+#             # Zapisujemy wszystkie wyniki (każdy to {concept, score})
+#             obj_id_to_results[obj_id] = results
         
-        # Iterujemy po spanach NER
-        for span in spans_ner:
-            obj_id = span["id"]
-            start = span["start"]
-            stop = span["stop"]
-            ner_type = span.get("type", None)
+#         # Iterujemy po spanach NER
+#         for span in spans_ner:
+#             obj_id = span["id"]
+#             start = span["start"]
+#             stop = span["stop"]
+#             ner_type = span.get("type", None)
             
-            # Fragment tekstu
-            entity_text = full_text[start:stop]
+#             # Fragment tekstu
+#             entity_text = full_text[start:stop]
             
-            # Wszystkie wyniki concept–score z linkowania
-            results = obj_id_to_results.get(obj_id, [])
+#             # Wszystkie wyniki concept–score z linkowania
+#             results = obj_id_to_results.get(obj_id, [])
             
-            # Tworzymy czytelny string z listy results
-            # np. "Q1 (-29.79); Q221392 (-38.83); Q3327819 (-39.95)"
-            concepts_scores_str = "; ".join(
-                f"{r['concept']} ({r['score']})"
-                for r in results
-            )
+#             # Tworzymy czytelny string z listy results
+#             # np. "Q1 (-29.79); Q221392 (-38.83); Q3327819 (-39.95)"
+#             concepts_scores_str = "; ".join(
+#                 f"{r['concept']} ({r['score']})"
+#                 for r in results
+#             )
             
-            # Dodajemy wiersz do tabeli
-            row = {
-                "file_name": filename,
-                "text_id": text_id,
-                "obj_id": obj_id,
-                "entity_text": entity_text,
-                "start": start,
-                "stop": stop,
-                "ner_type": ner_type,
-                # Kolumna z wszystkimi parami concept–score:
-                "wikidata_concepts_scores": concepts_scores_str
-            }
-            all_rows.append(row)
+#             # Dodajemy wiersz do tabeli
+#             row = {
+#                 "file_name": filename,
+#                 "text_id": text_id,
+#                 "obj_id": obj_id,
+#                 "entity_text": entity_text,
+#                 "start": start,
+#                 "stop": stop,
+#                 "ner_type": ner_type,
+#                 # Kolumna z wszystkimi parami concept–score:
+#                 "wikidata_concepts_scores": concepts_scores_str
+#             }
+#             all_rows.append(row)
     
-    # Tworzymy DataFrame
-    df = pd.DataFrame(all_rows)
+#     # Tworzymy DataFrame
+#     df = pd.DataFrame(all_rows)
     
-    # Zapisujemy do Excela
-    df.to_excel(output_excel, index=False)
+#     # Zapisujemy do Excela
+#     df.to_excel(output_excel, index=False)
     
-    if not df.empty:
-        liczba_rekordow = len(df)
-        liczba_plikow = df["file_name"].nunique()
-        print(f"Zapisano {liczba_rekordow} rekordów z {liczba_plikow} plików do: {output_excel}")
-    else:
-        print("Brak danych – ramka danych jest pusta.")
+#     if not df.empty:
+#         liczba_rekordow = len(df)
+#         liczba_plikow = df["file_name"].nunique()
+#         print(f"Zapisano {liczba_rekordow} rekordów z {liczba_plikow} plików do: {output_excel}")
+#     else:
+#         print("Brak danych – ramka danych jest pusta.")
 
 
-if __name__ == "__main__":
-    # Przykładowe wywołanie
-    process_files_in_dir(
-        input_dir="C:/Users/darek/Downloads/postagger_13.2_13_46/",
-        output_excel="zbiory_ner.xlsx"
-    )
+# if __name__ == "__main__":
+#     # Przykładowe wywołanie
+#     process_files_in_dir(
+#         input_dir="C:/Users/darek/Downloads/postagger_13.2_13_46/",
+#         output_excel="zbiory_ner.xlsx"
+#     )
 #%% wszystkie id z prawdopodobieństwem w róznych wierszach
 import os
 import json
@@ -220,101 +220,101 @@ if __name__ == "__main__":
 
 
 #%%tylko najlepszy score
-import os
-import json
-import pandas as pd
+# import os
+# import json
+# import pandas as pd
 
-def process_files_in_dir_best_score(input_dir: str, output_excel: str):
-    """
-    Przetwarza wszystkie pliki w katalogu `input_dir` i zapisuje
-    zbiorcze wyniki do pliku Excel `output_excel`.
+# def process_files_in_dir_best_score(input_dir: str, output_excel: str):
+#     """
+#     Przetwarza wszystkie pliki w katalogu `input_dir` i zapisuje
+#     zbiorcze wyniki do pliku Excel `output_excel`.
     
-    Dla każdego spana NER pobiera z "results" w polu "links" to dopasowanie,
-    które ma najWYŻSZY (najlepszy) wynik 'score'.
-    """
-    all_rows = []
+#     Dla każdego spana NER pobiera z "results" w polu "links" to dopasowanie,
+#     które ma najWYŻSZY (najlepszy) wynik 'score'.
+#     """
+#     all_rows = []
     
-    for filename in os.listdir(input_dir):
-        filepath = os.path.join(input_dir, filename)
+#     for filename in os.listdir(input_dir):
+#         filepath = os.path.join(input_dir, filename)
         
-        # Pomijamy katalogi
-        if not os.path.isfile(filepath):
-            continue
+#         # Pomijamy katalogi
+#         if not os.path.isfile(filepath):
+#             continue
         
-        # Wczytujemy JSON
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            print(f"[WARN] Nie można wczytać pliku {filename} jako JSON: {e}")
-            continue
+#         # Wczytujemy JSON
+#         try:
+#             with open(filepath, 'r', encoding='utf-8') as f:
+#                 data = json.load(f)
+#         except (json.JSONDecodeError, UnicodeDecodeError) as e:
+#             print(f"[WARN] Nie można wczytać pliku {filename} jako JSON: {e}")
+#             continue
         
-        text_id = data.get("id", None)
-        full_text = data.get("text", "")
-        spans_ner = data.get("spans", {}).get("ner", [])
+#         text_id = data.get("id", None)
+#         full_text = data.get("text", "")
+#         spans_ner = data.get("spans", {}).get("ner", [])
         
-        # Linkowanie
-        linking = data.get("records", {}).get("linking", {})
-        clalink = linking.get("clalink", {})
-        link_info_list = clalink.get("links", [])
+#         # Linkowanie
+#         linking = data.get("records", {}).get("linking", {})
+#         clalink = linking.get("clalink", {})
+#         link_info_list = clalink.get("links", [])
         
-        # Przygotowujemy mapę: obj_id -> [ {concept, score}, {…} ]
-        obj_id_to_results = {}
-        for link_info in link_info_list:
-            obj_id = link_info["obj-id"]
-            all_results = link_info.get("results", [])
-            obj_id_to_results[obj_id] = all_results
+#         # Przygotowujemy mapę: obj_id -> [ {concept, score}, {…} ]
+#         obj_id_to_results = {}
+#         for link_info in link_info_list:
+#             obj_id = link_info["obj-id"]
+#             all_results = link_info.get("results", [])
+#             obj_id_to_results[obj_id] = all_results
         
-        # Teraz iterujemy po spanach NER
-        for span in spans_ner:
-            obj_id = span["id"]
-            start = span["start"]
-            stop = span["stop"]
-            ner_type = span.get("type", None)
+#         # Teraz iterujemy po spanach NER
+#         for span in spans_ner:
+#             obj_id = span["id"]
+#             start = span["start"]
+#             stop = span["stop"]
+#             ner_type = span.get("type", None)
             
-            entity_text = full_text[start:stop]
+#             entity_text = full_text[start:stop]
             
-            # Wszystkie dopasowania do Wikidaty
-            results = obj_id_to_results.get(obj_id, [])
+#             # Wszystkie dopasowania do Wikidaty
+#             results = obj_id_to_results.get(obj_id, [])
             
-            # Jeśli brak dopasowań, ustawiamy None
-            if not results:
-                best_concept = None
-                best_score = None
-            else:
-                # Znajdujemy to o najwyższym score
-                best_result = max(results, key=lambda r: r["score"])
-                best_concept = best_result.get("concept")
-                best_score = best_result.get("score")
+#             # Jeśli brak dopasowań, ustawiamy None
+#             if not results:
+#                 best_concept = None
+#                 best_score = None
+#             else:
+#                 # Znajdujemy to o najwyższym score
+#                 best_result = max(results, key=lambda r: r["score"])
+#                 best_concept = best_result.get("concept")
+#                 best_score = best_result.get("score")
             
-            row = {
-                "file_name": filename,
-                "text_id": text_id,
-                "obj_id": obj_id,
-                "full_text": full_text,
-                "entity_text": entity_text,
-                "start": start,
-                "stop": stop,
-                "ner_type": ner_type,
-                "best_concept": best_concept,
-                "best_score": best_score
-            }
-            all_rows.append(row)
+#             row = {
+#                 "file_name": filename,
+#                 "text_id": text_id,
+#                 "obj_id": obj_id,
+#                 "full_text": full_text,
+#                 "entity_text": entity_text,
+#                 "start": start,
+#                 "stop": stop,
+#                 "ner_type": ner_type,
+#                 "best_concept": best_concept,
+#                 "best_score": best_score
+#             }
+#             all_rows.append(row)
     
-    df = pd.DataFrame(all_rows)
-    df.to_excel(output_excel, index=False)
+#     df = pd.DataFrame(all_rows)
+#     df.to_excel(output_excel, index=False)
     
-    if not df.empty:
-        print(f"Zapisano {len(df)} rekordów z {df['file_name'].nunique()} plików do: {output_excel}")
-    else:
-        print("Brak danych do zapisania – DataFrame jest pusty.")
+#     if not df.empty:
+#         print(f"Zapisano {len(df)} rekordów z {df['file_name'].nunique()} plików do: {output_excel}")
+#     else:
+#         print("Brak danych do zapisania – DataFrame jest pusty.")
 
-if __name__ == "__main__":
-    # Przykładowe wywołanie
-    process_files_in_dir_best_score(
-        input_dir="C:/Users/darek/Downloads/postagger_13.2_13_46/",
-        output_excel="zbiory_ner_best_score.xlsx"
-    )
+# if __name__ == "__main__":
+#     # Przykładowe wywołanie
+#     process_files_in_dir_best_score(
+#         input_dir="C:/Users/darek/Downloads/postagger_13.2_13_46/",
+#         output_excel="zbiory_ner_best_score.xlsx"
+#     )
 
 
 
