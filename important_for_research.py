@@ -1,20 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 14 08:14:20 2025
-
-@author: darek
+Fine-tuning PLLUM-8B (8-bit + LoRA) jako klasyfikatora
+„important for research” – 1× GPU 16 GB
 """
-
-"""
-Fine-tuning PLLuM-8B-instruct (8-bit + LoRA) jako klasyfikatora
-„important for research” na pojedynczej karcie GPU 16 GB.
-
-• kontekst 1 024 tokenów  (mieści się na 16 GB w 8-bit + LoRA)
-• obcinamy **z lewej** – koniec promptu („Odpowiedź: Tak/Nie”) nigdy nie ginie
-• dynamiczny padding (“longest”) ⇒ brak zbędnych <pad> przy krótkich przykładach
-"""
-
-import ast, torch, pandas as pd
+import ast, pandas as pd, torch
 from datasets import Dataset
 from transformers import (
     AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig,
@@ -23,26 +12,28 @@ from transformers import (
 from peft import LoraConfig, get_peft_model, TaskType
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
-# ---------- 1. Dane --------------------------------------------------------
+# ---------- 1. Wczytanie danych -------------------------------------------
 df = pd.read_excel(r"C:/Users/darek/Downloads/gortych_perlentaucher (1).xlsx")
 
 def parse_cell(x):
     if pd.isna(x): return []
-    if isinstance(x,(list,set)): return list(x)
-    if isinstance(x,str):
+    if isinstance(x, (list, set)): return list(x)
+    if isinstance(x, str):
         try:
-            v = ast.literal_eval(x);  return list(v) if isinstance(v,(list,set)) else [v]
-        except: return []
+            v = ast.literal_eval(x)
+            return list(v) if isinstance(v, (list, set)) else [v]
+        except Exception:
+            return []
     return []
 
-for col in ["keywords","rezensionsnotiz","stichworter"]:
+for col in ["keywords", "rezensionsnotiz", "stichworter"]:
     df[col] = df[col].apply(parse_cell)
 
 df["keywords_text"] = df["keywords"].apply(" ".join)
 df["combined_text"] = df.apply(
     lambda r: " ".join(filter(None, [
         " ".join(r["rezensionsnotiz"]),
-        str(r.get("klappentext","")),
+        str(r.get("klappentext", "")),
         r["keywords_text"],
         " ".join(r["stichworter"])
     ])), axis=1
@@ -53,8 +44,8 @@ df["important for research"] = df["important for research"].astype(int).astype(b
 
 train_data = [{
     "instruction": "Czy ten tekst jest istotny dla badań naukowych?",
-    "input"      : row["combined_text"],
-    "output"     : "Tak" if row["important for research"] else "Nie"
+    "input": row["combined_text"],
+    "output": "Tak" if row["important for research"] else "Nie"
 } for _, row in df.iterrows()]
 
 # ---------- 2. Model & tokenizer ------------------------------------------
@@ -63,19 +54,22 @@ quant_cfg  = BitsAndBytesConfig(load_in_8bit=True,
                                 llm_int8_threshold=6.0,
                                 llm_int8_has_fp16_weight=False)
 
-tokenizer  = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-tokenizer.pad_token        = tokenizer.eos_token
-tokenizer.truncation_side  = "left"
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.truncation_side = "left"
 
 model = AutoModelForCausalLM.from_pretrained(
-    model_name, device_map="auto",
-    quantization_config=quant_cfg, trust_remote_code=True
+    model_name,
+    device_map="auto",
+    quantization_config=quant_cfg,
+    trust_remote_code=True
 )
 
 lora_cfg = LoraConfig(
     r=32, lora_alpha=64,
-    target_modules=["q_proj","v_proj","k_proj","o_proj"],
-    task_type=TaskType.CAUSAL_LM, inference_mode=False
+    target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+    task_type=TaskType.CAUSAL_LM,
+    inference_mode=False
 )
 model = get_peft_model(model, lora_cfg)
 
@@ -91,65 +85,68 @@ def tokenize(ex):
     full_prompt = build_prompt(ex["instruction"], ex["input"], ex["output"])
     prompt_only = build_prompt(ex["instruction"], ex["input"])
 
-    # ❶ długość promptu BEZ paddingu
-    prompt_ids = tokenizer(prompt_only,
-                           truncation=True,
-                           max_length=MAX_LEN,
-                           add_special_tokens=False,
-                           padding=False)["input_ids"]
+    # (1) długość promptu bez paddingu
+    prompt_ids = tokenizer(
+        prompt_only,
+        truncation=True,
+        max_length=MAX_LEN,
+        add_special_tokens=False,
+        padding=False
+    )["input_ids"]
 
-    # ❷ pełny prompt Z paddingiem
-    enc_full = tokenizer(full_prompt,
-                         truncation=True,
-                         max_length=MAX_LEN,
-                         padding="max_length")
+    # (2) pełny prompt z paddingiem
+    enc_full = tokenizer(
+        full_prompt,
+        truncation=True,
+        max_length=MAX_LEN,
+        padding="max_length"
+    )
 
     labels = enc_full["input_ids"].copy()
-    labels[:len(prompt_ids)] = [IGNORE]*len(prompt_ids)
+    labels[:len(prompt_ids)] = [IGNORE] * len(prompt_ids)
     enc_full["labels"] = labels
     return enc_full
 
-ds     = Dataset.from_list(train_data).map(tokenize, batched=False)
-split  = ds.train_test_split(0.2, seed=42)
+ds = Dataset.from_list(train_data).map(tokenize, batched=False)
+split = ds.train_test_split(0.2, seed=42)
 train_ds, eval_ds = split["train"], split["test"]
 
 # ---------- 4. Metryki -----------------------------------------------------
-id2label = {"Tak":"Tak", "Nie":"Nie"}  # ułatwi odczyt
-
 def postprocess(pred_ids):
     txt = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
     return ["Tak" if "Tak" in t else "Nie" for t in txt]
 
 def compute_metrics(eval_pred):
-    preds, labels = eval_pred.predictions, eval_pred.label_ids
-    # weź pierwszy przewidziany token po stronie odpowiedzi
-    preds = [p[p != IGNORE][0:1] for p in preds]           #  shape (batch,1)
-    labels= [l[l != IGNORE][0:1] for l in labels]
-
-    preds_txt  = postprocess(preds)
-    labels_txt = postprocess(labels)
-
+    logits, labels = eval_pred
+    preds = postprocess(logits.argmax(-1))
+    labs  = postprocess(labels)
     prec, rec, f1, _ = precision_recall_fscore_support(
-        labels_txt, preds_txt, average="binary", pos_label="Tak", zero_division=0
+        labs, preds, average="binary", pos_label="Tak", zero_division=0
     )
-    acc = accuracy_score(labels_txt, preds_txt)
+    acc = accuracy_score(labs, preds)
     return {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1}
+
+# tylko pierwszy token logitów trafia do metryk → malutki bufor
+def first_token_logits(logits, labels):
+    return logits[:, :1, :]
 
 # ---------- 5. TrainingArguments ------------------------------------------
 args = TrainingArguments(
-    output_dir               = "plluma-research-classifier",
-    num_train_epochs         = 3,
-    per_device_train_batch_size = 1,
-    gradient_accumulation_steps = 8,
-    learning_rate            = 5e-5,
-    lr_scheduler_type        = "cosine",
-    warmup_steps             = 20,
-    optim                    = "adamw_torch",
-    max_grad_norm            = 1.0,
-    fp16                     = True,
-    logging_steps            = 10,
-    save_strategy            = "epoch",
-    eval_strategy            = "epoch",
+    output_dir="plluma-research-classifier",
+    num_train_epochs=3,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=8,
+    per_device_eval_batch_size=1,
+    eval_accumulation_steps=4,        # zwalnia bufor co 4 kroki
+    learning_rate=5e-5,
+    lr_scheduler_type="cosine",
+    warmup_steps=20,
+    optim="adamw_torch",
+    max_grad_norm=1.0,
+    fp16=True,
+    logging_steps=10,
+    save_strategy="epoch",
+    eval_strategy="epoch",
 )
 
 trainer = Trainer(
@@ -158,7 +155,8 @@ trainer = Trainer(
     train_dataset=train_ds,
     eval_dataset=eval_ds,
     tokenizer=tokenizer,
-    compute_metrics=compute_metrics
+    compute_metrics=compute_metrics,
+    preprocess_logits_for_metrics=first_token_logits  # <<<
 )
 
 # ---------- 6. Trening -----------------------------------------------------
