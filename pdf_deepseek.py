@@ -59,8 +59,8 @@ SYSTEM = """
 You must return **only software names** (stand-alone programs, libraries, APIs, NLP/GIS/OCR tools).
 
 ✘ IGNORE and NEVER list:
- • person surnames (e.g., Herrmann, Gius, Morariu, Jacobs, Klinger)
- • person-with-year citations!!! Don't take this!!! These are only examples!!! — (e.g., herrmann2019, bode2017, Herrmann_et_al_2022, Heuser_et_al_2016)
+ • person surnames (e.g., Herrmann, Gius, Morariu, Jacobs, Klinger, Kowalski)
+ • person-with-year citations!!! Don't take this!!! — (EXAMPLES- herrmann2019, bode2017, Herrmann_et_al_2022, Heuser_et_al_2016)
  • datasets / text collections (e.g., ELTeC, NKJP, Dariah-PL)
  • data / markup formats (e.g., XML, TEI, CSV)
  • generic nouns or abstract concepts (e.g., city, emotions, narrative, status, love)
