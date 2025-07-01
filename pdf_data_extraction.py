@@ -596,8 +596,221 @@ OUT_FILE.parent.mkdir(exist_ok=True)
 OUT_FILE.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
 print(f"\n✓ Zapisano {len(results)} rekordów → {OUT_FILE}")
 
-#%% działania na przetworzonym jsonie, usuwanie zrobionych plikow 
 
+#%% do plików txt
+import torch, json, re
+from pathlib import Path
+from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+text = Path('D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/1496-0974_10.20360_g2zk5x.txt').read_text(encoding="utf-8")
+# ------------------- KONFIG -------------------
+TXT_DIR   = Path(r"D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/")  # katalog z plikami .txt
+OUT_FILE  = TXT_DIR / "abstrakty_software.json"
+
+MODEL_ID  = "tiiuae/Falcon3-10B-Instruct"
+USE_INT8  = True
+MAX_TOK   = 500
+OVERLAP   = 100
+
+# ----------------- MODEL ---------------------
+tok = AutoTokenizer.from_pretrained(MODEL_ID)
+
+if USE_INT8:
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        quantization_config=BitsAndBytesConfig(load_in_8bit=True),
+        device_map="auto"
+    )
+else:
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        torch_dtype=torch.float16,
+        device_map="auto"
+    )
+
+model.generation_config.update(
+    temperature=0.0,
+    do_sample=False,
+    pad_token_id=tok.eos_token_id
+)
+
+# ------------------- PROMPT -------------------
+PROMPT_TMPL = """
+You are a strict technical tool extractor for English academic texts. Follow these rules carefully.
+
+🚫 HARD EXCLUSIONS — IMMEDIATE REJECTION IF:
+- Contains personal names (any capitalized name like Smith or Kowalska)
+- Literary/humanities content without clear technical tools !!!
+- Journal or magazine names (e.g., “Journal”, “Review”, “Studies”)
+- Book or article titles, literary works, or publishers (e.g., “Middlemarch”, “Penguin”)
+- Conference names or acronyms (e.g., CLARIN, ACL, LREC)
+- Anything that looks like a citation (e.g., “Heuser_2016”, “Morselli_1975”)!
+
+✅ ONLY EXTRACT:
+1. Clearly named software tools or code libraries (e.g., QGIS, spaCy)- Extract ONLY terms that **literally appear in the text**!
+2. NLP/ML models (e.g., BERT, RoBERTa, LaBSE, PolDeepNer2)- Extract ONLY terms that **literally appear in the text**!
+3. Datasets or corpora (e.g., NKJP, ELTeC, MultiEmo, PolEval)- Extract ONLY terms that **literally appear in the text**!
+4. Data formats and markup standards (e.g., XML, TEI, CSV, JSON)- Extract ONLY terms that **literally appear in the text**!
+5. Repositories or portals (e.g., Wikipedia, Geonames, Polona)- Extract ONLY terms that **literally appear in the text**!
+
+🛡️ VALIDATION RULES:
+1. Extract ONLY terms that **literally appear in the text** — NO interpretation, NO guesswork!!!!!!!!
+2. Do NOT reuse or copy terms from the examples unless they are present in the current input
+3. Reject any term that looks like a person name (Firstname Lastname or similar)
+4. If a term is unclear or looks suspicious, exclude it
+
+‼️ STRICT BAN ON HALLUCINATION:
+- Do not invent software names under any circumstances
+- Do not generalize or "guess" based on context
+- Do not include example tools unless they are present in the input!!!
+
+📌 EXAMPLES!!! (these are just illustrative!! — DO NOT COPY unless they appear in the actual input!):
+text: We analyzed data using XML and spaCy 3.1  
+→ ["XML", "spaCy"]  here rememebr, "SPACE" is not "spaCy"!!!!
+
+text: Compared Proust and Morante with help from the Oxford edition  
+→ []
+
+text: Results were presented at the CLARIN conference  
+→ []
+
+text: Metadata was sourced from Wikipedia and Polona  
+→ ["Wikipedia", "Polona"]
+text: The space between words was analyzed  
+→ []  ← "SPACE" is not "spaCy"!!! Reject!
+
+💻 OUTPUT FORMAT:
+- Return ONE valid JSON list (e.g., ["QGIS", "XML"]- this example if there is no XML or spaCy in text don't give me XML or spaCy!!!!!!)
+- Do not include duplicates or explanations
+- Return [] if no valid TOOLS or SOFTWARE are clearly mentioned Extract ONLY terms that **literally appear in the text** — NO interpretation, NO guesswork don't invent!
+- Do NOT output common NLP names like ‘spaCy’, ‘BERT’, etc., unless they explicitly appear in the input
+- NO interpretation, NO guesswork DON'T invent! Extract ONLY terms that **literally appear in the text**!
+### TASK:
+text:
+{chunk}
+software:
+"""
+
+# ------------------- FILTRY -------------------
+STOP = {
+    "city", "village", "author_gender", "publication_year", "emotions",
+    "crowdsourcing", "sentiment_analysis", "symbolic_models", "text", "software",
+}
+RE_NAME = re.compile(r'^[A-Za-z0-9_.\-]{2,}$')
+
+def is_software(name: str) -> bool:
+    l = name.lower()
+    if l in STOP: return False
+    if re.fullmatch(r'\d{3,4}', l): return False
+    if re.fullmatch(r'[a-z]+[0-9]{4}', l): return False
+    return True
+
+def parse(reply: str) -> set[str]:
+    m = re.search(r'\[[^\[\]]+\]', reply)
+    if not m: return set()
+    try:
+        lst = json.loads(m.group(0))
+    except Exception:
+        return set()
+    return {x.strip() for x in lst if isinstance(x, str) and is_software(x.strip())}
+
+# ------------------ CHUNK ---------------------
+def chunk(txt: str, max_tok=MAX_TOK, overlap=OVERLAP):
+    buf, t = [], 0
+    for w in txt.split():
+        t += len(tok(w, add_special_tokens=False).input_ids)
+        buf.append(w)
+        if t >= max_tok:
+            yield " ".join(buf)
+            buf, t = buf[-overlap:], sum(len(tok(x, add_special_tokens=False).input_ids) for x in buf)
+    if buf:
+        yield " ".join(buf)
+
+# ------------------ CALL LLM ------------------
+def extract_names(chunk_txt: str) -> set[str]:
+    prompt = PROMPT_TMPL.format(chunk=chunk_txt)
+    ids = tok.apply_chat_template([{"role": "user", "content": prompt}],
+                                  add_generation_prompt=True,
+                                  return_tensors="pt").to(model.device)
+    gen = model.generate(ids, attention_mask=torch.ones_like(ids),
+                         max_new_tokens=200)
+    return parse(tok.decode(gen[0][ids.shape[-1]:], skip_special_tokens=True))
+
+# ----------------- PIPELINE -------------------
+def process_txt(txt_path: Path) -> dict:
+    try:
+        text = txt_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"❌ Błąd czytania {txt_path.name}: {e}")
+        return {
+            "text_id": str(txt_path),
+            "software_detected": False,
+            "list_of_software": []
+        }
+
+    chs = list(chunk(text))
+    if chs:
+        print(f"\n--- {txt_path.name} ⋅ first chunk preview ---")
+        print(chs[0][:200].replace("\n", " ") + " …\n")
+
+    names = set()
+    for ch in chs:
+        names |= extract_names(ch)
+
+    return {
+        "text_id": str(txt_path),
+        "software_detected": bool(names),
+        "list_of_software": sorted(names)
+    }
+
+# -------------- WYKONANIE ---------------------
+txt_files = sorted(TXT_DIR.rglob("*.txt"))
+print(f"Znaleziono {len(txt_files)} plików .txt w {TXT_DIR}")
+
+results = []
+for txt_file in tqdm(txt_files, desc="Abstrakty"):
+    rec = process_txt(txt_file)
+    results.append(rec)
+
+OUT_FILE.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+print(f"\n✓ Wynik zapisany do: {OUT_FILE}")
+
+#%% działania na przetworzonym jsonie, zapis do excela usuwanie zrobionych plikow 
+
+
+import json
+import pandas as pd
+from pathlib import Path
+
+# Ścieżka do folderu z plikami JSON
+json_dir = Path("D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/")
+
+# Wczytanie wszystkich plików JSON
+json_files = list(json_dir.glob("*.json"))
+
+rows = []
+
+for file in json_files:
+    journal_title = file.stem  # nazwa pliku bez rozszerzenia
+    try:
+        with open(file, encoding="utf-8") as f:
+            data = json.load(f)
+            for record in data:
+                rows.append({
+                    "journal_title": journal_title,
+                    "text_id": record.get("text_id", ""),
+                    "software_detected": record.get("software_detected", ""),
+                    "list_of_software": " | ".join(record.get("list_of_software", []))
+                })
+    except Exception as e:
+        print(f"❌ Błąd przetwarzania pliku {file.name}: {e}")
+
+# Stworzenie DataFrame i zapis do JSON
+df = pd.DataFrame(rows)
+output_path = "D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/"
+
+output_path_xlsx = json_dir / "abstrakty_wynik.xlsx"
+df.to_excel(output_path_xlsx, index=False)
 import json
 from pathlib import Path
 import shutil

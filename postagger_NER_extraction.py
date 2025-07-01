@@ -318,6 +318,94 @@ if __name__ == "__main__":
 
 
 
+
+#%% nowy kod do plików 30.06.2025
+
+import os
+import json
+import pandas as pd
+
+# Ścieżki
+input_file_path = "D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment 1.json"
+output_excel_path = "D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_1_extracted.xlsx"
+
+# Parametry kontekstu
+context_size = 100
+
+# Wczytanie pliku JSON
+with open(input_file_path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+text_id = data.get("id", None)
+full_text = data.get("text", "")
+spans_ner = data.get("spans", {}).get("ner", [])
+
+linking = data.get("records", {}).get("linking", {})
+clalink = linking.get("clalink", {})
+link_info_list = clalink.get("links", [])
+
+# Mapowanie obj-id do results
+obj_id_to_results = {}
+for link_info in link_info_list:
+    obj_id = link_info["obj-id"]
+    obj_id_to_results[obj_id] = link_info.get("results", [])
+
+# Gromadzenie danych
+all_rows = []
+
+for span in spans_ner:
+    obj_id = span["id"]
+    start = span["start"]
+    stop = span["stop"]
+    ner_type = span.get("type", None)
+    entity_text = full_text[start:stop]
+
+    # Fragment kontekstu
+    context_start = max(0, start - context_size)
+    context_end = min(len(full_text), stop + context_size)
+    context_snippet = full_text[context_start:context_end]
+
+    results = obj_id_to_results.get(obj_id, [])
+
+    if not results:
+        all_rows.append({
+            "text_id": text_id,
+            "context_snippet": context_snippet,
+            "obj_id": obj_id,
+            "entity_text": entity_text,
+            "ner_type": ner_type,
+            "concept": None,
+            "score": None,
+            "true_false": None
+        })
+    else:
+        for r in results:
+            concept = r["concept"][0] if isinstance(r["concept"], list) and r["concept"] else None
+            score = r["score"] if r.get("score") is not None else None
+            tf = r.get("T/F", None)
+
+            all_rows.append({
+                "text_id": text_id,
+                "context_snippet": context_snippet,
+                "obj_id": obj_id,
+                "entity_text": entity_text,
+                "ner_type": ner_type,
+                "concept": concept,
+                "score": score,
+                "true_false": tf
+            })
+
+# Zapis do Excela
+df = pd.DataFrame(all_rows)
+df.to_excel(output_excel_path, index=False)
+
+# Wyświetlenie
+import ace_tools as tools
+tools.display_dataframe_to_user(name="Fragment 5 Extracted Data", dataframe=df)
+
+
+
+
 #%% label from wikidata
 import requests
 import pandas as pd
