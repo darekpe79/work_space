@@ -493,8 +493,8 @@ def enrich_excel_with_wikidata_labels(input_excel: str, output_excel: str, qid_c
 
 if __name__ == "__main__":
     enrich_excel_with_wikidata_labels(
-        input_excel="D:/Nowa_praca/KPO/postagger/zbiory_ner_explode.xlsx",
-        output_excel="D:/Nowa_praca/KPO/postagger/zbiory_ner_explode_labels.xlsx",
+        input_excel="D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_5_extracted.xlsx",
+        output_excel="D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_5_extracted_labels.xlsx",
         qid_column="concept"  # Nazwa kolumny z QID
     )
 
@@ -529,6 +529,55 @@ if response.status_code == 200:
     print(f"Opis PL:     {pl_desc}")
 else:
     print(f"[BŁĄD] Otrzymano kod HTTP {response.status_code}")
+
+
+#%% porownanie nowe wyniki, stare 08.07.2025
+
+import pandas as pd
+
+# Wczytaj plik Excela z dwiema zakładkami
+file_path = 'D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_2_extracted_labels.xlsx'  # <-- zmień jeśli plik nazywa się inaczej
+df_new = pd.read_excel(file_path, sheet_name='Sheet1')
+df_old = pd.read_excel(file_path, sheet_name='old_eval')
+
+# Zostaw tylko pierwsze wystąpienie dla każdego obj_id w starej zakładce
+df_old_first = df_old.drop_duplicates(subset=['obj_id'], keep='first')
+
+# Zostaw interesujące kolumny
+df_new_subset = df_new[['obj_id', 'entity_text', 'concept', 'wikidata_label', 'wikidata_description']]
+df_old_subset = df_old_first[['obj_id', 'entity_text', 'concept', 'wikidata_label', 'wikidata_description']]
+
+
+# Scal po obj_id
+comparison = pd.merge(df_new_subset, df_old_subset, on='obj_id', suffixes=('_new', '_old'))
+
+# Porównania
+comparison['entity_text_match'] = comparison['entity_text_new'] == comparison['entity_text_old']
+comparison['wikidata_label_match'] = comparison['wikidata_label_new'] == comparison['wikidata_label_old']
+comparison['concept_match'] = comparison['concept_new'] == comparison['concept_old']
+output_file = 'porownanie_label_concept.xlsx'
+comparison.to_excel(output_file, index=False)
+# Podsumowanie
+summary = {
+    'total_compared': len(comparison),
+    'entity_text_matches': comparison['entity_text_match'].sum(),
+    'wikidata_label_matches': comparison['wikidata_label_match'].sum(),
+    'concept_matches': comparison['concept_match'].sum()
+}
+
+print("📊 Podsumowanie porównania:")
+for k, v in summary.items():
+    print(f"- {k.replace('_', ' ').capitalize()}: {v}")
+
+# Opcjonalnie: wyciągnij tylko konkretne przypadki
+label_match_concept_mismatch = comparison[
+    (comparison['wikidata_label_match']) & (~comparison['concept_match'])
+]
+
+print("\n🟨 Zgodne wikidata_label, niezgodne concept:")
+print(label_match_concept_mismatch[['obj_id', 'entity_text_new', 'concept_new', 'concept_old', 'wikidata_label_new']])
+
+
 
 #%% Obsluga niestandardowego JSONA
 import ndjson

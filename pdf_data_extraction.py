@@ -6,8 +6,8 @@ from pypdf import PdfReader
 from tqdm import tqdm
 
 # ------------------- KONFIG -------------------
-ROOT_DIR   = Path(r"D:/Nowa_praca/pdfy_oprogramowanie")
-OUT_FILE   = ROOT_DIR / "Facta Universitatis, Series_ Linguistics.json"
+ROOT_DIR   = Path(r"C:/pdf_llm_do_roboty/")
+OUT_FILE   = ROOT_DIR / "output_dhq200.json"
 
 MODEL_ID   = "tiiuae/Falcon3-10B-Instruct" #"mistralai/Mistral-7B-Instruct-v0.3"#
 USE_INT8   = True
@@ -379,11 +379,11 @@ You are a strict technical tool extractor for English academic texts. Follow the
 - Anything that looks like a citation (e.g., “Heuser_2016”, “Morselli_1975”)!
 
 ✅ ONLY EXTRACT:
-1. Clearly named software tools or code libraries (e.g., QGIS, spaCy)- Extract ONLY terms that **literally appear in the text**!
-2. NLP/ML models (e.g., BERT, RoBERTa, LaBSE, PolDeepNer2)- Extract ONLY terms that **literally appear in the text**!
-3. Datasets or corpora (e.g., NKJP, ELTeC, MultiEmo, PolEval)- Extract ONLY terms that **literally appear in the text**!
-4. Data formats and markup standards (e.g., XML, TEI, CSV, JSON)- Extract ONLY terms that **literally appear in the text**!
-5. Repositories or portals (e.g., Wikipedia, Geonames, Polona)- Extract ONLY terms that **literally appear in the text**!
+1. Clearly named software tools or code libraries (e.g., "QGIS" in text → "QGIS"; "spaCy" in text → "spaCy") – Extract ONLY terms that literally appear in the text!
+2. Clearly named NLP/ML models (e.g., "BERT" in text → "BERT"; "RoBERTa" in text → "RoBERTa") – Extract ONLY terms that literally appear in the text!
+3. Clearly named datasets or corpora (e.g., "NKJP" in text → "NKJP"; "MultiEmo" in text → "MultiEmo") – Extract ONLY terms that literally appear in the text!
+4. Clearly named data formats or markup standards (e.g., "XML" in text → "XML"; "JSON" in text → "JSON") – Extract ONLY terms that literally appear in the text!
+5. Clearly named repositories or portals (e.g., "Wikipedia" in text → "Wikipedia"; "Polona" in text → "Polona") – Extract ONLY terms that literally appear in the text!
 
 🛡️ VALIDATION RULES:
 1. Extract ONLY terms that **literally appear in the text** — NO interpretation, NO guesswork!!!!!!!!
@@ -392,9 +392,11 @@ You are a strict technical tool extractor for English academic texts. Follow the
 4. If a term is unclear or looks suspicious, exclude it
 
 ‼️ STRICT BAN ON HALLUCINATION:
-- Do not invent software names under any circumstances
-- Do not generalize or "guess" based on context
-- Do not include example tools unless they are present in the input!!!
+1. Do not invent software names under any circumstances
+2. **NO HALLUCINATIONS**: If unsure → EXCLUDE. 
+3. **NO EXAMPLES**: Never copy "QGIS", "spaCy", etc., unless **LITERALLY** in the text.
+4. **NO GENERALIZATIONS**: "XML parser" → only "XML" if "XML" is standalone in text.
+5. **CASE-SENSITIVE**: "Space" ≠ "spaCy", "Python" ≠ "python".
 
 📌 EXAMPLES!!! (these are just illustrative!! — DO NOT COPY unless they appear in the actual input!):
 text: We analyzed data using XML and spaCy 3.1  
@@ -423,6 +425,12 @@ text:
 software:
 """
 
+
+'''LAST CHANGE 08.07.2025: ‼️ STRICT BAN ON HALLUCINATION:
+- Do not invent software names under any circumstances
+- **NO EXAMPLES**: Never copy "QGIS", "spaCy", etc., unless **LITERALLY** in the text.
+- Do not generalize or "guess" based on context
+- Do not include example tools unless they are present in the input!!!'''
 
 
 # Extract software names mentioned in the text below.
@@ -539,7 +547,7 @@ for p in files:
     
 import shutil
 
-BAD_PDF_DIR = Path("D:/Nowa_praca/pdfy_oprogramowanie_zrobione/bledne_pdfy")
+BAD_PDF_DIR = Path("C:/pdf_zrobione/błedne_do sprawdzenia_dhq/")
 BAD_PDF_DIR.mkdir(parents=True, exist_ok=True)
 
 clean_files = []
@@ -554,17 +562,16 @@ for i, pdf_path in enumerate(files, 1):
         for page in reader.pages:
             page_text = page.extract_text() or ""
             full_text += page_text + "\n"
-       # print(full_text)
 
         num_G = len(re.findall(r'/G\d{2,3}', full_text))
         num_slash = full_text.count("/")
 
-        # Warunki przenoszenia pliku
+        # 🔁 Łagodniejsze warunki
         if not full_text.strip():
             move = True
-        elif num_G > 50 and num_G > 0.7 * num_slash:
+        elif num_G > 150 and num_G > 0.9 * num_slash:  # podniesione progi
             move = True
-        elif num_slash > 100:
+        elif num_slash > 300:  # wyższy limit ukośników
             move = True
 
     except Exception as e:
@@ -580,11 +587,10 @@ for i, pdf_path in enumerate(files, 1):
         clean_files.append(pdf_path)
         print(f"[{i}] ✓ OK: {pdf_path.name}")
         ok_count += 1
-
+        
 files = clean_files
 print(f"\n✓ Pozostało {len(files)} poprawnych PDF-ów do analizy.")
-print(f"✓ Łącznie poprawnych: {ok_count}, odrzuconych: {bad_count}")
-
+print(f"✓ Łącznie poprawnych: {ok_count}, odrzuconych: {bad_count}") 
 #results = [process_pdf(p) for p in tqdm(pdf_files(ROOT_DIR), desc="PDFs")]
 results = []
 for p in tqdm(files, desc="PDFs"):
@@ -602,14 +608,14 @@ import torch, json, re
 from pathlib import Path
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-text = Path('D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/1496-0974_10.20360_g2zk5x.txt').read_text(encoding="utf-8")
+#text = Path('D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/1496-0974_10.20360_g2zk5x.txt').read_text(encoding="utf-8")
 # ------------------- KONFIG -------------------
-TXT_DIR   = Path(r"D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/")  # katalog z plikami .txt
-OUT_FILE  = TXT_DIR / "abstrakty_software.json"
+TXT_DIR   = Path(r"D:/Nowa_praca/pdfy_oprogramowanie/output_code4lib-20250709T071923Z-1-001/output_code4lib/fulltexts/")  # katalog z plikami .txt
+OUT_FILE  = TXT_DIR / "code4lib.json"
 
 MODEL_ID  = "tiiuae/Falcon3-10B-Instruct"
 USE_INT8  = True
-MAX_TOK   = 500
+MAX_TOK   = 1500
 OVERLAP   = 100
 
 # ----------------- MODEL ---------------------
@@ -647,11 +653,11 @@ You are a strict technical tool extractor for English academic texts. Follow the
 - Anything that looks like a citation (e.g., “Heuser_2016”, “Morselli_1975”)!
 
 ✅ ONLY EXTRACT:
-1. Clearly named software tools or code libraries (e.g., QGIS, spaCy)- Extract ONLY terms that **literally appear in the text**!
-2. NLP/ML models (e.g., BERT, RoBERTa, LaBSE, PolDeepNer2)- Extract ONLY terms that **literally appear in the text**!
-3. Datasets or corpora (e.g., NKJP, ELTeC, MultiEmo, PolEval)- Extract ONLY terms that **literally appear in the text**!
-4. Data formats and markup standards (e.g., XML, TEI, CSV, JSON)- Extract ONLY terms that **literally appear in the text**!
-5. Repositories or portals (e.g., Wikipedia, Geonames, Polona)- Extract ONLY terms that **literally appear in the text**!
+1. Clearly named software tools or code libraries (e.g., "QGIS" in text → "QGIS"; "spaCy" in text → "spaCy") – Extract ONLY terms that literally appear in the text!
+2. Clearly named NLP/ML models (e.g., "BERT" in text → "BERT"; "RoBERTa" in text → "RoBERTa") – Extract ONLY terms that literally appear in the text!
+3. Clearly named datasets or corpora (e.g., "NKJP" in text → "NKJP"; "MultiEmo" in text → "MultiEmo") – Extract ONLY terms that literally appear in the text!
+4. Clearly named data formats or markup standards (e.g., "XML" in text → "XML"; "JSON" in text → "JSON") – Extract ONLY terms that literally appear in the text!
+5. Clearly named repositories or portals (e.g., "Wikipedia" in text → "Wikipedia"; "Polona" in text → "Polona") – Extract ONLY terms that literally appear in the text!
 
 🛡️ VALIDATION RULES:
 1. Extract ONLY terms that **literally appear in the text** — NO interpretation, NO guesswork!!!!!!!!
@@ -660,9 +666,11 @@ You are a strict technical tool extractor for English academic texts. Follow the
 4. If a term is unclear or looks suspicious, exclude it
 
 ‼️ STRICT BAN ON HALLUCINATION:
-- Do not invent software names under any circumstances
-- Do not generalize or "guess" based on context
-- Do not include example tools unless they are present in the input!!!
+1. Do not invent software names under any circumstances
+2. **NO HALLUCINATIONS**: If unsure → EXCLUDE. 
+3. **NO EXAMPLES**: Never copy "QGIS", "spaCy", etc., unless **LITERALLY** in the text.
+4. **NO GENERALIZATIONS**: "XML parser" → only "XML" if "XML" is standalone in text.
+5. **CASE-SENSITIVE**: "Space" ≠ "spaCy", "Python" ≠ "python".
 
 📌 EXAMPLES!!! (these are just illustrative!! — DO NOT COPY unless they appear in the actual input!):
 text: We analyzed data using XML and spaCy 3.1  
@@ -690,6 +698,8 @@ text:
 {chunk}
 software:
 """
+
+
 
 # ------------------- FILTRY -------------------
 STOP = {
@@ -783,7 +793,7 @@ import pandas as pd
 from pathlib import Path
 
 # Ścieżka do folderu z plikami JSON
-json_dir = Path("D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/")
+json_dir = Path("C:/pdf_zrobione/")
 
 # Wczytanie wszystkich plików JSON
 json_files = list(json_dir.glob("*.json"))
@@ -807,9 +817,9 @@ for file in json_files:
 
 # Stworzenie DataFrame i zapis do JSON
 df = pd.DataFrame(rows)
-output_path = "D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_hum/"
+output_path = "D:/Nowa_praca/pdfy_oprogramowanie/abstracts_hum-20250623T081026Z-1-001/abstracts_09_07_2025/"
 
-output_path_xlsx = json_dir / "abstrakty_wynik.xlsx"
+output_path_xlsx = json_dir / "dhq200.xlsx"
 df.to_excel(output_path_xlsx, index=False)
 import json
 from pathlib import Path
