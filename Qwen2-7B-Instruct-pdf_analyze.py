@@ -18,12 +18,27 @@ device = "cuda" # the device to load the model onto
 MAX_TOK = 1300
 OVERLAP = 150
 
+# model = AutoModelForCausalLM.from_pretrained(
+#     "Qwen/Qwen2-7B-Instruct",
+#     torch_dtype="auto",
+#     device_map="auto"
+# )
+tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct")
+
+
+
+bnb_config = BitsAndBytesConfig(
+    load_in_8bit=True,
+    llm_int8_threshold=6.0,
+    llm_int8_skip_modules=None
+)
+
 model = AutoModelForCausalLM.from_pretrained(
     "Qwen/Qwen2-7B-Instruct",
-    torch_dtype="auto",
-    device_map="auto"
+    device_map="auto",
+    quantization_config=bnb_config,
+    torch_dtype=torch.float16
 )
-tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct")
 
 prompt = "Give me a short introduction to large language model."
 messages = [
@@ -37,9 +52,15 @@ text = tokenizer.apply_chat_template(
 )
 model_inputs = tokenizer([text], return_tensors="pt").to(device)
 
+attention_mask = model_inputs["attention_mask"]
+
 generated_ids = model.generate(
-    model_inputs.input_ids,
-    max_new_tokens=512
+    input_ids=model_inputs["input_ids"],
+    attention_mask=attention_mask,
+    max_new_tokens=512,
+    do_sample=False,
+    temperature=0.0,
+    pad_token_id=tokenizer.eos_token_id  # ważne!
 )
 generated_ids = [
     output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
@@ -178,14 +199,45 @@ def parse(reply: str) -> set[str]:
     return {x.strip() for x in lst if isinstance(x, str) and is_software(x.strip())}
 
 # ------------- CALL LLM ---------------------
+# def extract_names(chunk_txt: str) -> set[str]:
+#     prompt = PROMPT_TMPL.format(chunk=chunk_txt)
+#     ids = tok.apply_chat_template([{"role": "user", "content": prompt}],
+#                                   add_generation_prompt=True,
+#                                   return_tensors="pt").to(model.device)
+#     gen = model.generate(ids, attention_mask=torch.ones_like(ids),
+#                          max_new_tokens=200)
+#     return parse(tok.decode(gen[0][ids.shape[-1]:], skip_special_tokens=True))
+
 def extract_names(chunk_txt: str) -> set[str]:
     prompt = PROMPT_TMPL.format(chunk=chunk_txt)
-    ids = tok.apply_chat_template([{"role": "user", "content": prompt}],
-                                  add_generation_prompt=True,
-                                  return_tensors="pt").to(model.device)
-    gen = model.generate(ids, attention_mask=torch.ones_like(ids),
-                         max_new_tokens=200)
-    return parse(tok.decode(gen[0][ids.shape[-1]:], skip_special_tokens=True))
+
+    # 1. Utwórz tekst promptu (z template)
+    chat_text = tokenizer.apply_chat_template(
+        [{"role": "user", "content": prompt}],
+        add_generation_prompt=True,
+        tokenize=False
+    )
+
+    # 2. Ztokenizuj prompt ręcznie (żeby dostać też attention_mask)
+    model_inputs = tokenizer(chat_text, return_tensors="pt", padding=True).to(model.device)
+
+    # 3. Generacja z poprawnymi danymi
+    gen = model.generate(
+        input_ids=model_inputs["input_ids"],
+        attention_mask=model_inputs["attention_mask"],
+        max_new_tokens=200,
+        do_sample=False,
+        temperature=0.0,
+        pad_token_id=tokenizer.eos_token_id
+    )
+
+    # 4. Odcinanie promptu od outputu
+    decoded = tokenizer.decode(
+        gen[0][model_inputs["input_ids"].shape[-1]:],
+        skip_special_tokens=True
+    )
+
+    return parse(decoded)
 
 # ------------- PIPELINE ---------------------
 def process_pdf(pdf: Path) -> dict:

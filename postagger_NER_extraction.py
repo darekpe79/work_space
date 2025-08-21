@@ -326,8 +326,8 @@ import json
 import pandas as pd
 
 # Ścieżki
-input_file_path = "D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment 1.json"
-output_excel_path = "D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_1_extracted.xlsx"
+input_file_path = "D:/Nowa_praca/KPO/deepseek_yaml 18_08/biencoder_deepseek/dariah_new_model_deepseek-v3/Fragment 2.json"
+output_excel_path = "D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_2_extracted_20_08.xlsx"
 
 # Parametry kontekstu
 context_size = 100
@@ -380,9 +380,15 @@ for span in spans_ner:
         })
     else:
         for r in results:
-            concept = r["concept"][0] if isinstance(r["concept"], list) and r["concept"] else None
-            score = r["score"] if r.get("score") is not None else None
-            tf = r.get("T/F", None)
+            # Obsługa różnych formatów pola 'concept'
+            raw_concept = r.get("concept")
+            if isinstance(raw_concept, list):
+                concept = raw_concept[0] if raw_concept else None
+            else:
+                concept = raw_concept
+
+            score = r.get("score")
+            tf = r.get("T/F")
 
             all_rows.append({
                 "text_id": text_id,
@@ -399,104 +405,172 @@ for span in spans_ner:
 df = pd.DataFrame(all_rows)
 df.to_excel(output_excel_path, index=False)
 
-# Wyświetlenie
+# Wyświetlenie (opcjonalnie w środowiskach z ace_tools)
 import ace_tools as tools
 tools.display_dataframe_to_user(name="Fragment 5 Extracted Data", dataframe=df)
 
 
 
 
+
 #%% label from wikidata
+import re
+import time
 import requests
+from requests.adapters import HTTPAdapter, Retry
 import pandas as pd
 
-def get_wikidata_label(qid: str, lang: str = "pl") -> str:
-    """
-    Pobiera etykietę (label) z Wikidaty dla danego QID i języka (domyślnie polski).
-    """
-    url = f"https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        entity = data["entities"].get(qid, {})
-        labels = entity.get("labels", {})
-        label_info = labels.get(lang, {})
-        label = label_info.get("value")
-        return label
-    except (requests.RequestException, KeyError, ValueError):
-        return None
+# == KONFIG ==
+INPUT_EXCEL  = r"D:/Nowa_praca/KPO/deepseek_yaml 18_08/Fragment_2_extracted_20_08.xlsx"
+OUTPUT_EXCEL = r"D:/Nowa_praca/KPO/deepseek_yaml 18_08/Fragment_2_extracted_labels_20_08.xlsx"
+QID_COLUMN   = "concept"   # kolumna z QID w pliku wejściowym
+LANG         = "pl"        # preferowany język
+FALLBACK_LANG = "en"       # język rezerwowy
+TIMEOUT_S    = 15
+PAUSE_S      = 0.1
 
-def get_wikidata_description(qid: str, lang: str = "pl") -> str:
-    """
-    Pobiera opis (description) z Wikidaty dla danego QID i języka (domyślnie polski).
-    """
-    url = f"https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        entity = data["entities"].get(qid, {})
-        descriptions = entity.get("descriptions", {})
-        desc_info = descriptions.get(lang, {})
-        description = desc_info.get("value")
-        return description
-    except (requests.RequestException, KeyError, ValueError):
-        return None
+QID_RE = re.compile(r"Q\d+")
 
-def enrich_excel_with_wikidata_labels(input_excel: str, output_excel: str, qid_column: str = "wikidata_id"):
-    """
-    Wczytuje plik Excel `input_excel` (z kolumną QID, np. 'wikidata_id'),
-    pobiera etykiety (label) i opisy (description) z Wikidaty,
-    dodaje kolumny 'wikidata_label', 'wikidata_description' oraz 'wikidata_url'
-    i zapisuje wynik do `output_excel`.
-    """
-    # 1. Wczytujemy dane z Excela
+# --- sesja z retry ---
+session = requests.Session()
+retries = Retry(
+    total=4,
+    backoff_factor=0.5,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"]
+)
+session.mount("https://", HTTPAdapter(max_retries=retries))
+session.headers.update({"User-Agent": "Wikidata-enricher/1.0 (+research)"})
+
+def normalize_qid(x):
+    """Zwraca czysty QID (np. 'Q18684270') z wartości komórki; None gdy brak."""
+    if pd.isna(x):
+        return None
+    if isinstance(x, list) and x:
+        x = x[0]
+    s = str(x).strip()
+    m = QID_RE.search(s)
+    if m:
+        print(f"[normalize_qid] Wejście={x!r} -> QID={m.group(0)}")
+    else:
+        print(f"[normalize_qid] Wejście={x!r} -> brak QID")
+    return m.group(0) if m else None
+
+def fetch_entity(qid, timeout=TIMEOUT_S):
+    """Pobiera encję Wikidaty dla dokładnego QID."""
+    url = f"https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
+    print(f"[fetch_entity] GET {url}")
+    r = session.get(url, timeout=timeout)
+    r.raise_for_status()
+    entities = r.json().get("entities", {})
+    if qid in entities:
+        ent = entities[qid]
+    elif qid.strip() in entities:
+        ent = entities[qid.strip()]
+    else:
+        ent = next(iter(entities.values()))
+    print(f"[fetch_entity] {qid}: dostępne języki labeli={list(ent.get('labels', {}).keys())}, opisów={list(ent.get('descriptions', {}).keys())}")
+    return ent
+
+def pick_with_fallback(dct, primary=LANG, fallback=FALLBACK_LANG, what="???"):
+    if not isinstance(dct, dict):
+        return None
+    # 1) primary
+    val = dct.get(primary, {}).get("value")
+    if val:
+        print(f"[pick_with_fallback] {what}: używam {primary}='{val}'")
+        return val
+    # 2) fallback lang
+    val = dct.get(fallback, {}).get("value")
+    if val:
+        print(f"[pick_with_fallback] {what}: brak {primary}, używam {fallback}='{val}'")
+        return val
+    # 3) cokolwiek pierwszego
+    for lang, info in dct.items():
+        if isinstance(info, dict) and "value" in info and info["value"]:
+            print(f"[pick_with_fallback] {what}: brak {primary}/{fallback}, używam {lang}='{info['value']}'")
+            return info["value"]
+    print(f"[pick_with_fallback] {what}: brak wartości w ogóle")
+    return None
+
+def get_label_and_desc(qid: str):
+    try:
+        ent = fetch_entity(qid)
+    except Exception as e:
+        print(f"[ERR] fetch_entity({qid}): {e}")
+        return (None, None)
+
+    labels = ent.get("labels", {})
+    descs  = ent.get("descriptions", {})
+
+    # label z fallbackiem
+    label = pick_with_fallback(labels, what="label")
+
+    # opis tylko po polsku
+    desc = descs.get("pl", {}).get("value")
+    if desc:
+        print(f"[get_label_and_desc] description: używam pl='{desc}'")
+    else:
+        print(f"[get_label_and_desc] description: brak pl -> None")
+
+    return (label, desc)
+
+
+def make_url(qid: str) -> str | None:
+    return f"https://www.wikidata.org/wiki/{qid}" if isinstance(qid, str) and QID_RE.fullmatch(qid) else None
+
+def enrich_excel_with_wikidata_labels(input_excel: str, output_excel: str, qid_column: str = QID_COLUMN):
+    # 1) wczytaj
     df = pd.read_excel(input_excel)
-    
     if qid_column not in df.columns:
         print(f"Brak kolumny '{qid_column}' w pliku. Przerywam.")
         return
-    
-    # 2. Zbieramy unikatowe QID-y
-    unique_qids = df[qid_column].dropna().unique()
-    
-    # 3. Tworzymy mapy: QID -> label oraz QID -> description
+
+    # 2) znormalizuj QID-y
+    df[qid_column] = df[qid_column].apply(normalize_qid)
+
+    # 3) unikatowe QID-y do pobrania
+    unique_qids = [q for q in df[qid_column].dropna().unique()]
+    print(f"[INFO] Unikatowe QID-y: {unique_qids}")
+
     qid_to_label = {}
-    qid_to_description = {}
-    
-    for qid in unique_qids:
-        if isinstance(qid, str) and qid.startswith("Q"):
-            label = get_wikidata_label(qid, lang="pl")
-            description = get_wikidata_description(qid, lang="pl")
-            qid_to_label[qid] = label
-            qid_to_description[qid] = description
-            print(f"Przetworzono {qid}: label = {label}, description = {description}")
-        else:
-            qid_to_label[qid] = None
-            qid_to_description[qid] = None
-    
-    # 4. Funkcja tworząca link do Wikidaty
-    def make_url(qid):
-        if isinstance(qid, str) and qid.startswith("Q"):
-            return f"https://www.wikidata.org/wiki/{qid}"
-        return None
-    
-    # 5. Dodajemy nowe kolumny do DataFrame
-    df["wikidata_label"] = df[qid_column].map(qid_to_label)
-    df["wikidata_description"] = df[qid_column].map(qid_to_description)
-    df["wikidata_url"] = df[qid_column].apply(make_url)
-    
-    # 6. Zapisujemy wynik do Excela
+    qid_to_desc  = {}
+
+    # 4) pobierz dane
+    for i, q in enumerate(unique_qids, 1):
+        print(f"\n=== [{i}/{len(unique_qids)}] Przetwarzam {q} ===")
+        label, desc = get_label_and_desc(q)
+        qid_to_label[q] = label
+        qid_to_desc[q]  = desc
+        print(f"[RESULT] {q}: label={repr(label)} | description={repr(desc)}")
+        time.sleep(PAUSE_S)
+
+    # 5) mapowanie do DataFrame
+    df["wikidata_label"]       = df[qid_column].map(qid_to_label)
+    df["wikidata_description"] = df[qid_column].map(qid_to_desc)
+    df["wikidata_url"]         = df[qid_column].apply(make_url)
+
+    # 6) zapis
     df.to_excel(output_excel, index=False)
-    print(f"Zapisano wzbogacony plik do: {output_excel}")
+    print(f"\n[INFO] Zapisano wzbogacony plik do: {output_excel}")
 
 if __name__ == "__main__":
-    enrich_excel_with_wikidata_labels(
-        input_excel="D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_5_extracted.xlsx",
-        output_excel="D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_5_extracted_labels.xlsx",
-        qid_column="concept"  # Nazwa kolumny z QID
-    )
+    enrich_excel_with_wikidata_labels(INPUT_EXCEL, OUTPUT_EXCEL, QID_COLUMN)
+
+
+
+
+import requests, json
+
+qid = "Q18684270"
+url = f"https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
+r = requests.get(url, timeout=15)
+r.raise_for_status()
+ent = r.json()["entities"][qid]
+
+print("Dostępne języki etykiet:", list(ent.get("labels", {}).keys()))
+print("PL label:", ent.get("labels", {}).get("pl", {}).get("value"))
+print("PL description:", ent.get("descriptions", {}).get("pl", {}).get("value"))
 
 import requests
 import json
@@ -576,6 +650,76 @@ label_match_concept_mismatch = comparison[
 
 print("\n🟨 Zgodne wikidata_label, niezgodne concept:")
 print(label_match_concept_mismatch[['obj_id', 'entity_text_new', 'concept_new', 'concept_old', 'wikidata_label_new']])
+#%% prównanie z 18.08
+
+import pandas as pd
+
+# Ścieżki do plików
+comparison_file = r"D:/Nowa_praca/KPO/dariah_new_model_deepseek-v3/dariah_new_model_deepseek-v3/Fragment_2_extracted_labels.xlsx"
+new_file_18_08   = r"D:/Nowa_praca/KPO/deepseek_yaml 18_08/Fragment_2_extracted_labels_20_08.xlsx"
+out_file         = r"D:/Nowa_praca/KPO/deepseek_yaml 18_08/porownanie_label_concept F2_rozszerzone_20_08.xlsx"
+
+# 1) Wczytanie
+comparison = pd.read_excel(comparison_file)
+df_18_08 = pd.read_excel(new_file_18_08)
+
+# 2) Przygotowanie 18_08
+df_18_08_subset = (
+    df_18_08
+    .drop_duplicates(subset=['obj_id'], keep='first')
+    [['obj_id', 'entity_text', 'concept', 'wikidata_label', 'wikidata_description', 'context_snippet']]
+    .rename(columns={
+        'entity_text': 'entity_text_20_08',
+        'concept': 'concept_20_08',
+        'wikidata_label': 'wikidata_label_20_08',
+        'wikidata_description': 'wikidata_description_20_08'
+    })
+)
+
+# 3) Merge
+merged = pd.merge(comparison, df_18_08_subset, on='obj_id', how='left')
+
+# 4) Funkcja normalizująca kolumny do porównań
+def norm_col(s: pd.Series) -> pd.Series:
+    # wszystko jako string, NaN->"", obcięcie spacji; przydatne dla concept/label/text
+    return s.astype(str).fillna("").str.strip().replace({"nan": ""})
+
+# 5) Porównania NEW vs 18_08 z ujednoliceniem pustych
+entity_new = norm_col(merged['entity_text'])
+entity_1808 = norm_col(merged['entity_text_20_08'])
+
+label_new = norm_col(merged['wikidata_label'])
+label_1808 = norm_col(merged['wikidata_label_20_08'])
+
+concept_new = norm_col(merged['concept'])
+concept_1808 = norm_col(merged['concept_20_08'])
+
+merged['entity_text_match_20_08']   = (entity_new == entity_1808)
+merged['wikidata_label_match_20_08'] = (label_new == label_1808)
+merged['concept_match_20_08']        = (concept_new == concept_1808)
+
+# (opcjonalnie) kolumny PRAWDA/FAŁSZ
+merged['entity_text_match_18_08_txt']   = merged['entity_text_match_18_08'].map({True: 'PRAWDA', False: 'FAŁSZ'})
+merged['wikidata_label_match_18_08_txt'] = merged['wikidata_label_match_18_08'].map({True: 'PRAWDA', False: 'FAŁSZ'})
+merged['concept_match_18_08_txt']        = merged['concept_match_18_08'].map({True: 'PRAWDA', False: 'FAŁSZ'})
+
+# 6) Zapis
+merged.to_excel(out_file, index=False)
+
+# 7) Podsumowanie
+summary = {
+    'total_compared': len(merged),
+    'entity_text_matches_18_08': int(merged['entity_text_match_18_08'].sum()),
+    'wikidata_label_matches_18_08': int(merged['wikidata_label_match_18_08'].sum()),
+    'concept_matches_18_08': int(merged['concept_match_18_08'].sum()),
+}
+print("📊 Podsumowanie NEW vs 18_08:")
+for k, v in summary.items():
+    print(f"- {k.replace('_',' ').capitalize()}: {v}")
+
+
+
+
 
 
 

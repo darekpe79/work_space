@@ -1,142 +1,22 @@
-# import torch
-# from datasets import Dataset
-# from transformers import (
-#     AutoTokenizer, 
-#     AutoModelForCausalLM, 
-#     BitsAndBytesConfig, 
-#     TrainingArguments, 
-#     Trainer
-# )
-# from peft import LoraConfig, get_peft_model, TaskType
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 21 11:39:51 2025
 
-# # Przykładowe dane treningowe
-# train_data = [
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Niedawno przeczytałem książkę 'Lalka' autorstwa Bolesława Prusa.", "output": "'Lalka'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Forrest Gump' zdobył wiele nagród filmowych.", "output": "'Forrest Gump'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Serial 'Breaking Bad' ma wielu fanów na całym świecie.", "output": "'Breaking Bad'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Słynny obraz 'Mona Lisa' znajduje się w muzeum Luwr.", "output": "'Mona Lisa'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Interstellar' Christophera Nolana porusza tematykę kosmosu.", "output": "'Interstellar'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Książka '1984' George'a Orwella opowiada o dystopijnej przyszłości.", "output": "'1984'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Gra 'Wiedźmin 3: Dziki Gon' zdobyła wiele nagród.", "output": "'Wiedźmin 3: Dziki Gon'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Obraz 'Gwiaździsta noc' Vincenta van Gogha jest arcydziełem.", "output": "'Gwiaździsta noc'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Ostatnio obejrzałem film 'Incepcja' i zrobił na mnie wrażenie.", "output": "'Incepcja'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Piosenka 'Bohemian Rhapsody' zespołu Queen jest ikoną rocka.", "output": "'Bohemian Rhapsody'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Książka 'Zbrodnia i kara' Fiodora Dostojewskiego to klasyk literatury.", "output": "'Zbrodnia i kara'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Oglądałem ostatnio serial 'Gra o Tron'.", "output": "'Gra o Tron'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Gladiator' zdobył wiele Oscarów.", "output": "'Gladiator'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Czytałem książkę 'Hobbit, czyli tam i z powrotem' J.R.R. Tolkiena.", "output": "'Hobbit, czyli tam i z powrotem'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Titanic' opowiada tragiczną historię.", "output": "'Titanic'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Gra 'Cyberpunk 2077' została wydana przez CD Projekt Red.", "output": "'Cyberpunk 2077'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Obraz 'Ostatnia Wieczerza' Leonarda da Vinci to arcydzieło.", "output": "'Ostatnia Wieczerza'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Książka 'Mały Książę' jest jedną z najczęściej tłumaczonych.", "output": "'Mały Książę'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Matrix' stał się kultowy.", "output": "'Matrix'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Serial 'Stranger Things' jest bardzo popularny.", "output": "'Stranger Things'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Słuchałem albumu 'The Dark Side of the Moon' zespołu Pink Floyd.", "output": "'The Dark Side of the Moon'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Książka 'Harry Potter i Kamień Filozoficzny' to początek serii.", "output": "'Harry Potter i Kamień Filozoficzny'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Shrek' to jedna z najlepszych animacji.", "output": "'Shrek'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Gra 'The Legend of Zelda: Breath of the Wild' zdobyła wiele nagród.", "output": "'The Legend of Zelda: Breath of the Wild'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Serial 'Sherlock' opowiada o przygodach detektywa.", "output": "'Sherlock'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Książka 'Władca Pierścieni' J.R.R. Tolkiena to klasyka fantasy.", "output": "'Władca Pierścieni'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Obraz 'Krzyk' Edvarda Muncha jest jednym z najbardziej znanych dzieł sztuki.", "output": "'Krzyk'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Gra 'Grand Theft Auto V' sprzedała się w milionach egzemplarzy.", "output": "'Grand Theft Auto V'"},
-#     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Film 'Avatar' Jamesa Camerona odniósł ogromny sukces.", "output": "'Avatar'"},
-# ]
+@author: darek
+"""
 
-
-# # Model i tokenizer
-# model_name = "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
-
-# quantization_config = BitsAndBytesConfig(
-#     load_in_4bit=True,
-#     bnb_4bit_use_double_quant=True,
-#     bnb_4bit_compute_dtype=torch.bfloat16
-# )
-
-# tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-# model = AutoModelForCausalLM.from_pretrained(
-#     model_name,
-#     quantization_config=quantization_config,
-#     device_map="auto",
-#     trust_remote_code=True
-# )
-
-# # Konfiguracja LoRA
-# lora_config = LoraConfig(
-#     r=16,
-#     lora_alpha=64,
-#     target_modules=["q_proj", "v_proj"],
-#     task_type=TaskType.CAUSAL_LM,
-#     inference_mode=False
-# )
-
-# model = get_peft_model(model, lora_config)
-# model.print_trainable_parameters()
-
-# # Tokenizacja
-# IGNORE_INDEX = -100
-# def tokenize(example):
-#     prompt = f"{example['instruction']} {example['input']}\nOdpowiedź: {example['output']}"
-#     tokenized = tokenizer(prompt, padding="max_length", truncation=True, max_length=512)
-#     labels = tokenized["input_ids"].copy()
-
-#     # Ignorowanie tokenów promptu w liczeniu loss
-#     prompt_len = len(tokenizer(f"{example['instruction']} {example['input']}\nOdpowiedź:")['input_ids'])
-#     labels[:prompt_len] = [IGNORE_INDEX] * prompt_len
-
-#     tokenized["labels"] = labels
-#     return tokenized
-
-# # Utworzenie datasetu
-# dataset = Dataset.from_list(train_data)
-# tokenized_dataset = dataset.map(tokenize)
-
-# # Trening
-# training_args = TrainingArguments(
-#     output_dir="llama-pllum-lora-title",
-#     num_train_epochs=10,
-#     per_device_train_batch_size=1,
-#     gradient_accumulation_steps=8,
-#     learning_rate=1e-4,
-#     lr_scheduler_type="cosine",
-#     warmup_steps=5,
-#     optim="adamw_torch",  # AdamW dla stabilniejszych gradientów
-#     max_grad_norm=1.0,  # Clipping gradientów, by uniknąć NaN
-#     fp16=True,
-#     logging_steps=2,
-#     save_strategy="epoch"
-# )
-
-# trainer = Trainer(
-#     model=model,
-#     args=training_args,
-#     train_dataset=tokenized_dataset,
-#     tokenizer=tokenizer,
-# )
-
-# trainer.train()
-
-# # Zapisanie modelu po treningu
-# model.save_pretrained("./llama-pllum-title-lora-trained")
-# tokenizer.save_pretrained("./llama-pllum-title-lora-trained")
-
-# print("Trening zakończony i model zapisany.")
-
-
+# === Unsloth + QLoRA (4-bit) dla CYFRAGOVPL/Llama-PLLuM-8B-instruct ===
+# Sprzęt: RTX 4070 Ti Super 16 GB
 
 import torch
 from datasets import Dataset
-from transformers import (
-    AutoTokenizer, 
-    AutoModelForCausalLM, 
-    BitsAndBytesConfig, 
-    TrainingArguments, 
-    Trainer
-)
-from peft import LoraConfig, get_peft_model, TaskType
+from transformers import TrainingArguments, Trainer
+from peft import LoraConfig, TaskType
+from unsloth import FastLanguageModel
 
-# Przykładowe dane treningowe (zwiększona liczba przykładów)
-
-
+# ------------------------------
+# 1) Dane treningowe (Twoje)
+# ------------------------------
 train_data = [
     # KSIĄŻKI
     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Niedawno przeczytałem książkę 'Lalka' autorstwa Bolesława Prusa.", "output": "'Lalka'"},
@@ -252,93 +132,133 @@ train_data = [
     {"instruction": "Rozpoznaj tytuł w tekście poniżej:", "input": "Album pt. 'The Dark Side of the Moon' to klasyk.", "output": "'The Dark Side of the Moon'"},
 ]
 
-
-
-# Model i tokenizer
+# ------------------------------
+# 2) Model i tokenizer przez Unsloth
+# ------------------------------
 model_name = "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
 
-quantization_config = BitsAndBytesConfig(
+use_bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+dtype = "bfloat16" if use_bf16 else "float16"
+
+MAX_LEN = 256
+
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=model_name,
     load_in_4bit=True,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.bfloat16
-)
-
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    quantization_config=quantization_config,
+    max_seq_length=MAX_LEN,
+    dtype=dtype,
     device_map="auto",
-    trust_remote_code=True
 )
 
-# Konfiguracja LoRA
+tokenizer.padding_side = "right"
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
+
+# ------------------------------
+# 3) Konfiguracja LoRA
+# ------------------------------
 lora_config = LoraConfig(
-    r=32,  # Zwiększony rank
-    lora_alpha=64,  # Zwiększony alpha
-    target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],  # Więcej modułów
+    r=32,
+    lora_alpha=64,
+    lora_dropout=0.05,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     task_type=TaskType.CAUSAL_LM,
-    inference_mode=False
+    inference_mode=False,
 )
 
-model = get_peft_model(model, lora_config)
+model = FastLanguageModel.get_peft_model(model, lora_config)
 model.print_trainable_parameters()
 
-# Tokenizacja
+if hasattr(model, "gradient_checkpointing_enable"):
+    model.gradient_checkpointing_enable()
+
+# ------------------------------
+# 4) Tokenizacja
+# ------------------------------
 IGNORE_INDEX = -100
+
+def format_example(ex):
+    return (
+        f"### Instrukcja: {ex['instruction']}\n"
+        f"### Wejście: {ex['input']}\n"
+        f"### Odpowiedź: {ex['output']}"
+    )
+
+def format_prompt_for_mask(ex):
+    return (
+        f"### Instrukcja: {ex['instruction']}\n"
+        f"### Wejście: {ex['input']}\n"
+        f"### Odpowiedź:"
+    )
+
 def tokenize(example):
-    prompt = f"### Instrukcja: {example['instruction']}\n### Wejście: {example['input']}\n### Odpowiedź: {example['output']}"
-    tokenized = tokenizer(prompt, padding="max_length", truncation=True, max_length=256)
-    labels = tokenized["input_ids"].copy()
+    prompt = format_example(example)
+    tok = tokenizer(prompt, padding="max_length", truncation=True, max_length=MAX_LEN)
+    labels = tok["input_ids"].copy()
 
-    # Ignorowanie tokenów promptu w liczeniu loss
-    prompt_len = len(tokenizer(f"### Instrukcja: {example['instruction']}\n### Wejście: {example['input']}\n### Odpowiedź:")['input_ids'])
+    prompt_len = len(tokenizer(format_prompt_for_mask(example))["input_ids"])
     labels[:prompt_len] = [IGNORE_INDEX] * prompt_len
+    tok["labels"] = labels
+    return tok
 
-    tokenized["labels"] = labels
-    return tokenized
-
-# Utworzenie datasetu
 dataset = Dataset.from_list(train_data)
-tokenized_dataset = dataset.map(tokenize)
+tokenized_dataset = dataset.map(tokenize, remove_columns=None)
 
+split = tokenized_dataset.train_test_split(test_size=0.2, seed=42)
+train_dataset = split["train"]
+eval_dataset = split["test"]
 
-
-# Podział danych na zestaw treningowy i walidacyjny (np. 80% treningowy, 20% walidacyjny)
-train_test_split = tokenized_dataset.train_test_split(test_size=0.2)
-train_dataset = train_test_split["train"]
-eval_dataset = train_test_split["test"]
-
-# Trening
+# ------------------------------
+# 5) Trening
+# ------------------------------
 training_args = TrainingArguments(
-    output_dir="C:/treningpllum/checkpoints",
-    num_train_epochs=15,  # Zmniejszona liczba epok
-    per_device_train_batch_size=2,  # Zwiększony batch size
-    gradient_accumulation_steps=4,  # Zmniejszona akumulacja gradientu
-    learning_rate=5e-5,  # Zmniejszony learning rate
+    output_dir="C:/treningpllum/output",   # <<<<<< katalog wyników
+    num_train_epochs=15,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=4,
+    learning_rate=5e-5,
     lr_scheduler_type="cosine",
     warmup_steps=5,
-    optim="adamw_torch",
-    max_grad_norm=2.0,  # Zwiększony max_grad_norm
-    fp16=True,
+    optim="adamw_bnb_8bit",
+    max_grad_norm=2.0,
+    fp16=(not use_bf16),
+    bf16=use_bf16,
     logging_steps=2,
     save_strategy="epoch",
-    evaluation_strategy="epoch",  # Włączona walidacja
+    evaluation_strategy="epoch",
+    report_to="none",
 )
 
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    eval_dataset=eval_dataset,  # Dodany zestaw walidacyjny
+    eval_dataset=eval_dataset,
     tokenizer=tokenizer,
 )
 
 trainer.train()
 
-# Zapisanie modelu po treningu
-model.save_pretrained("C:/treningpllum/")
-tokenizer.save_pretrained("C:/treningpllum/")
+# ------------------------------
+# 6) Zapis adapterów LoRA
+# ------------------------------
+save_dir = "C:/treningpllum/llama-pllum-title-lora-unsloth"   # <<<<<< katalog zapisania
+model.save_pretrained(save_dir)
+tokenizer.save_pretrained(save_dir)
 
-print("Trening zakończony i model zapisany.")
+print("Trening zakończony i model zapisany w:", save_dir)
 
-
+# ------------------------------
+# (Opcjonalnie) Scal adaptery do pełnego modelu
+# ------------------------------
+# from peft import PeftModel
+# base_model, _ = FastLanguageModel.from_pretrained(
+#     model_name=model_name,
+#     load_in_4bit=False,
+#     dtype=dtype,
+#     device_map="auto",
+# )
+# fused = PeftModel.from_pretrained(base_model, save_dir)
+# fused = fused.merge_and_unload()
+# fused.save_pretrained("C:/treningpllum/llama-pllum-title-merged")
+# tokenizer.save_pretrained("C:/treningpllum/llama-pllum-title-merged")
