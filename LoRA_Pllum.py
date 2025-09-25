@@ -260,7 +260,7 @@ model_name = "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_use_double_quant=True,
-    bnb_4bit_compute_dtype=torch.bfloat16
+    bnb_4bit_compute_dtype=torch.float16
 )
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
@@ -271,11 +271,39 @@ model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True
 )
 
+# quantization_config = BitsAndBytesConfig(
+#     load_in_8bit=True,
+#     llm_int8_threshold=6.0,  # threshold dla kwantyzacji
+#     llm_int8_skip_modules=None,  # które moduły pominąć
+#     llm_int8_enable_fp32_cpu_offload=False,
+#     llm_int8_has_fp16_weight=False,
+# )
+
+# tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     quantization_config=quantization_config,
+#     device_map="auto",
+#     trust_remote_code=True
+# )
+# tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     torch_dtype=torch.float16,
+#     #device_map="auto",  # ← WAŻNE: włącz device_map
+#     low_cpu_mem_usage=True,  # ← WAŻNE: oszczędne użycie CPU
+#     trust_remote_code=True
+# )
 # Konfiguracja LoRA
 lora_config = LoraConfig(
-    r=32,  # Zwiększony rank
-    lora_alpha=64,  # Zwiększony alpha
-    target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],  # Więcej modułów
+    r=32,
+    lora_alpha=64,
+    lora_dropout=0.05,  # (opcjonalnie, np. 0.05 dla stabilizacji)
+    target_modules=[
+        "q_proj", "k_proj", "v_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj"
+    ],
     task_type=TaskType.CAUSAL_LM,
     inference_mode=False
 )

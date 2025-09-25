@@ -212,7 +212,7 @@ eval_dataset = split["test"]
 # 5) Trening
 # ------------------------------
 training_args = TrainingArguments(
-    output_dir="C:/treningpllum/output",   # <<<<<< katalog wyników
+    output_dir="C:/treningpllum/checkpoint_unsloth",   # <<<<<< katalog wyników
     num_train_epochs=15,
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,
