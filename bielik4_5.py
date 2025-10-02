@@ -103,3 +103,39 @@ with torch.inference_mode():
 # Dekodowanie nowo wygenerowanej części
 generated_text = tokenizer.decode(output[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True)
 print("Odpowiedź modelu:", generated_text.strip())
+
+
+import torch
+from transformers import AutoTokenizer
+
+model_name = "speakleash/Bielik-4.5B-v3.0-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# Sprawdzamy identyfikatory tokenów
+true_tokens = tokenizer.encode(" True", add_special_tokens=False)
+false_tokens = tokenizer.encode(" False", add_special_tokens=False)
+
+print("True tokens:", true_tokens)
+print("False tokens:", false_tokens)
+
+# Opcjonalnie: pokazujemy, co dekoduje się z pierwszego tokenu
+print("Decode True first token:", tokenizer.decode([true_tokens[0]]))
+print("Decode False first token:", tokenizer.decode([false_tokens[0]]))
+
+import torch
+from transformers import AutoTokenizer
+
+# PLLuM zamiast Bielika
+model_name = "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+true_tokens = tokenizer.encode(" True", add_special_tokens=False)
+false_tokens = tokenizer.encode(" False", add_special_tokens=False)
+
+print("True tokens:", true_tokens)
+print("False tokens:", false_tokens)
+
+print("Decode True first token:", tokenizer.decode([true_tokens[0]]))
+print("Decode False first token:", tokenizer.decode([false_tokens[0]]))
+
+

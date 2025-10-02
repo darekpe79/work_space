@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Sep 23 10:28:02 2025
-
-@author: darek
-"""
-
-"""
-Klasyfikacja PBL (True/False) z użyciem PLLuM (CYFRAGOVPL/Llama-PLLuM-8B-instruct)
+Klasyfikacja PBL (True/False) z użyciem Bielika (speakleash/Bielik-4.5B-v3.0-Instruct)
 QLoRA 4-bit + dynamiczny budżet tokenów oparty na ID (bez ponownej tokenizacji).
 Drukujemy przykładowe predykcje w trakcie ewaluacji (co 50 kroków).
 """
@@ -39,9 +33,6 @@ from peft import (
     TaskType,
     prepare_model_for_kbit_training,
 )
-
-from huggingface_hub import login
-token = os.getenv("HF_TOKEN")
 
 # ========================= 1) ŁADOWANIE I SCALANIE DANYCH =========================
 
@@ -118,7 +109,7 @@ print("Liczba wystąpień po dostosowaniu:\n", df_adjusted['do PBL'].value_count
 
 df_adjusted['combined_text'] = df_adjusted['Tytuł artykułu'].astype(str) + " " + df_adjusted['Tekst artykułu'].astype(str)
 
-# ========================= 3) DANE INSTRUKCYJNE DLA PLLuM =========================
+# ========================= 3) DANE INSTRUKCYJNE =========================
 
 INSTRUCTION = "Oceń, czy poniższy tekst kwalifikuje się do Polskiej Bibliografii Literackiej (odpowiedz dokładnie: True lub False)."
 
@@ -144,7 +135,7 @@ print(df_pllum['output'].value_counts())
 
 # ========================= 4) MODEL + QLoRA (4-bit) =========================
 
-model_name = "speakleash/Bielik-4.5B-v3.0-Instruct" # "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
+model_name = "speakleash/Bielik-4.5B-v3.0-Instruct"  # ewentualnie: "CYFRAGOVPL/Llama-PLLuM-8B-instruct"
 
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -156,7 +147,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     quantization_config=quantization_config,
-    device_map = {"": 0} ,
+    device_map={"": 0},  # cały model na GPU:0
     trust_remote_code=True
 )
 
@@ -175,13 +166,14 @@ lora_config = LoraConfig(
 )
 model = get_peft_model(model, lora_config)
 model.enable_input_require_grads()
-model.print_trainable_parameters()  # sanity-check
+model.print_trainable_parameters()
 
 # ========================= 5) DYNAMICZNY BUDŻET TOKENÓW (ID) =========================
 
 IGNORE_INDEX   = -100
 ANSWER_PREFIX  = "### Odpowiedź:"
-AFTER_INPUT    = f"\n{ANSWER_PREFIX} "   # UWAGA: jedna spacja na końcu (ważne dla '▁True'/'▁False')
+AFTER_INPUT    = f"\n{ANSWER_PREFIX}\n"   # BEZ spacji na końcu (ważne dla Bielika)
+
 HARD_CAP       = 768
 MODEL_LIMIT    = int(getattr(model.config, "max_position_embeddings", 131072))
 BIG_NUMBER     = 2_000_000_000
@@ -199,13 +191,12 @@ def get_ctx_cap(tok, mdl, hard_cap=HARD_CAP, safety_margin=4):
 CTX_CAP = get_ctx_cap(tokenizer, model)
 print("Efektywny budżet kontekstu (tokeny):", CTX_CAP)
 
-# --- Kluczowe: klasy z LEADING SPACE (żeby 1. token odpowiedzi był '▁True'/'▁False') ---
-TRUE_TOKENS  = tokenizer.encode(" True",  add_special_tokens=False)
-FALSE_TOKENS = tokenizer.encode(" False", add_special_tokens=False)
-TRUE_ID0, FALSE_ID0 = TRUE_TOKENS[0], FALSE_TOKENS[0]
-print("DEBUG first-token decodes:",
-      repr(tokenizer.decode([TRUE_ID0])),
-      repr(tokenizer.decode([FALSE_ID0])))
+# Pierwsze sub-tokeny "True"/"False" (bez spacji)
+TRUE_SUBTOKENS  = tokenizer.encode("True",  add_special_tokens=False)
+FALSE_SUBTOKENS = tokenizer.encode("False", add_special_tokens=False)
+TRUE_ID0, FALSE_ID0 = TRUE_SUBTOKENS[0], FALSE_SUBTOKENS[0]
+print("DEBUG first-token IDs:", TRUE_ID0, FALSE_ID0,
+      "| decode:", repr(tokenizer.decode([TRUE_ID0])), repr(tokenizer.decode([FALSE_ID0])))
 
 def tokenize_row_dynamic_budgeted(example):
     instruction = example["instruction"]
@@ -215,25 +206,25 @@ def tokenize_row_dynamic_budgeted(example):
     before_input = f"### Instrukcja: {instruction}\n### Wejście: "
     after_input  = AFTER_INPUT
 
-    # 1) Tokenizujemy stałe segmenty (bez special tokens)
+    # Stałe segmenty
     ids_before = tokenizer(before_input, add_special_tokens=False)["input_ids"]
     ids_after  = tokenizer(after_input,  add_special_tokens=False)["input_ids"]
-    # UWAGA: odpowiedź z LEADING SPACE
-    ids_ans    = tokenizer(" " + output_text,  add_special_tokens=False)["input_ids"]
+    # Odpowiedź BEZ spacji
+    ids_ans    = tokenizer(output_text, add_special_tokens=False)["input_ids"]
 
-    # 2) Liczymy budżet dla inputu
+    # Budżet
     special_count = int(tokenizer.bos_token_id is not None) + int(tokenizer.eos_token_id is not None)
     soft_cap = max(16, min(CTX_CAP, MODEL_LIMIT) - special_count)
     overhead = len(ids_before) + len(ids_after) + len(ids_ans)
     budget_for_input = max(1, soft_cap - overhead)
 
-    # 3) Szybkie pre-cięcie po znakach
+    # Szybkie pre-cięcie po znakach
     approx_chars_per_token = 4
     max_chars = budget_for_input * approx_chars_per_token
     if len(input_text) > max_chars:
         input_text = input_text[:max_chars]
 
-    # 4) Tokenizujemy input z twardym limitem
+    # Tokenizacja inputu z twardym limitem
     ids_input = tokenizer(
         input_text,
         add_special_tokens=False,
@@ -241,7 +232,7 @@ def tokenize_row_dynamic_budgeted(example):
         max_length=budget_for_input
     )["input_ids"]
 
-    # 5) Składamy pełną sekwencję ID
+    # Składanie promptu
     ids_prompt = []
     if tokenizer.bos_token_id is not None:
         ids_prompt.append(tokenizer.bos_token_id)
@@ -251,14 +242,14 @@ def tokenize_row_dynamic_budgeted(example):
     if tokenizer.eos_token_id is not None:
         ids_full.append(tokenizer.eos_token_id)
 
-    # 6) Ostateczny bezpiecznik długości
+    # Bezpiecznik długości
     hard_cap = min(CTX_CAP, MODEL_LIMIT) + special_count
     if len(ids_full) > hard_cap:
         ids_full = ids_full[:hard_cap]
         if tokenizer.eos_token_id is not None:
             ids_full[-1] = tokenizer.eos_token_id
 
-    # 7) Maskujemy prompt w labelach
+    # Maskowanie promptu w labelach
     labels = ids_full.copy()
     labels[:len(ids_prompt)] = [IGNORE_INDEX] * len(ids_prompt)
 
@@ -266,7 +257,6 @@ def tokenize_row_dynamic_budgeted(example):
         "input_ids": ids_full,
         "attention_mask": [1] * len(ids_full),
         "labels": labels,
-        # surowe pola — przydadzą się do drukowania przykładów w ewaluacji
         "raw_instruction": instruction,
         "raw_input": input_text,
         "raw_output": output_text,
@@ -283,15 +273,17 @@ def preprocess_logits_for_metrics(logits, labels):
         logits = logits[0]
     with torch.no_grad():
         if labels is None:
-            sel = logits[:, -1, :]  # awaryjnie ostatnia pozycja
+            sel = logits[:, -1, :]  # fallback
         else:
             pos_list = []
             for i in range(labels.shape[0]):
                 pos = (labels[i] != IGNORE_INDEX).nonzero(as_tuple=False)
-                pos_list.append(pos[0].item() if len(pos) > 0 else logits.shape[1]-1)
+                # logity z pozycji PRZED pierwszym tokenem odpowiedzi
+                p = pos[0].item() if len(pos) > 0 else logits.shape[1]-1
+                pos_list.append(max(0, p - 1))
             idx = torch.tensor(pos_list, device=logits.device)
             sel = logits[torch.arange(logits.size(0), device=logits.device), idx, :]
-        # zwracamy tylko logity dla 1. tokenów ' True' i ' False'
+        # logity tylko dla pierwszych sub-tokenów "True"/"False"
         return sel[:, [TRUE_ID0, FALSE_ID0]]
 
 def compute_metrics_2class(eval_pred):
@@ -299,14 +291,14 @@ def compute_metrics_2class(eval_pred):
     two_logits = np.asarray(two_logits)
     labels = np.asarray(labels)
 
-    preds = two_logits.argmax(axis=-1)  # 0 -> " True", 1 -> " False"
+    preds = two_logits.argmax(axis=-1)  # 0 -> "True", 1 -> "False"
 
     true_labels = []
     for i in range(labels.shape[0]):
         pos = np.where(labels[i] != IGNORE_INDEX)[0]
         if len(pos) == 0:
             continue
-        true_id = int(labels[i, pos[0]])
+        true_id = int(labels[i, pos[0]])  # pierwszy token odpowiedzi
         true_labels.append(0 if true_id == int(TRUE_ID0) else 1)
 
     if not true_labels:
@@ -348,6 +340,7 @@ data_collator = DataCollatorForCausalWithIgnore(tokenizer=tokenizer)
 split = tokenized_dataset.train_test_split(test_size=0.2, seed=42)
 train_dataset = split["train"]
 eval_dataset_full = split["test"]
+
 # Losowy lekki eval (do ~1000 przykładów)
 rng = random.Random(42)
 eval_indices = list(range(len(eval_dataset_full)))
@@ -374,7 +367,6 @@ class EvalPrinterCallback(TrainerCallback):
             input_text  = item.get("raw_input", "")
             gold        = item.get("raw_output", "")
 
-            # zbuduj prompt jak w treningu
             before_input = f"### Instrukcja: {instruction}\n### Wejście: "
             after_input  = AFTER_INPUT
 
@@ -429,8 +421,8 @@ training_args = TrainingArguments(
 
     # logi i ewaluacja/zapis
     logging_steps=50,
-    eval_strategy="steps",
-    eval_steps=200,              # <— co 50 kroków
+    evaluation_strategy="steps",
+    eval_steps=50,               # <— co 50 kroków
     save_strategy="steps",
     save_steps=200,
 
@@ -452,7 +444,7 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    eval_dataset=eval_dataset,   # <— tu przekazujemy LEKKI eval
+    eval_dataset=eval_dataset,   # lekki eval
     tokenizer=tokenizer,         # (ostrzeżenie o deprec. można zignorować)
     data_collator=data_collator,
     compute_metrics=compute_metrics_2class,
@@ -462,22 +454,22 @@ trainer = Trainer(
             early_stopping_patience=3,
             early_stopping_threshold=5e-4
         ),
-        EvalPrinterCallback(eval_dataset, tokenizer, k=5, seed=123),  # <— podgląd predykcji
+        EvalPrinterCallback(eval_dataset, tokenizer, k=5, seed=123),
     ],
 )
 
-print("Rozpoczęcie treningu PLLuM (True/False)...")
+print("Rozpoczęcie treningu Bielika (True/False)...")
 trainer.train()
 
-# Ewaluacja końcowa (na najlepszym checkpointcie dzięki load_best_model_at_end=True)
+# Ewaluacja końcowa
 results = trainer.evaluate()
-print("Wyniki ewaluacji PLLuM:", results)
+print("Wyniki ewaluacji:", results)
 print("Najlepszy checkpoint:", trainer.state.best_model_checkpoint)
 
 # ========================= 10) ZAPIS =========================
 save_dir = "C:/treningpllum/"
 os.makedirs(save_dir, exist_ok=True)
-trainer.model.save_pretrained(save_dir)   # zapis najlepszego modelu
+trainer.model.save_pretrained(save_dir)
 tokenizer.save_pretrained(save_dir)
 print("Trening zakończony i model zapisany w:", save_dir)
 
@@ -485,8 +477,7 @@ print("Trening zakończony i model zapisany w:", save_dir)
 
 def classify_with_pllum(text: str) -> str:
     """
-    Budujemy prompt jak w treningu i porównujemy logproby pierwszego tokenu „ True” vs „ False”.
-    Z tym samym ograniczeniem kontekstu (ID-based).
+    Budujemy prompt jak w treningu i porównujemy logproby pierwszego sub-tokenu „True” vs „False”.
     """
     model.eval()
 
@@ -505,7 +496,6 @@ def classify_with_pllum(text: str) -> str:
     if len(ids_input) > budget_for_input:
         ids_input = ids_input[:budget_for_input]
 
-    # Składamy prompt tokenami
     ids_prompt = []
     if tokenizer.bos_token_id is not None:
         ids_prompt.append(tokenizer.bos_token_id)
