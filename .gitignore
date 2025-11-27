@@ -1,3 +1,4 @@
+# --- Twoje własne wpisy ---
 __pycache__/
 results/
 build/
@@ -6,3 +7,57 @@ build/
 *.zip
 *.tar.gz
 Scopus_API.py
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+*.env
+
+# --- VS Code ---
+.vscode/
+.history/
+
+# --- Python cache & compiled files ---
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.dll
+*.egg
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb.json
+
+# --- Test / coverage ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+pytest_cache/
+
+# --- Build / packaging ---
+dist/
+sdist/
+develop-eggs/
+build/
+wheels/
+*.whl
+*.manifest
+*.spec
+
+# --- Logs ---
+*.log
+
+# --- OS / editor crap ---
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
