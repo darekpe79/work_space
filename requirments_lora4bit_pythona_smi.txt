@@ -1,0 +1,37 @@
+===========================================
+   ŚRODOWISKO PYTHON – SNAPSHOT (LoRA 4bit)
+===========================================
+
+== Python ==
+Wersja: Python 3.11.1
+
+== Pip ==
+pip 25.1.1
+Ścieżka: C:\Users\darek\AppData\Local\Programs\Python\Python311\Lib\site-packages\pip
+Python: 3.11
+
+== GPU / NVIDIA ==
+NVIDIA-SMI 581.80
+Driver Version: 581.80
+CUDA Version reportowana przez sterownik: 13.0
+
+GPU: NVIDIA GeForce RTX 4070
+Tryb sterownika: WDDM
+Pamięć GPU: 16376 MiB (użycie w momencie pomiaru: 2084 MiB)
+Temperatura: 40°C
+Zużycie energii: 14W / 285W (P8)
+GPU-Util: 0%
+ECC: N/A
+
+Bus-Id: 00000000:26:00.0
+Display Active: On
+
+== Metadane ==
+Środowisko NIE jest wirtualnym środowiskiem (brak venv).
+Ścieżka wywołania poleceń: C:\Users\darek
+Polecenie pip freeze wykonane w tym środowisku.
+Plik generowany: requirements_lora4bit.txt
+
+===========================================
+     KONIEC PLIKU – SNAPSHOT GOTOWY
+===========================================
