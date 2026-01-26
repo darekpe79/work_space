@@ -170,7 +170,9 @@ logger.setLevel(logging.INFO)
 
 datasets_logger = logging.getLogger("datasets")
 datasets_logger.setLevel(logging.INFO)
-df_excel = pd.read_excel('C:/Users/dariu/Downloads/Mapowanie działów.xlsx')
+df_excel = pd.read_excel('C:/Users/darek/Downloads/Mapowanie działów.xlsx')
+
+
 df_excel['połączony dział'] = df_excel['nr działu'].astype(str) + " " + df_excel['nazwa działu']
 
 mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['połączony dział']).to_dict()

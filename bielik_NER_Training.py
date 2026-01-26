@@ -155,16 +155,24 @@ dataset = dataset.map(lambda x: {"text": format_prompt(x)})
 
 model_name = "speakleash/Bielik-4.5B-v3.0-Instruct"
 
-quant_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True)
-
+#quant_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True)
+quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,  # albo torch.float16, jeśli wolisz
+)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token  # dla bezpieczeństwa
+tokenizer.padding_side = "right"
+
 
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     quantization_config=quant_config,
     device_map="auto",
 )
+model.config.pad_token_id = tokenizer.pad_token_id
 
 # przygotowanie pod LoRA
 model.gradient_checkpointing_enable()
@@ -214,6 +222,13 @@ trainer = Trainer(
 
 print("🚀 Start treningu Bielika...")
 trainer.train()
+# ===================== 5. Zapis adaptera LoRA i tokenizera =====================
+
+save_dir = "./bielik-title-lora"
+model.save_pretrained(save_dir)
+tokenizer.save_pretrained(save_dir)
+
+print("✅ Zapisano adapter LoRA do:", save_dir)
 
 # ===================== 5. Testujemy model =====================
 
@@ -221,7 +236,8 @@ prompt = """### Instrukcja:
 Rozpoznaj tytuł w tekście poniżej:
 
 ### Wejście:
-Uwielbiam film 'Forrest Gump', oglądałem go wiele razy.
+Słuchałem ostatnio soundtracku z albumu Thriller Michaela Jacksona i znowu złapałem się na nuceniu refrenu.
+
 
 ### Odpowiedź:
 """
@@ -230,3 +246,80 @@ inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 with torch.inference_mode():
     outputs = model.generate(**inputs, max_new_tokens=20, do_sample=False)
 print("\n🧩 Odpowiedź modelu:\n", tokenizer.decode(outputs[0], skip_special_tokens=True))
+
+#Ładowanie modelu: 
+    
+    
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import PeftModel
+
+base_model_name = "speakleash/Bielik-4.5B-v3.0-Instruct"
+lora_dir = "./bielik-title-lora"
+
+quant_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,
+)
+
+# używamy tokenizer z LoRA (taki sam jak w treningu)
+tokenizer = AutoTokenizer.from_pretrained(lora_dir)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right"
+
+# 1️⃣ model bazowy (bez fine-tuningu)
+model_base = AutoModelForCausalLM.from_pretrained(
+    base_model_name,
+    quantization_config=quant_config,
+    device_map="auto",
+)
+model_base.config.pad_token_id = tokenizer.pad_token_id
+model_base.eval()
+
+# 2️⃣ model z LoRA
+model_lora = AutoModelForCausalLM.from_pretrained(
+    base_model_name,
+    quantization_config=quant_config,
+    device_map="auto",
+)
+model_lora.config.pad_token_id = tokenizer.pad_token_id
+model_lora = PeftModel.from_pretrained(model_lora, lora_dir)
+model_lora.eval()
+
+prompt = """### Instrukcja:
+Rozpoznaj tytuł w tekście poniżej:
+
+### Wejście:
+Słuchałem Na szczycie w samochodzie i znowu przypomniały mi się czasy liceum.
+
+
+
+### Odpowiedź:
+"""
+
+inputs = tokenizer(prompt, return_tensors="pt").to(model_base.device)
+
+with torch.inference_mode():
+    out_base = model_base.generate(
+        **inputs,
+        max_new_tokens=40,
+        do_sample=False,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+
+with torch.inference_mode():
+    out_lora = model_lora.generate(
+        **inputs,
+        max_new_tokens=40,
+        do_sample=False,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+
+print("\n=== 🟦 BAZOWY BIELIK (bez FT) ===")
+print(tokenizer.decode(out_base[0], skip_special_tokens=True))
+
+print("\n=== 🟩 BIELIK + LoRA (po FT) ===")
+print(tokenizer.decode(out_lora[0], skip_special_tokens=True))
+
