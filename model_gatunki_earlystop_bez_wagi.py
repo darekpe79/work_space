@@ -152,15 +152,18 @@ dataset = dataset.rename_column("labels", "label")
 dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
 
 # Podział na zbiór treningowy i walidacyjny
-train_test_dataset = dataset.train_test_split(test_size=0.2)
-dataset_dict = DatasetDict({
-    'train': train_test_dataset['train'],
-    'eval': train_test_dataset['test']
-})
+tmp = dataset.train_test_split(test_size=0.2)
+train_valid = tmp['train'].train_test_split(test_size=0.125)
 
+dataset_dict = DatasetDict({
+    'train': train_valid['train'],   # ~70%
+    'eval':  train_valid['test'],    # ~10%
+    'test':  tmp['test']              # ~20%
+})
+eval_dataset=dataset_dict['eval']
 # Definicja argumentów treningowych
 training_args = TrainingArguments(
-    output_dir="./results",
+    output_dir="G:/gatunki_model/",
     num_train_epochs=10,               # Ustawienie większej liczby epok
     per_device_train_batch_size=8,     # Zwiększenie batch size, jeśli to możliwe
     per_device_eval_batch_size=8,
@@ -171,7 +174,7 @@ training_args = TrainingArguments(
     evaluation_strategy="epoch",
     save_strategy="epoch",
     load_best_model_at_end=True,       # Załadowanie najlepszego modelu na końcu
-    metric_for_best_model="accuracy",  # Metryka używana do wyboru najlepszego modelu
+    metric_for_best_model="f1",  # Metryka używana do wyboru najlepszego modelu
     greater_is_better=True,
     save_total_limit=2,                # Maksymalna liczba zapisanych modeli
     no_cuda=True                       # Ustaw na False, jeśli masz dostęp do GPU
@@ -210,10 +213,53 @@ results = trainer.evaluate()
 print(results)
 
 # Zapisanie modelu i tokenizer'a
-model_path = "model_best"
-model.save_pretrained(model_path)
-tokenizer.save_pretrained(model_path)
+
 
 # Zapisanie LabelEncoder
 import joblib
 joblib.dump(label_encoder, 'label_encoder.joblib')
+
+from sklearn.metrics import classification_report, confusion_matrix
+
+# ======================
+# PREDYKCJE NA ZBIORZE TESTOWYM
+# ======================
+predictions = trainer.predict(dataset_dict["test"])
+
+y_true = predictions.label_ids
+y_pred = predictions.predictions.argmax(axis=1)
+
+print("\n=== CLASSIFICATION REPORT (TEST SET) ===")
+print(
+    classification_report(
+        y_true,
+        y_pred,
+        target_names=label_encoder.classes_,
+        digits=4,
+        zero_division=0
+    )
+)
+
+df_preds = pd.DataFrame({
+    "true_label": label_encoder.inverse_transform(y_true),
+    "pred_label": label_encoder.inverse_transform(y_pred)
+})
+
+# ======================
+# ZAPIS NAJLEPSZEGO MODELU (EARLY STOPPING)
+# ======================
+OUTPUT_DIR = "G:/gatunki_model/"
+
+predictions_path = os.path.join(OUTPUT_DIR, "predictions_test_set.csv")
+df_preds.to_csv(predictions_path, index=False, encoding="utf-8")
+
+trainer.model.save_pretrained(OUTPUT_DIR)
+tokenizer.save_pretrained(OUTPUT_DIR)
+
+
+import joblib
+label_encoder_path = os.path.join(
+    OUTPUT_DIR,
+    "label_encoder_gatunki_best_spyder.joblib"
+)
+joblib.dump(label_encoder, label_encoder_path)

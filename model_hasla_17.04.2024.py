@@ -171,8 +171,6 @@ logger.setLevel(logging.INFO)
 datasets_logger = logging.getLogger("datasets")
 datasets_logger.setLevel(logging.INFO)
 df_excel = pd.read_excel('C:/Users/darek/Downloads/Mapowanie działów.xlsx')
-
-
 df_excel['połączony dział'] = df_excel['nr działu'].astype(str) + " " + df_excel['nazwa działu']
 
 mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['połączony dział']).to_dict()
@@ -188,8 +186,42 @@ liczba_wystapien = wartosci.value_counts()
 liczba_wystapien_sum = wartosci.value_counts().sum()
 ilosc_gatunkow = liczba_wystapien.index.nunique()
 
+wartosci_rozwiniete = wartosci.map(mapowanie)
+wartosci_rozwiniete = wartosci_rozwiniete.dropna()
+liczba_wystapien = wartosci_rozwiniete.value_counts()
+liczba_wystapien_sum = liczba_wystapien.sum()
+ilosc_gatunkow = liczba_wystapien.index.nunique()
 
+MIN_COUNT = 100
 
+# --- SUROWE HASŁA ---
+wartosci_surowe = (
+    df['hasła przedmiotowe']
+    .dropna()
+    .str.split(r'[;,]')
+    .explode()
+    .str.strip()
+)
+
+counts_surowe = wartosci_surowe.value_counts()
+counts_surowe_100 = counts_surowe[counts_surowe >= MIN_COUNT]
+
+print("\n=== SUROWE HASŁA ===")
+print("Unikalne hasła (wszystkie):", counts_surowe.index.nunique())
+print("Unikalne hasła (>=100):", counts_surowe_100.index.nunique())
+print("Liczba przypisań (>=100):", counts_surowe_100.sum())
+
+# --- HASŁA ROZWINIĘTE / DZIAŁY ---
+wartosci_rozwiniete = wartosci_surowe.map(mapowanie)
+wartosci_rozwiniete = wartosci_rozwiniete.dropna()
+
+counts_rozwiniete = wartosci_rozwiniete.value_counts()
+counts_rozwiniete_100 = counts_rozwiniete[counts_rozwiniete >= MIN_COUNT]
+
+print("\n=== HASŁA ROZWINIĘTE (DZIAŁY) ===")
+print("Unikalne działy (wszystkie):", counts_rozwiniete.index.nunique())
+print("Unikalne działy (>=100):", counts_rozwiniete_100.index.nunique())
+print("Liczba przypisań (>=100):", counts_rozwiniete_100.sum())
 df = df.dropna(subset=['hasła przedmiotowe'])
 df['combined_text'] = df['Tytuł artykułu'] + " " + df['Tekst artykułu']
 
