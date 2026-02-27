@@ -186,22 +186,23 @@ mapowanie = pd.Series(df_excel['string uproszczony'].values, index=df_excel['po�
 
 # Użycie mapowania do stworzenia nowej kolumny w df
 df['rozwiniete_haslo'] = df['hasła przedmiotowe'].map(mapowanie)
-wartosci = df['hasła przedmiotowe'].str.split(r'[;,]', expand=True).stack().str.strip()
+#%%rzeczy zle liczone
+# wartosci = df['hasła przedmiotowe'].str.split(r'[;,]', expand=True).stack().str.strip()
 
 
 
-# Zlicz wystąpienia każdej wartości
-liczba_wystapien = wartosci.value_counts()
-liczba_wystapien_sum = wartosci.value_counts().sum()
-print (liczba_wystapien_sum)
-ilosc_gatunkow = liczba_wystapien.index.nunique()
+# # Zlicz wystąpienia każdej wartości
+# liczba_wystapien = wartosci.value_counts()
+# liczba_wystapien_sum = wartosci.value_counts().sum()
+# print (liczba_wystapien_sum)
+# ilosc_gatunkow = liczba_wystapien.index.nunique()
 
-wartosci_rozwiniete = wartosci.map(mapowanie)
-wartosci_rozwiniete = wartosci_rozwiniete.dropna()
-liczba_wystapien = wartosci_rozwiniete.value_counts()
-liczba_wystapien_sum = liczba_wystapien.sum()
-ilosc_gatunkow = liczba_wystapien.index.nunique()
-
+# wartosci_rozwiniete = wartosci.map(mapowanie)
+# wartosci_rozwiniete = wartosci_rozwiniete.dropna()
+# liczba_wystapien = wartosci_rozwiniete.value_counts()
+# liczba_wystapien_sum = liczba_wystapien.sum()
+# ilosc_gatunkow = liczba_wystapien.index.nunique()
+#%%
 MIN_COUNT = 100
 
 # --- SUROWE HASŁA ---

@@ -852,3 +852,371 @@ print("\nMISSING exact phrase count:", len(miss))
 for m in miss[:10]:
     print("\nlocal_identifier:", m["local_identifier"])
     print("snippet:", m["text_snippet"])
+    
+    
+#%% DOI EXTRACT
+import requests, re
+from urllib.parse import quote_plus, quote
+
+API_URL = "https://api.gotriple.eu/api/skg-if/products"
+HEADERS = {"Accept": "application/json"}
+PAGE_SIZE = 10
+TIMEOUT = 30
+
+DOIS = [
+    "10.1344/cpyp.2023.25.41705",
+    "10.25110/rcjs.v28i1.2025-11126",
+    "10.4467/25439561LE.21.007.15361",
+    "10.32890/ijms2022.29.2.4",
+    "10.37896/PJ11.10/017",
+]
+
+def gotriple_document_url(local_identifier: str) -> str | None:
+    if not local_identifier:
+        return None
+    return "https://gotriple.eu/explore/document/" + quote(local_identifier, safe="")
+
+def pick_first_text(d: dict) -> str | None:
+    # weź EN jeśli jest, inaczej pierwszy dostępny string
+    if not isinstance(d, dict) or not d:
+        return None
+    if "en" in d and isinstance(d["en"], list) and d["en"]:
+        return str(d["en"][0])
+    for vals in d.values():
+        if isinstance(vals, list) and vals:
+            return str(vals[0])
+    return None
+
+def titles_as_str(titles: dict) -> str | None:
+    if not isinstance(titles, dict) or not titles:
+        return None
+    parts = []
+    for lang, vals in titles.items():
+        if isinstance(vals, list):
+            for v in vals:
+                parts.append(f"{lang}: {v}")
+    return " | ".join(parts) if parts else None
+
+def extract_ids(rec: dict):
+    ids = rec.get("identifiers", []) or []
+    out = []
+    dois = []
+    if isinstance(ids, list):
+        for it in ids:
+            if isinstance(it, dict):
+                sch = it.get("scheme")
+                val = it.get("value")
+                if sch and val:
+                    out.append(f"{sch}:{val}")
+                if sch == "doi" and val:
+                    dois.append(val)
+    return out, dois
+
+def extract_authors(rec: dict):
+    contribs = rec.get("contributions", []) or []
+    authors = []
+    if isinstance(contribs, list):
+        for c in contribs:
+            if isinstance(c, dict) and c.get("role") == "author" and c.get("by"):
+                authors.append(c["by"])
+    return authors
+
+def extract_pub(rec: dict):
+    mans = rec.get("manifestations", []) or []
+    pub_date = None
+    access = None
+    licence = None
+    if isinstance(mans, list) and mans and isinstance(mans[0], dict):
+        m0 = mans[0]
+        dates = m0.get("dates", {}) or {}
+        if isinstance(dates, dict):
+            pub_date = dates.get("publication")
+        ar = m0.get("access_rights", {}) or {}
+        if isinstance(ar, dict):
+            access = ar.get("status")
+        licence = m0.get("licence")
+    return pub_date, access, licence
+
+def run_doi_test(doi: str):
+    doi = doi.strip()
+    flt = f'identifiers.id:{doi}'
+    params = {"filter": flt, "page": 1, "page_size": PAGE_SIZE}
+
+    qs = "&".join([f"{k}={quote_plus(str(v))}" for k, v in params.items()])
+    print("\n" + "="*90)
+    print("DOI:", doi)
+    print("url:", f"{API_URL}?{qs}")
+
+    r = requests.get(API_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+    print("http_status:", r.status_code)
+    r.raise_for_status()
+    data = r.json()
+
+    meta = data.get("meta", {}) or {}
+    print("meta.count:", meta.get("count"), "| page:", meta.get("page"), "| page_size:", meta.get("page_size"))
+
+    results = data.get("results", []) or []
+    print("page_rows:", len(results))
+
+    for i, rec in enumerate(results, 1):
+        lid = rec.get("local_identifier")
+        url = gotriple_document_url(lid)
+
+        title_all = titles_as_str(rec.get("titles", {}) or {})
+        abstract_1 = pick_first_text(rec.get("abstracts", {}) or {})
+
+        ids_all, dois = extract_ids(rec)
+        authors = extract_authors(rec)
+        pub_date, access, licence = extract_pub(rec)
+
+        print(f"\n[{i}] local_identifier: {lid}")
+        print("    gotriple_url:", url)
+        print("    product_type:", rec.get("product_type"), "| entity_type:", rec.get("entity_type"))
+        print("    publication:", pub_date, "| access:", access, "| licence:", licence)
+
+        if title_all:
+            print("    titles:", title_all[:400])
+        else:
+            print("    titles: (none)")
+
+        if abstract_1:
+            print("    abstract_snip:", abstract_1[:300].replace("\n", " "))
+        else:
+            print("    abstract_snip: (none)")
+
+        print("    identifiers:", "; ".join(ids_all)[:500] if ids_all else "(none)")
+        print("    doi_in_record:", ", ".join(dois) if dois else "(none)")
+        print("    authors:", "; ".join(authors)[:400] if authors else "(none)")
+
+for doi in DOIS:
+    run_doi_test(doi)
+    
+# TEST W JEDNej petli
+
+import requests, json
+from urllib.parse import quote_plus
+
+API_URL = "https://api.gotriple.eu/api/skg-if/products"
+HEADERS = {"Accept": "application/json"}
+PAGE_SIZE = 10
+TIMEOUT = 30
+
+DOIS = [
+    "10.1344/cpyp.2023.25.41705",
+    "10.25110/rcjs.v28i1.2025-11126",
+    "10.4467/25439561LE.21.007.15361",
+    "10.32890/ijms2022.29.2.4",
+    "10.37896/PJ11.10/017",
+    "10.1007/978-3-031-08084-5_70",
+    "10.1108/er-08-2021-0338",
+    "10.33558/optimal.v11i1.80",
+    "10.24815/jimen.v9i4.30432",
+    "10.1007/s10551-013-1774-3",
+    "10.37531/yum.v7i3.719910",
+    "10.31539/costing.v7i4.10090",
+    "10.1080/23311975.2018.1470891",
+    "10.1080/09585192.2013.763843",
+    "10.37531/yum.v7i3.79811",
+    "10.54209/jatilima.v6i03.9491",
+    "10.58812/jmws.v2i04",
+    "10.21009/JOBBE.005.2.14",
+    "10.1080/23311975.2023.2296698",
+    "10.1177/21582440251389698",
+    "10.46585/sp30021560",
+    "10.1136/bmjopen-2018-026472",
+    "10.34010/jurisma.v14i2.13905",
+    "10.1177/2158244020915905",
+    "10.61292/birev.v2i2",
+    "10.1016/j.heliyon.2025.e42386",
+    "10.46287/jhrmad.2022.25.2.3",
+    "10.31334/bijak.v21i2.3039",
+    "10.20319/icssh.2024.2223",
+    "10.24294/jipd9153",
+    "10.1051/shsconf/202521703003",
+    "10.1007/s11846-022-00538-4",
+    "10.59653/jbmed.v3i01.13481",
+    "10.1080/23311975.2023.2208429",
+    "10.5465/AMPROC.2023.19000abstract",
+    "10.29040/ijebar.v5i4.3632",
+    "10.31933/dijms.v5i2.2098",
+    "10.9770/jesi.2024.11.4(7)",
+    "10.23960/ijebe.v4i2.7810",
+    "10.31002/rekomen.v7i1",
+    "10.36085/jems.v6i1",
+    "10.1007/s43621-024-00214-5",
+    "10.4467/25439561le.21.007.15361",
+    "10.1057/s41599-025-04441-7",
+    "10.2478/mosr-2024-0001",
+    "10.21272/mmi.2024.2-11",
+]
+def gotriple_document_url(local_identifier: str) -> str | None:
+    if not local_identifier:
+        return None
+    return "https://gotriple.eu/documents/" + quote(local_identifier, safe="")
+
+rows = []
+
+for doi_query in DOIS:
+    doi_query = doi_query.strip()
+
+    flt = f"identifiers.id:{doi_query}"
+    params = {"filter": flt, "page": 1, "page_size": PAGE_SIZE}
+
+    qs = "&".join([f"{k}={quote_plus(str(v))}" for k, v in params.items()])
+    print("\n" + "=" * 100)
+    print("DOI query:", doi_query)
+    print("URL:", f"{API_URL}?{qs}")
+
+    r = requests.get(API_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+    print("http_status:", r.status_code)
+
+    if r.status_code != 200:
+        print("response_snip:", r.text[:500])
+        r.raise_for_status()
+
+    data = r.json()
+    meta = data.get("meta", {}) or {}
+    print("meta:", meta)
+
+    results = data.get("results", []) or []
+    print("results_len:", len(results))
+
+    for i, rec in enumerate(results[:5], 1):
+        row = {}
+        row["doi_query"] = doi_query
+
+        # podstawowe
+        row["local_identifier"] = rec.get("local_identifier")
+        row["gotriple_url"] = gotriple_document_url(row["local_identifier"])  # <- NOWE
+        row["entity_type"] = rec.get("entity_type")
+        row["product_type"] = rec.get("product_type")
+
+        # titles
+        titles = rec.get("titles", {})
+        row["title_langs"] = ",".join(titles.keys()) if isinstance(titles, dict) else None
+
+        all_titles = []
+        if isinstance(titles, dict):
+            for lang, vals in titles.items():
+                if isinstance(vals, list):
+                    for v in vals:
+                        all_titles.append(f"{lang}: {v}")
+        row["titles_all"] = " | ".join(all_titles) if all_titles else None
+
+        # abstracts
+        abstracts = rec.get("abstracts", {})
+        abstract = None
+        if isinstance(abstracts, dict):
+            if "en" in abstracts and isinstance(abstracts["en"], list) and abstracts["en"]:
+                abstract = abstracts["en"][0]
+            else:
+                for v in abstracts.values():
+                    if isinstance(v, list) and v:
+                        abstract = v[0]
+                        break
+        row["abstract"] = abstract
+
+        # identifiers
+        ids = rec.get("identifiers", [])
+        row["identifiers_n"] = len(ids) if isinstance(ids, list) else 0
+
+        schemes = []
+        doi_in_record = None
+        if isinstance(ids, list):
+            for it in ids:
+                if isinstance(it, dict):
+                    sch = it.get("scheme")
+                    val = it.get("value")
+                    if sch:
+                        schemes.append(sch)
+                    if sch == "doi" and val and doi_in_record is None:
+                        doi_in_record = val
+        row["id_schemes"] = ",".join(sorted(set(schemes))) if schemes else None
+        row["doi_in_record"] = doi_in_record
+
+        # topics
+        topics = rec.get("topics", [])
+        terms = []
+        if isinstance(topics, list):
+            for t in topics:
+                if isinstance(t, dict) and t.get("term"):
+                    terms.append(t["term"])
+        row["topics_n"] = len(terms)
+        row["topics"] = "; ".join(terms) if terms else None
+
+        # contributions
+        contribs = rec.get("contributions", [])
+        authors = []
+        publishers = []
+        if isinstance(contribs, list):
+            for c in contribs:
+                if isinstance(c, dict):
+                    role = c.get("role")
+                    by = c.get("by")
+                    if role == "author" and by:
+                        authors.append(by)
+                    if role == "publisher" and by:
+                        publishers.append(by)
+        row["authors_n"] = len(authors)
+        row["authors"] = "; ".join(authors) if authors else None
+        row["publishers"] = "; ".join(publishers) if publishers else None
+
+        # manifestations
+        mans = rec.get("manifestations", [])
+        row["manifestations_n"] = len(mans) if isinstance(mans, list) else 0
+
+        pub_date = None
+        access_status = None
+        licence = None
+        if isinstance(mans, list) and mans and isinstance(mans[0], dict):
+            m0 = mans[0]
+            dates = m0.get("dates", {})
+            if isinstance(dates, dict):
+                pub_date = dates.get("publication")
+            ar = m0.get("access_rights", {})
+            if isinstance(ar, dict):
+                access_status = ar.get("status")
+            licence = m0.get("licence")
+
+        row["publication"] = pub_date
+        row["access"] = access_status
+        row["licence"] = licence
+
+        rows.append(row)
+
+import pandas as pd
+
+df = pd.DataFrame(rows)
+
+# kolumny — gotriple_url jako PIERWSZA
+cols_order = [
+    "gotriple_url",          # <- 1. miejsce
+    "doi_query",
+    "doi_in_record",
+    "local_identifier",
+    "entity_type",
+    "product_type",
+    "publication",
+    "access",
+    "licence",
+    "authors_n",
+    "authors",
+    "publishers",
+    "identifiers_n",
+    "id_schemes",
+    "manifestations_n",
+    "title_langs",
+    "titles_all",
+    "abstract",
+    "topics_n",
+    "topics",
+]
+
+cols_order = [c for c in cols_order if c in df.columns]
+df = df[cols_order]
+
+output_file = "gotriple_doi_test_results.xlsx"
+df.to_excel(output_file, index=False, engine="openpyxl")
+
+print("\nZapisano plik:", output_file)
+print("Liczba wierszy:", len(df))
